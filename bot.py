@@ -27,7 +27,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     main_menu = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
 
     # Gambar (gunakan link .jpg/.png langsung)
-    photo_url = "https://ibb.co/m5XbX15b"  # pastikan link gambar langsung file .jpg/.png
+    photo_url = "https://ibb.co/m5XbX15b"
 
     await update.message.reply_photo(
         photo=photo_url,
@@ -41,6 +41,42 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "➤ CLICK /start TO  MENU :",
         reply_markup=main_menu
     )
+
+# Fungsi balasan untuk menu biru
+async def reply_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+
+    if text == "🌟 NEW REGISTER 🌟":
+        await update.message.reply_photo(
+            photo="https://ibb.co/m5XbX15b",
+            caption="🧧 NEW REGISTER BONUS 🧧\n\n🎁 Free Credit RM88\n🎁 Min WD RM1888\n🎁 Max WD RM20"
+        )
+
+    elif text == "🍎 SHARE & FREE 🍎":
+        await update.message.reply_photo(
+            photo="https://ibb.co/m5XbX15b",
+            caption="🍎 SHARE & FREE 🍎\n\nBagikan ke temanmu, dapatkan free credit!"
+        )
+
+    elif text == "🔥 365 FREE CREDIT 🔥":
+        await update.message.reply_photo(
+            photo="https://ibb.co/m5XbX15b",
+            caption="🔥 365 FREE CREDIT 🔥\n\nKlaim kredit gratis setiap hari!"
+        )
+
+    elif text == "🌞 SOCIAL MEDIA 🌞":
+        await update.message.reply_text(
+            "🌞 Ikuti sosial media kami:\n\n"
+            "📘 Facebook: https://facebook.com/afb88\n"
+            "📸 Instagram: https://instagram.com/afb88\n"
+            "🎥 TikTok: https://tiktok.com/@afb88"
+        )
+
+    elif text == "🎉 TELEGRAM BONUS 🎉":
+        await update.message.reply_photo(
+            photo="https://ibb.co/m5XbX15b",
+            caption="🎉 TELEGRAM BONUS 🎉\n\nJoin channel untuk bonus eksklusif!"
+        )
 
 # Callback ketika tombol ditekan
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -61,11 +97,11 @@ def main():
     app.add_handler(CommandHandler("profile", start))
     app.add_handler(CommandHandler("contact", start))
 
-    # Handler tombol
+    # Handler tombol inline
     app.add_handler(CallbackQueryHandler(button))
 
-    # Handler untuk pesan teks bebas
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, start))
+    # Handler untuk pesan teks dari tombol biru
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reply_menu))
 
     print("🤖 Bot sudah jalan...")
     app.run_polling()
