@@ -9,11 +9,26 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     username = f"@{user.username}" if user.username else user.first_name
 
-    keyboard = [
+    # Menu lama (biarkan tetap ada)
+    keyboard_old = [
         [InlineKeyboardButton("✔️ Subcribe Channel", url="https://t.me/afb88my")],
         [InlineKeyboardButton("📢 Group Cuci&Tips GAME", url="https://t.me/+b685QE242dMxOWE9")],
         [InlineKeyboardButton("➤ Link Register", url="https://afb88my1.com/")],
     ]
+
+    # Menu tambahan (seperti di gambar)
+    keyboard_new = [
+        [InlineKeyboardButton("🌟 NEW REGISTER 🌟", url="https://afb88my1.com/")],
+        [InlineKeyboardButton("🍎 SHARE & FREE 🍎", url="https://t.me/afb88my")],
+        [
+            InlineKeyboardButton("🔥 365 FREE CREDIT 🔥", url="https://t.me/+b685QE242dMxOWE9"),
+            InlineKeyboardButton("🌞 SOCIAL MEDIA 🌞", url="https://instagram.com/")
+        ],
+        [InlineKeyboardButton("🎉 TELEGRAM BONUS 🎉", url="https://t.me/afb88my")]
+    ]
+
+    # Gabungkan menu lama + baru
+    keyboard = keyboard_old + keyboard_new
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     # Gambar (gunakan link .jpg/.png langsung)
