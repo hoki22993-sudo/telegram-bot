@@ -4,12 +4,12 @@ from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQuer
 # Ganti dengan token bot kamu
 TOKEN = "8492656457:AAHl6wRAmvQpO5wjkfyV-3_4B8UJJuUDiFE"
 
-# Fungsi balasan (untuk /start dan pesan bebas)
+# Fungsi balasan untuk /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     username = f"@{user.username}" if user.username else user.first_name
 
-    # Tombol inline (tetap ada, jangan diubah)
+    # Tombol inline
     keyboard = [
         [InlineKeyboardButton("✔️ Subcribe Channel", url="https://t.me/afb88my")],
         [InlineKeyboardButton("📢 Group Cuci&Tips GAME", url="https://t.me/+b685QE242dMxOWE9")],
@@ -27,22 +27,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     main_menu = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
 
     # Gambar (gunakan link .jpg/.png langsung)
-    photo_url = "https://i.ibb.co/tbRzzZb/sample-newregister.jpg"  # contoh link jpg/png
+    photo_url = "https://i.ibb.co/tbRzzZb/sample-newregister.jpg"
 
     await update.message.reply_photo(
         photo=photo_url,
-        caption=f"👋 Hi {username}, \n\nBossku 😘 Kalau anda sudah subscribe saya, saya pasti kasi anda untungan yg terbaik!! "
+        caption=f"👋 Hi {username}, \n\nBossku 😘 Kalau anda sudah subscribe saya, "
+                f"saya pasti kasi anda untungan yg terbaik!! "
                 f"Sila join Group2 yg saya share dlu. Pastikan anda dapat REZEKI di group2 saya ❤️:",
         reply_markup=reply_markup
     )
 
-    # Kirim juga menu permanen (reply keyboard)
+    # Kirim juga menu permanen
     await update.message.reply_text(
         "➤ CLICK /start TO MENU :",
         reply_markup=main_menu
     )
 
-# Callback ketika tombol ditekan
+# Callback tombol inline
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -53,6 +54,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Fungsi balasan untuk menu permanen
 async def reply_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
+    print(f"[DEBUG] User klik menu: {text}")  # debug print ke terminal
 
     if text == "🌟 NEW REGISTER 🌟":
         keyboard = [[InlineKeyboardButton("CLAIM NOW", url="https://afb88my1.com/")]]
@@ -120,11 +122,15 @@ def main():
     app.add_handler(CommandHandler("profile", start))
     app.add_handler(CommandHandler("contact", start))
 
-    # Handler tombol
+    # Handler tombol inline
     app.add_handler(CallbackQueryHandler(button))
 
-    # Handler untuk menu permanen
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reply_menu))
+    # Handler untuk menu permanen (reply keyboard)
+    menu_options = ["🌟 NEW REGISTER 🌟", "🍎 SHARE & FREE 🍎",
+                    "🔥 365 FREE CREDIT 🔥", "🌞 SOCIAL MEDIA 🌞",
+                    "🎉 TELEGRAM BONUS 🎉"]
+
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("|".join(menu_options)), reply_menu))
 
     print("🤖 Bot sudah jalan...")
     app.run_polling()
