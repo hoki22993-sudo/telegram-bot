@@ -47,35 +47,56 @@ async def reply_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
 
     if text == "🌟 NEW REGISTER 🌟":
+        keyboard = [[InlineKeyboardButton("CLAIM", url="https://afb88my1.com/")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
         await update.message.reply_photo(
             photo="https://ibb.co/m5XbX15b",
-            caption="🧧 NEW REGISTER BONUS 🧧\n\n🎁 Free Credit RM88\n🎁 Min WD RM1888\n🎁 Max WD RM20"
+            caption="🧧 NEW REGISTER BONUS 🧧\n\n🎁 Free Credit RM88\n🎁 Min WD RM1888\n🎁 Max WD RM20",
+            reply_markup=reply_markup
         )
 
     elif text == "🍎 SHARE & FREE 🍎":
+        keyboard = [[InlineKeyboardButton("CLAIM", url="https://ibb.co/m5XbX15b")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
         await update.message.reply_photo(
             photo="https://ibb.co/m5XbX15b",
-            caption="🍎 SHARE & FREE 🍎\n\nBagikan ke temanmu, dapatkan free credit!"
+            caption="🍎 SHARE & FREE 🍎\n\nBagikan ke temanmu, dapatkan free credit!",
+            reply_markup=reply_markup
         )
 
     elif text == "🔥 365 FREE CREDIT 🔥":
+        keyboard = [[InlineKeyboardButton("CLAIM", url="https://afb88my1.com/")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
         await update.message.reply_photo(
             photo="https://ibb.co/m5XbX15b",
-            caption="🔥 365 FREE CREDIT 🔥\n\nKlaim kredit gratis setiap hari!"
+            caption="🔥 365 FREE CREDIT 🔥\n\nKlaim kredit gratis setiap hari!",
+            reply_markup=reply_markup
         )
 
     elif text == "🌞 SOCIAL MEDIA 🌞":
-        await update.message.reply_text(
-            "🌞 Ikuti sosial media kami:\n\n"
-            "📘 Facebook: https://facebook.com/afb88\n"
-            "📸 Instagram: https://instagram.com/afb88\n"
-            "🎥 TikTok: https://tiktok.com/@afb88"
+        keyboard = [[InlineKeyboardButton("CLAIM", url="https://facebook.com/afb88")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.message.reply_photo(
+            photo="https://ibb.co/m5XbX15b",
+            caption="🌞 Ikuti sosial media kami:\n\n"
+                    "📘 Facebook: https://facebook.com/afb88\n"
+                    "📸 Instagram: https://instagram.com/afb88\n"
+                    "🎥 TikTok: https://tiktok.com/@afb88",
+            reply_markup=reply_markup
         )
 
     elif text == "🎉 TELEGRAM BONUS 🎉":
+        keyboard = [[InlineKeyboardButton("CLAIM", url="https://t.me/afb88my")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
         await update.message.reply_photo(
             photo="https://ibb.co/m5XbX15b",
-            caption="🎉 TELEGRAM BONUS 🎉\n\nJoin channel untuk bonus eksklusif!"
+            caption="🎉 TELEGRAM BONUS 🎉\n\nJoin channel untuk bonus eksklusif!",
+            reply_markup=reply_markup
         )
 
 # Callback ketika tombol ditekan
