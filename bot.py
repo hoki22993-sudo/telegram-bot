@@ -31,14 +31,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_photo(
         photo=photo_url,
-        caption=f"👋 Hi {username}, Bossku 😘\n\nKalau anda sudah subscribe saya, saya pasti kasi anda untungan yg terbaik!! "
+        caption=f"👋 Hi {username}, \n\nBossku 😘 Kalau anda sudah subscribe saya, saya pasti kasi anda untungan yg terbaik!! "
                 f"Sila join Group2 yg saya share dlu. Pastikan anda dapat REZEKI di group2 saya ❤️:",
         reply_markup=reply_markup
     )
 
     # Kirim juga menu permanen (reply keyboard)
     await update.message.reply_text(
-        "📌 Pilih menu di bawah untuk mulai:",
+        "➤ CLICK /start TO  MENU :",
         reply_markup=main_menu
     )
 
