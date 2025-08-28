@@ -27,7 +27,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     main_menu = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
 
     # Gambar (gunakan link .jpg/.png langsung)
-    photo_url = "https://ibb.co/m5XbX15b"  # pastikan link gambar langsung file .jpg/.png
+    photo_url = "https://i.ibb.co/tbRzzZb/sample-newregister.jpg"  # contoh link jpg/png
 
     await update.message.reply_photo(
         photo=photo_url,
@@ -38,7 +38,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Kirim juga menu permanen (reply keyboard)
     await update.message.reply_text(
-        "➤ CLICK /start TO  MENU :",
+        "➤ CLICK /start TO MENU :",
         reply_markup=main_menu
     )
 
@@ -49,6 +49,65 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if query.data == "profile":
         await query.edit_message_text("👤 Ini adalah menu profil kamu.")
+
+# Fungsi balasan untuk menu permanen
+async def reply_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+
+    if text == "🌟 NEW REGISTER 🌟":
+        keyboard = [[InlineKeyboardButton("CLAIM NOW", url="https://afb88my1.com/")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.message.reply_photo(
+            photo="https://i.ibb.co/tbRzzZb/sample-newregister.jpg",
+            caption="🧧 New Register 🧧\n\n"
+                    "🎁 Free Credit RM88\n"
+                    "🎁 Min Withdraw RM1888\n"
+                    "🎁 Max Withdraw RM20",
+            reply_markup=reply_markup
+        )
+
+    elif text == "🍎 SHARE & FREE 🍎":
+        keyboard = [[InlineKeyboardButton("SHARE SEKARANG", url="https://t.me/afb88my")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.message.reply_photo(
+            photo="https://i.ibb.co/tbRzzZb/sharefree.jpg",
+            caption="🍎 Share & Free 🍎\n\n"
+                    "🎁 Bagikan link ini ke teman dan dapatkan free credit!",
+            reply_markup=reply_markup
+        )
+
+    elif text == "🔥 365 FREE CREDIT 🔥":
+        keyboard = [[InlineKeyboardButton("DAFTAR SEKARANG", url="https://afb88my1.com/")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.message.reply_photo(
+            photo="https://i.ibb.co/sj3GZ4F/365credit.jpg",
+            caption="🔥 365 FREE CREDIT 🔥\n\n"
+                    "🎁 Kredit free setiap hari!\n"
+                    "🎁 Klaim tanpa syarat",
+            reply_markup=reply_markup
+        )
+
+    elif text == "🌞 SOCIAL MEDIA 🌞":
+        await update.message.reply_text(
+            "🌞 Ikuti sosial media kami untuk bonus spesial:\n\n"
+            "📘 Facebook: https://facebook.com/afb88\n"
+            "📸 Instagram: https://instagram.com/afb88\n"
+            "🎥 TikTok: https://tiktok.com/@afb88"
+        )
+
+    elif text == "🎉 TELEGRAM BONUS 🎉":
+        keyboard = [[InlineKeyboardButton("JOIN CHANNEL", url="https://t.me/afb88my")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.message.reply_photo(
+            photo="https://i.ibb.co/8dY6yVq/telegrambonus.jpg",
+            caption="🎉 Telegram Bonus 🎉\n\n"
+                    "🎁 Join channel kami & dapatkan bonus eksklusif!",
+            reply_markup=reply_markup
+        )
 
 def main():
     app = Application.builder().token(TOKEN).build()
@@ -64,8 +123,8 @@ def main():
     # Handler tombol
     app.add_handler(CallbackQueryHandler(button))
 
-    # Handler untuk pesan teks bebas
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, start))
+    # Handler untuk menu permanen
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reply_menu))
 
     print("🤖 Bot sudah jalan...")
     app.run_polling()
