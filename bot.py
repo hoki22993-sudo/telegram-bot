@@ -1,74 +1,47 @@
 import os
-import json
 from telegram import Update
-from telegram.ext import Application, MessageHandler, filters, ContextTypes, CommandHandler
+from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 
-# Ambil token dari environment variable
-TOKEN = os.getenv("BOT_TOKEN")  
-GROUP_FILE = "groups.json"
+# Ambil token dari Environment Variable
+TOKEN = os.getenv("BOT_TOKEN")
 
-# ==========================
-# Helper: Simpan & Ambil Grup
-# ==========================
-def load_groups():
-    try:
-        with open(GROUP_FILE, "r") as f:
-            return set(json.load(f))
-    except (FileNotFoundError, json.JSONDecodeError):
-        return set()
+# Simpan daftar grup di memory
+group_ids = set()
 
-def save_groups(groups):
-    with open(GROUP_FILE, "w") as f:
-        json.dump(list(groups), f)
+# Command /start → daftar grup
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    group_ids.add(chat_id)
+    await update.message.reply_text("🤖 Bot aktif! Pesan admin akan diforward ke grup lain.")
+    print(f"📌 Grup terdaftar: {group_ids}")
 
-group_ids = load_groups()
-
-# ==========================
-# Fungsi Forward
-# ==========================
+# Forward pesan dari admin ke semua grup lain
 async def forward_if_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message and update.effective_chat.type in ["group", "supergroup"]:
         chat_id = update.effective_chat.id
+        group_ids.add(chat_id)
 
-        # Daftarkan grup ke list
-        if chat_id not in group_ids:
-            group_ids.add(chat_id)
-            save_groups(group_ids)
-
-        # Cek apakah pengirim admin
+        # cek apakah pengirim admin
         member = await context.bot.get_chat_member(chat_id, update.effective_user.id)
         if member.status in ["administrator", "creator"]:
             for gid in group_ids:
-                if gid != chat_id:  # jangan forward balik ke grup asal
+                if gid != chat_id:  # jangan kirim balik ke grup asal
                     try:
                         await update.message.forward(chat_id=gid)
-                        print(f"Forward sukses ke {gid}")
+                        print(f"✅ Forward sukses ke {gid}")
                     except Exception as e:
-                        print(f"Gagal forward ke {gid}: {e}")
+                        print(f"❌ Gagal forward ke {gid}: {e}")
 
-# ==========================
-# Command /start
-# ==========================
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "🤖 Bot aktif!\n"
-        "➡️ Semua postingan admin di grup ini akan diforward ke grup lain yang ada bot."
-    )
-
-# ==========================
-# Main
-# ==========================
 def main():
     if not TOKEN:
-        raise ValueError("❌ BOT_TOKEN tidak ditemukan! Set environment variable BOT_TOKEN dulu.")
+        raise ValueError("❌ BOT_TOKEN belum diset di Environment Variables.")
 
     app = Application.builder().token(TOKEN).build()
 
-    # Handler
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.ALL, forward_if_admin))
+    app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, forward_if_admin))
 
-    print("🤖 Bot sudah jalan...")
+    print("🤖 Bot jalan...")
     app.run_polling()
 
 if __name__ == "__main__":
