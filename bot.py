@@ -1,45 +1,34 @@
 import os
 from telegram import Update
-from telegram.ext import Application, MessageHandler, filters, ContextTypes
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-# Ambil token dari Environment Variable
 TOKEN = os.getenv("BOT_TOKEN")
-
-async def forward_if_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Forward pesan hanya kalau pengirim admin grup."""
-    if update.message and update.effective_chat.type in ["group", "supergroup"]:
-        chat_id = update.effective_chat.id
-
-        # cek apakah user adalah admin/creator
-        member = await context.bot.get_chat_member(chat_id, update.effective_user.id)
-        if member.status in ["administrator", "creator"]:
-            for gid in context.bot_data.get("groups", set()):
-                if gid != chat_id:  # jangan kirim balik ke grup asal
-                    try:
-                        await update.message.forward(chat_id=gid)
-                    except Exception as e:
-                        print(f"Gagal forward ke {gid}: {e}")
-
-        # simpan daftar grup
-        groups = context.bot_data.setdefault("groups", set())
-        if chat_id not in groups:
-            groups.add(chat_id)
-            print(f"✅ Grup baru terdaftar: {chat_id}")
+APP_URL = os.getenv("APP_URL")  # isi dengan URL dari Render (misalnya https://mybot.onrender.com)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🤖 Bot aktif! Postingan admin akan diforward ke grup lain.")
+    await update.message.reply_text("🤖 Bot aktif dengan webhook!")
+
+async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(f"Kamu kirim: {update.message.text}")
 
 def main():
-    if not TOKEN:
-        raise ValueError("❌ BOT_TOKEN tidak ditemukan di Environment Variables.")
+    if not TOKEN or not APP_URL:
+        raise ValueError("❌ BOT_TOKEN atau APP_URL belum di-set di Environment Variables!")
 
     app = Application.builder().token(TOKEN).build()
 
-    app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, forward_if_admin))
-    app.add_handler(MessageHandler(filters.COMMAND, start))
+    # handler command & pesan
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
 
-    print("🚀 Bot sudah jalan polling...")
-    app.run_polling()
+    # jalankan webhook
+    port = int(os.environ.get("PORT", 10000))
+    app.run_webhook(
+        listen="0.0.0.0",
+        port=port,
+        url_path=TOKEN,
+        webhook_url=f"{APP_URL}/{TOKEN}"
+    )
 
 if __name__ == "__main__":
     main()
