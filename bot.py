@@ -1,34 +1,56 @@
 import os
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes, CallbackContext
 
-TOKEN = os.getenv("BOT_TOKEN")
-APP_URL = os.getenv("APP_URL")  # isi dengan URL dari Render (misalnya https://mybot.onrender.com)
+# Ambil dari Environment Variables
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+APP_URL = os.environ.get("APP_URL")
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🤖 Bot aktif dengan webhook!")
+if not BOT_TOKEN or not APP_URL:
+    raise ValueError("❌ BOT_TOKEN atau APP_URL belum di-set di Environment Variables!")
 
-async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(f"Kamu kirim: {update.message.text}")
+# ID grup source dan target (bisa daftar beberapa)
+SOURCE_GROUPS = [-1001234567890]  # ganti dengan ID grup sumber
+TARGET_GROUPS = [-1009876543210]  # ganti dengan ID grup tujuan
 
-def main():
-    if not TOKEN or not APP_URL:
-        raise ValueError("❌ BOT_TOKEN atau APP_URL belum di-set di Environment Variables!")
+# Simpan mapping pesan source -> forwarded message
+forwarded_messages = {}  # {chat_id: {message_id: forwarded_message_id}}
 
-    app = Application.builder().token(TOKEN).build()
+async def forward_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    source_chat_id = update.effective_chat.id
+    message_id = update.effective_message.message_id
 
-    # handler command & pesan
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+    if source_chat_id not in SOURCE_GROUPS:
+        return
 
-    # jalankan webhook
-    port = int(os.environ.get("PORT", 10000))
-    app.run_webhook(
-        listen="0.0.0.0",
-        port=port,
-        url_path=TOKEN,
-        webhook_url=f"{APP_URL}/{TOKEN}"
-    )
+    forwarded_messages.setdefault(source_chat_id, {})
 
-if __name__ == "__main__":
-    main()
+    for target_id in TARGET_GROUPS:
+        msg = await context.bot.forward_message(
+            chat_id=target_id,
+            from_chat_id=source_chat_id,
+            message_id=message_id
+        )
+        # Simpan mapping
+        forwarded_messages[source_chat_id][message_id] = msg.message_id
+
+async def delete_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Trigger ketika pesan dihapus di source grup.
+    Telegram tidak mengirim update saat pesan dihapus,
+    tapi kita bisa gunakan polling/administrasi via bot.
+    """
+    pass  # Telegram API tidak kirim delete info untuk bot biasa. Hanya admin channel bisa detect.
+
+# Jalankan aplikasi
+app = ApplicationBuilder().token(BOT_TOKEN).build()
+
+# Tangkap semua pesan
+app.add_handler(MessageHandler(filters.ALL & (~filters.StatusUpdate.ALL), forward_message))
+
+# Webhook
+app.run_webhook(
+    listen="0.0.0.0",
+    port=int(os.environ.get("PORT", 8443)),
+    webhook_url=f"{APP_URL}/{BOT_TOKEN}"
+)
