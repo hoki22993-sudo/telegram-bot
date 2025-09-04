@@ -1,5 +1,5 @@
 import os
-from telegram import Update
+from telegram import Update, ChatMember
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 # ===== KONFIGURASI =====
@@ -7,21 +7,25 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN")
 if not BOT_TOKEN:
     raise ValueError("❌ BOT_TOKEN belum di-set di Environment Variables!")
 
-# Masukkan User ID admin Telegram di sini
-ADMIN_IDS = [8327252807]  # Ganti dengan Telegram ID Anda
-
 # Masukkan ID grup tujuan
 TARGET_CHAT_IDS = [-1003038090571, -1002967257984, -1002996882426]
 
+# ===== CEK ADMIN GRUP =====
+async def is_user_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat = update.effective_chat
+    user_id = update.effective_user.id
+    try:
+        member = await context.bot.get_chat_member(chat.id, user_id)
+        return member.status in ["administrator", "creator"]
+    except Exception as e:
+        print(f"[DEBUG] Gagal cek admin: {e}")
+        return False
+
 # ===== FUNGSI FORWARD =====
 async def forward_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    print(f"[DEBUG] Command received from user_id={user_id}")
-    print(f"[DEBUG] ADMIN_IDS={ADMIN_IDS}")
-
-    if user_id not in ADMIN_IDS:
-        await update.message.reply_text("❌ Anda bukan admin!")
-        print("[DEBUG] User bukan admin, command ditolak")
+    if not await is_user_admin(update, context):
+        await update.message.reply_text("❌ Anda bukan admin grup!")
+        print(f"[DEBUG] User {update.effective_user.id} bukan admin grup")
         return
 
     if not update.message.reply_to_message:
