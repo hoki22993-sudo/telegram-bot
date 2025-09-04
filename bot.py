@@ -22,17 +22,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Tombol inline
     keyboard = [
-        [InlineKeyboardButton("✔️ Subcribe Channel", url="https://t.me/afb88my")],
-        [InlineKeyboardButton("📢 Group Cuci&Tips GAME", url="https://t.me/+b685QE242dMxOWE9")],
-        [InlineKeyboardButton("➤ Link Register", url="https://afb88my1.com/")],
+        [InlineKeyboardButton("✔️ SUBCRIBE CHANEL", url="https://t.me/afb88my")],
+        [InlineKeyboardButton("📢 GROUP CUCI & TIPS GAME", url="https://t.me/+b685QE242dMxOWE9")],
+        [InlineKeyboardButton("🌐 REGISTER & LOGIN ", url="https://afb88my1.com/")],
+        [InlineKeyboardButton("🔞 Amoi Video XXX ", url="t.me/Xamoi2688")],
+        
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     # Menu permanen
     reply_keyboard = [
-        ["🌟 NEW REGISTER 🌟"],
-        ["🍎 SHARE & FREE 🍎"],
-        ["🔥 365 FREE CREDIT 🔥", "🌞 SOCIAL MEDIA 🌞"],
+        ["🌟 NEW REGISTER FREE 🌟"],
+        [" SHARE FACEBOOK ➤"],
+        ["🔥 DAILY APPS FREE 🔥", "🌞 SOCIAL MEDIA 🌞"],
         ["🎉 TELEGRAM BONUS 🎉"]
     ]
     main_menu = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
@@ -43,7 +45,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_photo(
         photo=photo_url,
         caption=f"👋 Hi {username}, \n\nBossku 😘 Kalau anda sudah subscribe saya, saya pasti kasi anda untungan yg terbaik!! "
-                f"Sila join Group2 yg saya share dlu. Pastikan anda dapat REZEKI di group2 saya ❤️:",
+                f"Sila join Group2 yg saya share dlu. Pastikan anda dapat REZEKI di group2 saya ❤️",
         reply_markup=reply_markup
     )
     await update.message.reply_text("➤ CLICK /start TO  MENU :", reply_markup=main_menu)
@@ -53,17 +55,17 @@ async def reply_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
 
     menu_data = {
-        "🌟 NEW REGISTER 🌟": {
+        "🌟 NEW REGISTER FREE 🌟": {
             "url": "https://afb88my1.com/",
-            "caption": "🧧 NEW REGISTER BONUS 🧧\n\n🎁 Free Credit RM88\n🎁 Min WD RM1888\n🎁 Max WD RM20"
+            "caption": "🧧 NEW REGISTER BONUS 🧧\n\n🎁 Free Credit RM88\n🎁 Min WD/CUCI RM2000\n🎁 Max.Payment/WD RM40"
         },
-        "🍎 SHARE & FREE 🍎": {
+        "➤ SHARE FACEBOOK ➤": {
             "url": "https://ibb.co/m5XbX15b",
-            "caption": "🍎 SHARE & FREE 🍎\n\nBagikan ke temanmu, dapatkan free credit!"
+            "caption": "🧧 FREE CREDIT RM68 🧧\n\n🎁  STEP 1 JOIN OUR TELEGRAM CHANEL\n🎁 STEP 2 JOIN OUR FACEBOOK GROUP\n🎁 HAD TUNTUTAN DAILY CLAIM 1X\n🎁 DI BENARKAN MAIN MEGAH5|EPICWIN|PXPLAY2|ACEWIN2|RICH GAMING|(EVENT GAME ONLY)\n🎁 MIN MAX.WITHDRAW RM500/RM20"
         },
-        "🔥 365 FREE CREDIT 🔥": {
+        "🔥 DAILY APPS FREE 🔥": {
             "url": "https://afb88my1.com/",
-            "caption": "🔥 365 FREE CREDIT 🔥\n\nKlaim kredit gratis setiap hari!"
+            "caption": "🔥 FREE CREDIT RM 20 🔥\n\nHAD TUNTUTAN DAILY CLAIM 1X\n\nMIN.WITHDRAW RM 600\n\nMAX.PAYMENT RM 10\n\nBELOW CREDIT RM0.10"
         },
         "🌞 SOCIAL MEDIA 🌞": {
             "url": "https://facebook.com/afb88",
