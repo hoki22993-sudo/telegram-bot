@@ -8,16 +8,16 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 # Konfigurasi
 # ========================
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
-APP_URL = os.environ.get("APP_URL")  # misal https://telegram-bot-bp4g.onrender.com
+APP_URL = os.environ.get("APP_URL")  # Contoh: https://telegram-bot-bp4g.onrender.com
 PORT = int(os.environ.get("PORT", 8443))
 MAPPING_FILE = "forwarded_messages.json"
 
 if not BOT_TOKEN or not APP_URL:
-    raise ValueError("❌ BOT_TOKEN atau APP_URL belum di-set di Environment Variables!")
+    raise ValueError("❌ BOT_TOKEN atau APP_URL belum di-set!")
 
 # ID grup
-SOURCE_GROUPS = [-1003038090571]  # ganti sesuai source grup Anda
-TARGET_GROUPS = [-1002967257984, -1002996882426]  # ganti target grup
+SOURCE_GROUPS = [-1003038090571]  # ganti dengan ID grup sumber
+TARGET_GROUPS = [-1002967257984, -1002996882426]  # ganti dengan grup target
 
 # Load mapping
 if os.path.exists(MAPPING_FILE):
@@ -34,7 +34,7 @@ def save_mapping():
 # Handler / Perintah
 # ========================
 
-# Forward via reply
+# Forward pesan via reply
 async def forward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
     user = update.effective_user
@@ -104,13 +104,13 @@ async def delete_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("✅ Pesan berhasil dihapus!")
 
 # ========================
-# Setup bot & webhook
+# Setup bot & webhook resmi
 # ========================
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(CommandHandler("forward", forward_command))
 app.add_handler(CommandHandler("delete", delete_forward))
 
-# Jalankan webhook
+# Jalankan webhook internal python-telegram-bot
 webhook_url = f"{APP_URL}/webhook/{BOT_TOKEN}"
 print(f"Webhook aktif: {webhook_url}")
 
