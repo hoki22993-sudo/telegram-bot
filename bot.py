@@ -9,16 +9,17 @@ from telegram.error import TimedOut, TelegramError
 # Konfigurasi
 # ========================
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
+APP_URL = os.environ.get("APP_URL")  # URL Render Anda
 MAPPING_FILE = "forwarded_messages.json"
 
-if not BOT_TOKEN:
-    raise ValueError("❌ BOT_TOKEN belum di-set di Environment Variables!")
+if not BOT_TOKEN or not APP_URL:
+    raise ValueError("❌ BOT_TOKEN atau APP_URL belum di-set di environment variables!")
 
-SOURCE_GROUPS = [-1003038090571]  # grup sumber
+SOURCE_GROUPS = [-1003038090571]  # Grup sumber
 TARGET_GROUPS = [
     -1002967257984,
     -1002996882426
-]  # target grup/channel
+]  # Target grup/channel
 
 # ========================
 # Load / Save mapping
@@ -50,7 +51,7 @@ async def forward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Hanya admin grup yang bisa forward pesan.")
         return
 
-    # Cek apakah pesan di-reply
+    # Cek reply
     if not update.message.reply_to_message:
         await update.message.reply_text("❌ Gunakan reply ke pesan yang ingin di-forward, lalu ketik /forward")
         return
@@ -79,7 +80,7 @@ async def forward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ Gagal forward pesan: {e}")
 
 # ========================
-# Command hapus forward (hanya admin)
+# Delete forward (hanya admin)
 # ========================
 async def delete_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
@@ -112,12 +113,18 @@ async def delete_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"Pesan {message_id} berhasil dihapus dari semua target.")
 
 # ========================
-# Jalankan bot dengan polling
+# Jalankan bot dengan webhook
 # ========================
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("forward", forward_command))
 app.add_handler(CommandHandler("delete", delete_forward))
 
-print("Bot berjalan dengan polling (forward pakai reply admin)...")
-app.run_polling()
+print("Bot berjalan dengan webhook (reply admin untuk forward)...")
+
+# Jalankan webhook
+app.run_webhook(
+    listen="0.0.0.0",
+    port=int(os.environ.get("PORT", 8443)),
+    webhook_url=f"{APP_URL}/{BOT_TOKEN}"
+)
