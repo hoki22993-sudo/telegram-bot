@@ -15,7 +15,6 @@ SOURCE_CHAT_ID = -1003038090571  # ganti dengan ID grup utama
 
 # Grup tujuan
 TARGET_CHAT_IDS = [
-    -1003038090571,
     -1002967257984,
     -1002996882426
 ]
@@ -42,7 +41,7 @@ async def forward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Reply ke pesan yang ingin di-forward.")
         return
 
-    success, failed = [], []
+    failed = []
 
     for target_id in TARGET_CHAT_IDS:
         try:
@@ -51,19 +50,15 @@ async def forward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 from_chat_id=update.message.reply_to_message.chat.id,
                 message_id=update.message.reply_to_message.message_id
             )
-            success.append(str(target_id))
         except Exception as e:
             failed.append(f"{target_id} ({e})")
             print(f"[DEBUG] Gagal forward ke {target_id}: {e}")
 
-    reply_text = ""
-    if success:
-        reply_text += f"✅ Berhasil di-forward ke: {', '.join(success)}\n"
+    # hanya tampilkan jika ada gagal
     if failed:
-        reply_text += f"❌ Gagal forward: {', '.join(failed)}"
+        await update.message.reply_text(f"❌ Gagal forward: {', '.join(failed)}")
 
-    await update.message.reply_text(reply_text)
-    print(f"[DEBUG] Forward done: {reply_text}")
+    print("[DEBUG] Forward selesai")
 
 # ================== MAIN ==================
 if __name__ == "__main__":
@@ -71,4 +66,3 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("forward", forward_command))
     print("Bot polling berjalan...")
     app.run_polling()
-
