@@ -37,18 +37,23 @@ def save_mapping():
         json.dump(forwarded_messages, f)
 
 # ========================
-# Forward pesan
+# Forward pesan (hanya admin)
 # ========================
 async def forward_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = int(update.effective_chat.id)
-    message_id = int(update.effective_message.message_id)
-    print(f"Pesan diterima dari {chat_id}: {message_id}")
+    chat = update.effective_chat
+    user = update.effective_user
 
-    if chat_id not in SOURCE_GROUPS:
-        print(f"Bukan grup sumber, diabaikan: {chat_id}")
+    if chat.id not in SOURCE_GROUPS:
         return
 
-    str_chat_id = str(chat_id)
+    # Cek apakah user admin
+    member = await chat.get_member(user.id)
+    if member.status not in ["administrator", "creator"]:
+        print(f"Pesan dari non-admin diabaikan: {user.id}")
+        return
+
+    message_id = update.effective_message.message_id
+    str_chat_id = str(chat.id)
     str_msg_id = str(message_id)
 
     forwarded_messages.setdefault(str_chat_id, {})
@@ -58,11 +63,11 @@ async def forward_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             msg = await context.bot.forward_message(
                 chat_id=target_id,
-                from_chat_id=chat_id,
+                from_chat_id=chat.id,
                 message_id=message_id
             )
             forwarded_messages[str_chat_id][str_msg_id][str(target_id)] = msg.message_id
-            print(f"Forwarded ke {target_id}: {msg.message_id}")
+            print(f"Forwarded pesan {message_id} ke {target_id}")
             await asyncio.sleep(0.5)
         except TimedOut:
             print(f"Timeout saat forward ke {target_id}, lewati sementara")
@@ -72,30 +77,36 @@ async def forward_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_mapping()
 
 # ========================
-# Command untuk hapus pesan forward
-# Admin bisa pakai: /delete <message_id>
+# Command hapus forward (hanya admin)
 # ========================
 async def delete_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat = update.effective_chat
+    user = update.effective_user
+
+    member = await chat.get_member(user.id)
+    if member.status not in ["administrator", "creator"]:
+        await update.message.reply_text("❌ Hanya admin grup yang bisa hapus pesan forward.")
+        return
+
     if len(context.args) != 1:
         await update.message.reply_text("Gunakan: /delete <message_id>")
         return
 
     message_id = context.args[0]
-    chat_id = str(update.effective_chat.id)
+    str_chat_id = str(chat.id)
 
-    if chat_id not in forwarded_messages or message_id not in forwarded_messages[chat_id]:
+    if str_chat_id not in forwarded_messages or message_id not in forwarded_messages[str_chat_id]:
         await update.message.reply_text("Pesan tidak ditemukan di mapping.")
         return
 
-    for target_id, fwd_msg_id in forwarded_messages[chat_id][message_id].items():
+    for target_id, fwd_msg_id in forwarded_messages[str_chat_id][message_id].items():
         try:
             await context.bot.delete_message(chat_id=int(target_id), message_id=int(fwd_msg_id))
             print(f"Pesan {fwd_msg_id} di {target_id} dihapus")
         except TelegramError as e:
             print(f"Gagal hapus pesan {fwd_msg_id} di {target_id}: {e}")
 
-    # Hapus mapping
-    del forwarded_messages[chat_id][message_id]
+    del forwarded_messages[str_chat_id][message_id]
     save_mapping()
     await update.message.reply_text(f"Pesan {message_id} berhasil dihapus dari semua target.")
 
@@ -107,5 +118,5 @@ app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(MessageHandler(filters.ALL & (~filters.StatusUpdate.ALL), forward_message))
 app.add_handler(CommandHandler("delete", delete_forward))
 
-print("Bot berjalan dengan polling...")
+print("Bot berjalan dengan polling (hanya pesan admin yang di-forward)...")
 app.run_polling()
