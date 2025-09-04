@@ -2,12 +2,12 @@ import os
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-# ======== KONFIGURASI ========
-BOT_TOKEN = os.environ.get("BOT_TOKEN")  # Isi di Environment Variables
+# ===== KONFIGURASI =====
+BOT_TOKEN = os.environ.get("BOT_TOKEN")  # Token bot dari BotFather
 ADMIN_IDS = [8327252807]  # Telegram User ID admin
 TARGET_CHAT_IDS = [-1003038090571, -1002967257984, -1002996882426]  # ID grup tujuan
 
-# ======== FUNGSI FORWARD ========
+# ===== FUNGSI FORWARD =====
 async def forward_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id not in ADMIN_IDS:
@@ -40,20 +40,13 @@ async def forward_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(reply_text)
 
-# ======== MAIN - WEBHOOK UNTUK RENDER ========
+# ===== MAIN - POLLING =====
 if __name__ == "__main__":
-    PORT = int(os.environ.get("PORT", 8443))        # Render menyediakan environment variable PORT
-    APP_URL = os.environ.get("APP_URL")             # URL Render Anda misal: https://namaproject.onrender.com
-
-    if not BOT_TOKEN or not APP_URL:
-        raise ValueError("❌ BOT_TOKEN atau APP_URL belum di-set di Environment Variables!")
+    if not BOT_TOKEN:
+        raise ValueError("❌ BOT_TOKEN belum di-set di Environment Variables!")
 
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("forward", forward_reply))
 
-    print("Bot berjalan dengan webhook...")
-    app.run_webhook(
-        listen="0.0.0.0",
-        port=PORT,
-        webhook_url=f"{APP_URL}/webhook/{BOT_TOKEN}"
-    )
+    print("Bot berjalan dengan polling... (abaikan warning port Render)")
+    app.run_polling()
