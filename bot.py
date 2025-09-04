@@ -123,8 +123,6 @@ async def forward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if failed:
         await update.message.reply_text(f"❌ Gagal forward: {', '.join(failed)}")
-    else:
-        await update.message.reply_text("✅ Pesan berhasil di-forward.")
 
 # ================== MAIN ==================
 def main():
