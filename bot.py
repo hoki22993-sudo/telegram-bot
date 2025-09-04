@@ -34,7 +34,7 @@ def save_mapping():
         json.dump(forwarded_messages, f)
 
 # ========================
-# Forward pesan per perintah
+# Forward pesan via reply
 # ========================
 async def forward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
@@ -50,11 +50,12 @@ async def forward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Hanya admin grup yang bisa forward pesan.")
         return
 
-    if len(context.args) != 1:
-        await update.message.reply_text("Gunakan: /forward <message_id>")
+    # Cek apakah pesan di-reply
+    if not update.message.reply_to_message:
+        await update.message.reply_text("❌ Gunakan reply ke pesan yang ingin di-forward, lalu ketik /forward")
         return
 
-    message_id = int(context.args[0])
+    message_id = update.message.reply_to_message.message_id
     str_chat_id = str(chat.id)
     str_msg_id = str(message_id)
 
@@ -71,7 +72,7 @@ async def forward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             forwarded_messages[str_chat_id][str_msg_id][str(target_id)] = msg.message_id
             await asyncio.sleep(0.5)
         save_mapping()
-        await update.message.reply_text(f"✅ Pesan {message_id} berhasil di-forward ke semua target.")
+        await update.message.reply_text(f"✅ Pesan berhasil di-forward ke semua target.")
     except TimedOut:
         await update.message.reply_text("⚠️ Timeout saat forward, coba lagi nanti.")
     except TelegramError as e:
@@ -118,5 +119,5 @@ app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(CommandHandler("forward", forward_command))
 app.add_handler(CommandHandler("delete", delete_forward))
 
-print("Bot berjalan dengan polling (forward pakai perintah admin)...")
+print("Bot berjalan dengan polling (forward pakai reply admin)...")
 app.run_polling()
