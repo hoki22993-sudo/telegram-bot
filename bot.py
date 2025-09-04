@@ -1,4 +1,5 @@
 import os
+import requests
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
@@ -7,17 +8,25 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN")
 if not BOT_TOKEN:
     raise ValueError("❌ BOT_TOKEN belum di-set di Environment Variables!")
 
-# Masukkan User ID admin Telegram di sini
-ADMIN_IDS = [123456789]  # Ganti dengan Telegram ID Anda
+# Masukkan Telegram User ID admin
+ADMIN_IDS = [8327252807]  # Ganti dengan ID Anda
 
 # Masukkan ID grup tujuan
 TARGET_CHAT_IDS = [-1003038090571, -1002967257984, -1002996882426]
+
+# ===== RESET WEBHOOK =====
+def reset_webhook():
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook"
+    r = requests.post(url)
+    if r.status_code == 200:
+        print("[INFO] Webhook dihapus, siap polling")
+    else:
+        print(f"[WARN] Gagal hapus webhook: {r.text}")
 
 # ===== FUNGSI FORWARD =====
 async def forward_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     print(f"[DEBUG] Command received from user_id={user_id}")
-    print(f"[DEBUG] ADMIN_IDS={ADMIN_IDS}")
 
     if user_id not in ADMIN_IDS:
         await update.message.reply_text("❌ Anda bukan admin!")
@@ -55,6 +64,8 @@ async def forward_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ===== MAIN - POLLING =====
 if __name__ == "__main__":
+    reset_webhook()  # Hapus webhook lama sebelum polling
+
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("forward", forward_reply))
 
