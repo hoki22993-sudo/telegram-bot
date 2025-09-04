@@ -2,18 +2,17 @@ import os
 import json
 import asyncio
 from telegram import Update
-from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
+from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, filters, ContextTypes
 from telegram.error import TimedOut, TelegramError
 
 # ========================
 # Konfigurasi
 # ========================
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
-APP_URL = os.environ.get("APP_URL")
 MAPPING_FILE = "forwarded_messages.json"
 
-if not BOT_TOKEN or not APP_URL:
-    raise ValueError("❌ BOT_TOKEN atau APP_URL belum di-set di Environment Variables!")
+if not BOT_TOKEN:
+    raise ValueError("❌ BOT_TOKEN belum di-set di Environment Variables!")
 
 # Grup sumber
 SOURCE_GROUPS = [-1003038090571]
@@ -64,7 +63,7 @@ async def forward_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             forwarded_messages[str_chat_id][str_msg_id][str(target_id)] = msg.message_id
             print(f"Forwarded ke {target_id}: {msg.message_id}")
-            await asyncio.sleep(0.5)  # jeda antar forward
+            await asyncio.sleep(0.5)
         except TimedOut:
             print(f"Timeout saat forward ke {target_id}, lewati sementara")
         except TelegramError as e:
@@ -73,40 +72,40 @@ async def forward_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_mapping()
 
 # ========================
-# Hapus pesan (manual command bisa ditambahkan nanti)
+# Command untuk hapus pesan forward
+# Admin bisa pakai: /delete <message_id>
 # ========================
-async def delete_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def delete_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if len(context.args) != 1:
+        await update.message.reply_text("Gunakan: /delete <message_id>")
+        return
+
+    message_id = context.args[0]
     chat_id = str(update.effective_chat.id)
-    message_id = str(update.effective_message.message_id)
 
-    if chat_id in forwarded_messages and message_id in forwarded_messages[chat_id]:
-        for target_id, fwd_msg_id in forwarded_messages[chat_id][message_id].items():
-            try:
-                await context.bot.delete_message(chat_id=int(target_id), message_id=int(fwd_msg_id))
-                print(f"Pesan {fwd_msg_id} di {target_id} dihapus")
-            except TelegramError as e:
-                print(f"Gagal hapus pesan {fwd_msg_id} di {target_id}: {e}")
+    if chat_id not in forwarded_messages or message_id not in forwarded_messages[chat_id]:
+        await update.message.reply_text("Pesan tidak ditemukan di mapping.")
+        return
 
-        # Hapus mapping setelah delete
-        del forwarded_messages[chat_id][message_id]
-        save_mapping()
+    for target_id, fwd_msg_id in forwarded_messages[chat_id][message_id].items():
+        try:
+            await context.bot.delete_message(chat_id=int(target_id), message_id=int(fwd_msg_id))
+            print(f"Pesan {fwd_msg_id} di {target_id} dihapus")
+        except TelegramError as e:
+            print(f"Gagal hapus pesan {fwd_msg_id} di {target_id}: {e}")
+
+    # Hapus mapping
+    del forwarded_messages[chat_id][message_id]
+    save_mapping()
+    await update.message.reply_text(f"Pesan {message_id} berhasil dihapus dari semua target.")
 
 # ========================
-# Jalankan bot
+# Jalankan bot dengan polling
 # ========================
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-# Tangkap semua pesan dari grup sumber untuk forward
 app.add_handler(MessageHandler(filters.ALL & (~filters.StatusUpdate.ALL), forward_message))
+app.add_handler(CommandHandler("delete", delete_forward))
 
-# ========================
-# Hapus pesan otomatis belum bisa pakai MESSAGE_DELETED
-# Bisa ditambahkan command manual untuk delete
-# ========================
-
-# Run webhook
-app.run_webhook(
-    listen="0.0.0.0",
-    port=int(os.environ.get("PORT", 8443)),
-    webhook_url=f"{APP_URL}/{BOT_TOKEN}"
-)
+print("Bot berjalan dengan polling...")
+app.run_polling()
