@@ -10,6 +10,7 @@ from telegram.error import TimedOut, TelegramError
 # ========================
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 APP_URL = os.environ.get("APP_URL")  # URL Render Anda
+PORT = int(os.environ.get("PORT", 8443))
 MAPPING_FILE = "forwarded_messages.json"
 
 if not BOT_TOKEN or not APP_URL:
@@ -45,15 +46,13 @@ async def forward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Grup ini bukan grup sumber.")
         return
 
-    # Cek admin
     member = await chat.get_member(user.id)
     if member.status not in ["administrator", "creator"]:
         await update.message.reply_text("❌ Hanya admin grup yang bisa forward pesan.")
         return
 
-    # Cek reply
     if not update.message.reply_to_message:
-        await update.message.reply_text("❌ Gunakan reply ke pesan yang ingin di-forward, lalu ketik /forward")
+        await update.message.reply_text("❌ Reply ke pesan yang ingin di-forward, lalu ketik /forward")
         return
 
     message_id = update.message.reply_to_message.message_id
@@ -73,7 +72,7 @@ async def forward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             forwarded_messages[str_chat_id][str_msg_id][str(target_id)] = msg.message_id
             await asyncio.sleep(0.5)
         save_mapping()
-        await update.message.reply_text(f"✅ Pesan berhasil di-forward ke semua target.")
+        await update.message.reply_text("✅ Pesan berhasil di-forward ke semua target.")
     except TimedOut:
         await update.message.reply_text("⚠️ Timeout saat forward, coba lagi nanti.")
     except TelegramError as e:
@@ -120,11 +119,15 @@ app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(CommandHandler("forward", forward_command))
 app.add_handler(CommandHandler("delete", delete_forward))
 
-print("Bot berjalan dengan webhook (reply admin untuk forward)...")
-
 # Jalankan webhook
+WEBHOOK_PATH = f"/webhook/{BOT_TOKEN}"
+WEBHOOK_URL = f"{APP_URL}{WEBHOOK_PATH}"
+
+print("Bot berjalan dengan webhook (reply admin untuk forward)...")
+print(f"Webhook URL: {WEBHOOK_URL}")
+
 app.run_webhook(
     listen="0.0.0.0",
-    port=int(os.environ.get("PORT", 8443)),
-    webhook_url=f"{APP_URL}/{BOT_TOKEN}"
+    port=PORT,
+    webhook_url=WEBHOOK_URL
 )
