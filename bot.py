@@ -38,16 +38,26 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     main_menu = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
 
-    # Gambar
-    photo_url = "https://ibb.co/m5XbX15b"
+    # Gambar (bisa photo/gif)
+    media_type = "photo"  # ubah ke "gif" jika mau gif
+    media_url = "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExeGxwbHJma3JqaXRvdXJqMnd1ZnF1cTZpNWNrYXV2MDBmY3o1NWx0ciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/LZqek32HAvTGg/giphy.gif"
 
-    await update.message.reply_photo(
-        photo=photo_url,
-        caption=f"👋 Hi {username}, \n\nBossku 😘 Kalau anda sudah subscribe saya, saya pasti kasi anda untungan yg terbaik!! "
-                f"Sila join group2 yang saya share dulu. Pastikan anda dapat REZEKI di group2 saya ❤️",
-        reply_markup=reply_markup
-    )
-    await update.message.reply_text("➤ Klik /start untuk membuka menu:", reply_markup=main_menu)
+    if media_type == "gif":
+        await update.message.reply_animation(
+            animation=media_url,
+            caption=f"👋 Hi {username}, \n\nBossku 😘 Kalau anda sudah subscribe saya, saya pasti kasi anda untungan yg terbaik!! "
+                    f"Sila join group2 yang saya share dulu. Pastikan anda dapat REZEKI di group2 saya ❤️",
+            reply_markup=reply_markup
+        )
+    else:
+        await update.message.reply_photo(
+            photo=media_url,
+            caption=f"👋 Hi {username}, \n\nBossku 😘 Kalau anda sudah subscribe saya, saya pasti kasi anda untungan yg terbaik!! "
+                    f"Sila join group2 yang saya share dulu. Pastikan anda dapat REZEKI di group2 saya ❤️",
+            reply_markup=reply_markup
+        )
+
+    await update.message.reply_text("➤ CLICK /start TO BACK MENU:", reply_markup=main_menu)
 
 # ================== REPLY MENU ==================
 async def reply_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -56,6 +66,8 @@ async def reply_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     menu_data = {
         "🌟 NEW REGISTER FREE 🌟": {
             "url": "https://afb88my1.com/promotion",
+            "media_type": "photo",
+            "media": "https://ibb.co/BK2LVQ6t",  # bisa diganti gif/foto
             "caption": """🌟 NEW REGISTER BONUS 🌟
 
 ⚠️ LANGGAR SYARAT AKAN FORFEITED SEMUA POINT ⚠️
@@ -77,6 +89,8 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR"""
         },
         "📘 SHARE FACEBOOK 📘": {
             "url": "https://afb88my1.com/promotion",
+            "media_type": "photo",
+            "media": "https://ibb.co/Z6B55VcX",
             "caption": """📘 SHARE FACEBOOK 📘
 
 🧧 FREE CREDIT RM68 🧧  
@@ -95,6 +109,8 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR"""
         },
         "🔥 DAILY APPS FREE 🔥": {
             "url": "https://afb88my1.com/promotion",
+            "media_type": "photo",
+            "media": "https://ibb.co/nsmVQFbg",
             "caption": """🔥 DAILY APPS FREE 🔥
 
 🎁 Free Credit RM20 
@@ -109,7 +125,9 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR"""
 ⚠️ XDAPAT REKOMEN SENDIRI,BANK ACCOUNT/NAMA INFO SALAH AKAN FORFEITED SEMUA POINT"""
         },
         "🌞 SOCIAL MEDIA 🌞": {
-            "url": "https://facebook.com/afb88",
+            "url": "https://afb88my1.com/promotion",
+            "media_type": "photo",
+            "media": "https://ibb.co/HfyD6DWw",
             "caption": """🌞 SOCIAL MEDIA 🌞
 
 📌FOLLOW SOCIAL MEDIA:  
@@ -122,6 +140,8 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR"""
         },
         "🎉 TELEGRAM BONUS 🎉": {
             "url": "https://afb88my1.com/promotion",
+            "media_type": "gif",
+            "media": "https://ibb.co/fZDhjmw",
             "caption": """🎉 TELEGRAM BONUS 🎉
 
 🎁 SUBSCRIBE TELEGRAM BONUS:  
@@ -132,9 +152,6 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR"""
 ✅ Join Telegram Channel :https://t.me/afb88my
 ❌ TIDAK BOLEH DIGABUNG: TOP UP/REBATE/FREE/CREDIT/COMMISION BONUS
 
-
-
-
 👉 CLICK CLAIM NOW"""
         },
     }
@@ -143,11 +160,21 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR"""
         keyboard = [[InlineKeyboardButton("CLAIM 🎁", url=menu_data[text]["url"])]]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        await update.message.reply_photo(
-            photo="https://ibb.co/m5XbX15b",
-            caption=menu_data[text]["caption"],
-            reply_markup=reply_markup
-        )
+        media_type = menu_data[text].get("media_type", "photo")
+        media = menu_data[text].get("media")
+
+        if media_type == "gif":
+            await update.message.reply_animation(
+                animation=media,
+                caption=menu_data[text]["caption"],
+                reply_markup=reply_markup
+            )
+        else:
+            await update.message.reply_photo(
+                photo=media,
+                caption=menu_data[text]["caption"],
+                reply_markup=reply_markup
+            )
 
 # ================== INLINE BUTTON ==================
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
