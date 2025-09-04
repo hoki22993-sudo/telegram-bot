@@ -39,8 +39,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     main_menu = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
 
     # Gambar (bisa photo/gif)
-    media_type = "photo"  # ubah ke "gif" jika mau gif
-    media_url = "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExeGxwbHJma3JqaXRvdXJqMnd1ZnF1cTZpNWNrYXV2MDBmY3o1NWx0ciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/LZqek32HAvTGg/giphy.gif"
+    media_type = "gif"  # ubah ke "gif" jika mau gif
+    media_url = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZudGg2bTVteGx2N3EwYng4a3ppMnhlcmltN2p2MTVweG1laXkyZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/tXSLbuTIf37SjvE6QY/giphy.gif"
 
     if media_type == "gif":
         await update.message.reply_animation(
