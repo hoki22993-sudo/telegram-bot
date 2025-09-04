@@ -1,143 +1,81 @@
 import os
-import json
-import asyncio
-import logging
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
-
-# ========================
-# Logging
-# ========================
-logging.basicConfig(
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    level=logging.INFO
-)
+from telegram import Update, Message
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
 # ========================
 # Konfigurasi
 # ========================
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
-APP_URL = os.environ.get("APP_URL")
-PORT = int(os.environ.get("PORT", 8443))
-MAPPING_FILE = "forwarded_messages.json"
-
-if not BOT_TOKEN or not APP_URL:
-    raise ValueError("❌ BOT_TOKEN atau APP_URL belum di-set!")
-
-SOURCE_GROUPS = [-1003038090571]  # ID grup sumber
-TARGET_GROUPS = [-1002967257984, -1002996882426]  # ID grup target
-
-# Load mapping
-if os.path.exists(MAPPING_FILE):
-    with open(MAPPING_FILE, "r") as f:
-        forwarded_messages = json.load(f)
-else:
-    forwarded_messages = {}
-
-def save_mapping():
-    with open(MAPPING_FILE, "w") as f:
-        json.dump(forwarded_messages, f)
+ADMIN_IDS = [8327252807]  # Ganti dengan ID admin
+SOURCE_CHAT_ID = -1003038090571  # ID grup/channel sumber
+TARGET_CHAT_ID = -1002967257984  # ID grup/channel tujuan
 
 # ========================
-# Forward Command
+# Command Handler
 # ========================
-async def forward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat = update.effective_chat
-    user = update.effective_user
-
-    if chat.id not in SOURCE_GROUPS:
-        await update.message.reply_text("❌ Chat bukan source group.")
-        return
-
-    member = await chat.get_member(user.id)
-    if member.status not in ["administrator", "creator"]:
-        await update.message.reply_text("❌ Hanya admin yang bisa forward.")
-        return
-
-    # Bisa forward via reply atau via message_id arg
-    if update.message.reply_to_message:
-        message_id = update.message.reply_to_message.message_id
-    elif context.args:
-        try:
-            message_id = int(context.args[0])
-        except:
-            await update.message.reply_text("❌ Argumen tidak valid. Balas pesan atau gunakan message_id.")
-            return
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id in ADMIN_IDS:
+        await update.message.reply_text("Bot siap! Gunakan /forward untuk aktifkan forwarding.")
     else:
-        await update.message.reply_text("❌ Balas pesan atau sertakan message_id.")
+        await update.message.reply_text("Anda bukan admin.")
+
+async def forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMIN_IDS:
+        await update.message.reply_text("Anda tidak punya akses.")
         return
+    context.application.bot_data['forwarding'] = True
+    await update.message.reply_text("Forwarding diaktifkan ✅")
 
-    str_chat_id = str(chat.id)
-    str_msg_id = str(message_id)
-    forwarded_messages.setdefault(str_chat_id, {})
-    forwarded_messages[str_chat_id].setdefault(str_msg_id, {})
-
-    success_count = 0
-    for target_id in TARGET_GROUPS:
-        try:
-            msg = await context.bot.forward_message(
-                chat_id=target_id,
-                from_chat_id=chat.id,
-                message_id=message_id
-            )
-            forwarded_messages[str_chat_id][str_msg_id][str(target_id)] = msg.message_id
-            success_count += 1
-            await asyncio.sleep(0.3)
-        except Exception as e:
-            await update.message.reply_text(f"❌ Gagal forward ke {target_id}: {e}")
-            logging.error(f"Gagal forward ke {target_id}: {e}")
-
-    save_mapping()
-    await update.message.reply_text(f"✅ Forward selesai ke {success_count}/{len(TARGET_GROUPS)} grup.")
+async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMIN_IDS:
+        await update.message.reply_text("Anda tidak punya akses.")
+        return
+    context.application.bot_data['forwarding'] = False
+    await update.message.reply_text("Forwarding dihentikan ❌")
 
 # ========================
-# Delete Command
+# Auto Forward Handler
 # ========================
-async def delete_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat = update.effective_chat
-    user = update.effective_user
+async def auto_forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.application.bot_data.get('forwarding', False):
+        return  # Mode forwarding mati
+    msg: Message = update.message
+    if update.effective_chat.id != SOURCE_CHAT_ID:
+        return  # Hanya dari source chat
 
-    member = await chat.get_member(user.id)
-    if member.status not in ["administrator", "creator"]:
-        await update.message.reply_text("❌ Hanya admin yang bisa delete.")
-        return
-
-    if len(context.args) != 1:
-        await update.message.reply_text("❌ Gunakan: /delete <message_id>")
-        return
-
-    message_id = context.args[0]
-    str_chat_id = str(chat.id)
-
-    if str_chat_id not in forwarded_messages or message_id not in forwarded_messages[str_chat_id]:
-        await update.message.reply_text("❌ Tidak ada pesan yang sesuai.")
-        return
-
-    for target_id, fwd_msg_id in forwarded_messages[str_chat_id][message_id].items():
-        try:
-            await context.bot.delete_message(chat_id=int(target_id), message_id=int(fwd_msg_id))
-        except Exception as e:
-            await update.message.reply_text(f"❌ Gagal hapus di {target_id}: {e}")
-            logging.error(f"Gagal hapus di {target_id}: {e}")
-
-    del forwarded_messages[str_chat_id][message_id]
-    save_mapping()
-    await update.message.reply_text("✅ Pesan berhasil dihapus!")
+    try:
+        # Forward berdasarkan tipe pesan
+        if msg.text:
+            await context.bot.send_message(chat_id=TARGET_CHAT_ID, text=msg.text)
+            print(f"[TEXT] {msg.text[:30]}... forwarded")
+        elif msg.photo:
+            photo_file = msg.photo[-1]  # resolusi tertinggi
+            await context.bot.send_photo(chat_id=TARGET_CHAT_ID, photo=photo_file.file_id, caption=msg.caption)
+            print(f"[PHOTO] Photo forwarded")
+        elif msg.video:
+            await context.bot.send_video(chat_id=TARGET_CHAT_ID, video=msg.video.file_id, caption=msg.caption)
+            print(f"[VIDEO] Video forwarded")
+        elif msg.document:
+            await context.bot.send_document(chat_id=TARGET_CHAT_ID, document=msg.document.file_id, caption=msg.caption)
+            print(f"[DOCUMENT] Document forwarded")
+        else:
+            print(f"[SKIPPED] Unsupported type: {msg}")
+    except Exception as e:
+        print(f"Error forwarding: {e}")
 
 # ========================
-# Setup Bot & Webhook
+# Main
 # ========================
-app = ApplicationBuilder().token(BOT_TOKEN).build()
-app.add_handler(CommandHandler("forward", forward_command))
-app.add_handler(CommandHandler("delete", delete_forward))
+if __name__ == "__main__":
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-webhook_url = f"{APP_URL}/webhook/{BOT_TOKEN}"
-logging.info(f"Webhook aktif: {webhook_url}")
+    # Commands
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("forward", forward))
+    app.add_handler(CommandHandler("stop", stop))
 
-app.run_webhook(
-    listen="0.0.0.0",
-    port=PORT,
-    url_path=f"webhook/{BOT_TOKEN}",
-    webhook_url=webhook_url
-)
+    # Messages
+    app.add_handler(MessageHandler(filters.ALL, auto_forward))
 
+    print("Bot berjalan...")
+    app.run_polling()
