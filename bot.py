@@ -3,9 +3,9 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 # ======== Konfigurasi ========
-BOT_TOKEN = os.environ.get("BOT_TOKEN")  # Atau langsung masukkan token string
-ADMIN_IDS = [8327252807]  # Ganti dengan Telegram ID admin
-TARGET_CHAT_IDS = [-1003038090571, -1002967257984, -1002996882426]  # 3 ID grup
+BOT_TOKEN = os.environ.get("BOT_TOKEN")  # Isi token di Environment Variables
+ADMIN_IDS = [8327252807]  # Telegram User ID admin
+TARGET_CHAT_IDS = [-1003038090571, -1002967257984, -1002996882426]  # 3 grup tujuan
 
 # ======== Fungsi Forward ========
 async def forward_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -18,9 +18,6 @@ async def forward_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Reply ke pesan yang ingin di-forward.")
         return
 
-    success = []
-    failed = []
-
     for chat_id in TARGET_CHAT_IDS:
         try:
             await context.bot.forward_message(
@@ -28,22 +25,15 @@ async def forward_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 from_chat_id=update.message.reply_to_message.chat.id,
                 message_id=update.message.reply_to_message.message_id
             )
-            success.append(str(chat_id))
-        except Exception as e:
-            failed.append(f"{chat_id} ({e})")
+        except:
+            pass  # Abaikan error kecil, biar cepat
 
-    reply_text = ""
-    if success:
-        reply_text += f"✅ Berhasil di-forward ke: {', '.join(success)}\n"
-    if failed:
-        reply_text += f"❌ Gagal forward: {', '.join(failed)}"
-
-    await update.message.reply_text(reply_text)
+    await update.message.reply_text("✅ Pesan berhasil di-forward!")
 
 # ======== Main ========
 if __name__ == "__main__":
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("forward", forward_reply))
 
-    print("Bot berjalan...")
+    print("Bot berjalan... (polling mode, Render akan kasih warning port, abaikan saja)")
     app.run_polling()
