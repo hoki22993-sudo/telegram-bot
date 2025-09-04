@@ -55,70 +55,87 @@ async def reply_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     menu_data = {
         "🌟 NEW REGISTER FREE 🌟": {
-            "url": "https://afb88my1.com/",
+            "url": "https://afb88my1.com/promotion",
             "caption": """🌟 NEW REGISTER BONUS 🌟
 
-🧧 Bonus Pendaftaran Baru 🧧
+⚠️ LANGGAR SYARAT AKAN FORFEITED SEMUA POINT ⚠️
 
-🎁 Free Credit RM88  
-🎁 Min WD/CUCI RM2000  
-🎁 Max Payment/WD RM40  
+✅ Keperluan SLOT ONLY
 
-💡 Cara klaim:  
-1. Register di link resmi.  
-2. Hubungi CS melalui livechat.  
-3. Deposit minimal sesuai syarat.  
-4. Bonus otomatis masuk ke akun.  
+✅ Free Credit RM88  
+✅ Min WD/CUCI RM2000  
+✅ Max Payment/WD RM40  
+✅ BELOW CREDIT RM 0.10 
+✅ Dibenarkan Main MEGAH5|EPICWIN|PXPLAY2|ACEWIN2|RICH GAMING ( EVENT GAME ONLY)
+✅ DOWNLOAD APPS UNTUK CLAIM MESTI DOWNLOAD APPS UNTUK CLAIM CLICK LINK: https://afb88.hfcapital.top/
 
-⚠️ Syarat & ketentuan berlaku!"""
+⚠️ 1 NAMA 1 ID SAHAJA,TIDAK BOLEH  
+GUNA NAMA YANG SAMA UNTUK TUNTUT  
+BONUS INI 
+⚠️ NAMA DAFTAR MESTI SAMA DENGAN NAMA AKAUN BANK  
+AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR"""
         },
         "📘 SHARE FACEBOOK 📘": {
-            "url": "https://ibb.co/m5XbX15b",
+            "url": "https://afb88my1.com/promotion",
             "caption": """📘 SHARE FACEBOOK 📘
 
 🧧 FREE CREDIT RM68 🧧  
 
-🎁 STEP 1: Join Telegram Channel kami  
-🎁 STEP 2: Share postingan ke Facebook  
-🎁 STEP 3: Tag teman minimal 5 orang  
-
-✅ Bonus akan diberikan setelah verifikasi selesai"""
+✅ STEP 1: Join Our Telegram Channel LINK JOIN:t.me/afb88my
+✅ STEP 2: Join Our Facebook Group LINK JOIN: https://www.facebook.com/share/g/1GGcZKo6zN/
+➡️ How To Claim Free Credit: Share Post To 5 Casino Group 3 Link
+➡️ Had Tuntutan : DAILY CLAIM X1
+✅ Dibenarkan Main : MEGAH5|EPICWIN|PXPLAY|ACEWIN2|RICH GAMING (EVENT GAME ONLY)
+✅ DOWNLOAD APPS UNTUK CLAIM MESTI DOWNLOAD APPS UNTUK CLAIM CLICK LINK: https://afb88.hfcapital.top/
+️ 1 NAMA 1 ID SAHAJA,TIDAK BOLEH  
+GUNA NAMA YANG SAMA UNTUK TUNTUT  
+BONUS INI 
+⚠️ NAMA DAFTAR MESTI SAMA DENGAN NAMA AKAUN BANK  
+AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR"""
         },
         "🔥 DAILY APPS FREE 🔥": {
-            "url": "https://afb88my1.com/",
+            "url": "https://afb88my1.com/promotion",
             "caption": """🔥 DAILY APPS FREE 🔥
 
-🎁 Free Credit RM20 setiap hari  
+🎁 Free Credit RM20 
 
-📌 Klaim hanya 1x per user/hari  
-💰 Min. Withdraw RM600  
-💳 Max. Payment RM10,000  
-❌ Balance di bawah RM0.10 tidak diproses  
+📌 Had Tuntutan Daily Claim X1
+💰 Min. Withdraw RM 600  
+💳 Max. Payment RM 10  
+💰 Below Credit RM 0.10
+✅ Dibenarkan Main : MEGAH5|EPICWIN|PXPLAY|ACEWIN2|RICH GAMING (EVENT GAME ONLY)
+✅ DOWNLOAD APPS UNTUK CLAIM MESTI DOWNLOAD APPS UNTUK CLAIM CLICK LINK: https://afb88.hfcapital.top/
 
-➡️ Download aplikasi resmi & klaim bonus harian!"""
+⚠️ XDAPAT REKOMEN SENDIRI,BANK ACCOUNT/NAMA INFO SALAH AKAN FORFEITED SEMUA POINT"""
         },
         "🌞 SOCIAL MEDIA 🌞": {
             "url": "https://facebook.com/afb88",
             "caption": """🌞 SOCIAL MEDIA 🌞
 
-Ikuti sosial media resmi kami:  
+📌FOLLOW SOCIAL MEDIA:  
 
-📘 Facebook: https://facebook.com/afb88  
+📘 Facebook: https://www.facebook.com/profile.php?id=61579884569151  
 📸 Instagram: https://instagram.com/afb88  
-🎥 TikTok: https://tiktok.com/@afb88  
+🎥 WhatsApp Group: https://wa.me/+601133433880
 
-🎯 Dapatkan info event, bonus, dan update terbaru!"""
+🎯 Dapatkan maklumat acara terkini, bonus dan kemas kini!"""
         },
         "🎉 TELEGRAM BONUS 🎉": {
-            "url": "https://t.me/afb88my",
+            "url": "https://afb88my1.com/promotion",
             "caption": """🎉 TELEGRAM BONUS 🎉
 
-🎁 Join channel untuk bonus eksklusif:  
-- 🎊 Bonus harian  
-- 🎯 Event mingguan  
-- 🎁 Giveaway loyal member  
+🎁 SUBSCRIBE TELEGRAM BONUS:  
+✅ Free Credit RM 30
+✅ Had Tuntutan X1
+✅ Min.Withdraw RM 888
+✅ Max.Payment RM 15
+✅ Join Telegram Channel :https://t.me/afb88my
+❌ TIDAK BOLEH DIGABUNG: TOP UP/REBATE/FREE/CREDIT/COMMISION BONUS
 
-👉 Klik tombol CLAIM untuk bergabung sekarang!"""
+
+
+
+👉 CLICK CLAIM NOW"""
         },
     }
 
