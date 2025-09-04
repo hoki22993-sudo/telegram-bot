@@ -2,40 +2,39 @@ import os
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-# ===== KONFIGURASI =====
+# ================= CONFIG =================
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 if not BOT_TOKEN:
     raise ValueError("❌ BOT_TOKEN belum di-set di Environment Variables!")
 
-# Grup asal (hanya pesan dari sini yang bisa di-forward)
-SOURCE_CHAT_IDS = [-1003038090571]  # Ganti dengan ID grup utama
+# Hanya user ini yang bisa forward
+ADMIN_USER_ID = 8327252807  # ganti dengan User ID Anda
+
+# Grup sumber (hanya pesan dari sini yang bisa di-forward)
+SOURCE_CHAT_ID = -1003038090571  # ganti dengan ID grup utama
 
 # Grup tujuan
-TARGET_CHAT_IDS = [-1002967257984, -1002996882426]
+TARGET_CHAT_IDS = [
+    -1003038090571,
+    -1002967257984,
+    -1002996882426
+]
 
-# ===== CEK ADMIN GRUP =====
-async def is_user_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat = update.effective_chat
-    user_id = update.effective_user.id
-    try:
-        member = await context.bot.get_chat_member(chat.id, user_id)
-        return member.status in ["administrator", "creator"]
-    except Exception as e:
-        print(f"[DEBUG] Gagal cek admin: {e}")
-        return False
-
-# ===== FUNGSI FORWARD =====
-async def forward_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# ================== FORWARD FUNCTION ==================
+async def forward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
+    user_id = update.effective_user.id
 
-    # cek grup asal
-    if chat_id not in SOURCE_CHAT_IDS:
-        await update.message.reply_text("❌ Pesan hanya bisa di-forward dari grup utama!")
+    print(f"[DEBUG] Chat ID: {chat_id}, User ID: {user_id}")
+
+    # cek user ID
+    if user_id != ADMIN_USER_ID:
+        await update.message.reply_text("❌ Anda bukan admin yang diizinkan!")
         return
 
-    # cek admin
-    if not await is_user_admin(update, context):
-        await update.message.reply_text("❌ Anda bukan admin grup!")
+    # cek grup sumber
+    if chat_id != SOURCE_CHAT_ID:
+        await update.message.reply_text("❌ Command hanya bisa digunakan di grup utama!")
         return
 
     # cek reply
@@ -43,8 +42,8 @@ async def forward_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Reply ke pesan yang ingin di-forward.")
         return
 
-    # forward ke target
     success, failed = [], []
+
     for target_id in TARGET_CHAT_IDS:
         try:
             await context.bot.forward_message(
@@ -57,15 +56,18 @@ async def forward_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
             failed.append(f"{target_id} ({e})")
             print(f"[DEBUG] Gagal forward ke {target_id}: {e}")
 
-    reply = ""
-    if success: reply += f"✅ Berhasil di-forward ke: {', '.join(success)}\n"
-    if failed: reply += f"❌ Gagal forward: {', '.join(failed)}"
-    await update.message.reply_text(reply)
-    print(f"[DEBUG] Forward done: {reply}")
+    reply_text = ""
+    if success:
+        reply_text += f"✅ Berhasil di-forward ke: {', '.join(success)}\n"
+    if failed:
+        reply_text += f"❌ Gagal forward: {', '.join(failed)}"
 
-# ===== MAIN =====
+    await update.message.reply_text(reply_text)
+    print(f"[DEBUG] Forward done: {reply_text}")
+
+# ================== MAIN ==================
 if __name__ == "__main__":
     app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("forward", forward_reply))
+    app.add_handler(CommandHandler("forward", forward_command))
     print("Bot polling berjalan...")
     app.run_polling()
