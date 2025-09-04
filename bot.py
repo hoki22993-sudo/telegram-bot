@@ -3,19 +3,30 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 # ===== KONFIGURASI =====
-BOT_TOKEN = os.environ.get("BOT_TOKEN")  # Token bot dari BotFather
-ADMIN_IDS = [8327252807]  # Telegram User ID admin
-TARGET_CHAT_IDS = [-1003038090571, -1002967257984, -1002996882426]  # ID grup tujuan
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+if not BOT_TOKEN:
+    raise ValueError("❌ BOT_TOKEN belum di-set di Environment Variables!")
+
+# Masukkan User ID admin Telegram di sini
+ADMIN_IDS = [123456789]  # Ganti dengan Telegram ID Anda
+
+# Masukkan ID grup tujuan
+TARGET_CHAT_IDS = [-1003038090571, -1002967257984, -1002996882426]
 
 # ===== FUNGSI FORWARD =====
 async def forward_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+    print(f"[DEBUG] Command received from user_id={user_id}")
+    print(f"[DEBUG] ADMIN_IDS={ADMIN_IDS}")
+
     if user_id not in ADMIN_IDS:
         await update.message.reply_text("❌ Anda bukan admin!")
+        print("[DEBUG] User bukan admin, command ditolak")
         return
 
     if not update.message.reply_to_message:
         await update.message.reply_text("❌ Reply ke pesan yang ingin di-forward.")
+        print("[DEBUG] Tidak ada reply, command ditolak")
         return
 
     success = []
@@ -31,6 +42,7 @@ async def forward_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
             success.append(str(chat_id))
         except Exception as e:
             failed.append(f"{chat_id} ({e})")
+            print(f"[DEBUG] Gagal forward ke {chat_id}: {e}")
 
     reply_text = ""
     if success:
@@ -39,14 +51,12 @@ async def forward_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_text += f"❌ Gagal forward: {', '.join(failed)}"
 
     await update.message.reply_text(reply_text)
+    print(f"[DEBUG] Forward done: {reply_text}")
 
 # ===== MAIN - POLLING =====
 if __name__ == "__main__":
-    if not BOT_TOKEN:
-        raise ValueError("❌ BOT_TOKEN belum di-set di Environment Variables!")
-
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("forward", forward_reply))
 
-    print("Bot berjalan dengan polling... (abaikan warning port Render)")
+    print("Bot berjalan dengan polling...")
     app.run_polling()
