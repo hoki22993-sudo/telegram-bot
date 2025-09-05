@@ -140,7 +140,7 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR"""
         },
         "🎉 TELEGRAM BONUS 🎉": {
             "url": "https://afb88my1.com/promotion",
-            "media_type": "gif",
+            "media_type": "photo",
             "media": "https://ibb.co/fZDhjmw",
             "caption": """🎉 TELEGRAM BONUS 🎉
 
