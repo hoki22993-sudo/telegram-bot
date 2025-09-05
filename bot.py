@@ -85,7 +85,9 @@ async def reply_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 GUNA NAMA YANG SAMA UNTUK TUNTUT  
 BONUS INI 
 ⚠️ NAMA DAFTAR MESTI SAMA DENGAN NAMA AKAUN BANK  
-AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR ➤ CLICK /start TO BACK MENU"""
+AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR 
+
+➤ CLICK /start TO BACK MENU"""
         },
         "📘 SHARE FACEBOOK 📘": {
             "url": "https://afb88my1.com/promotion",
@@ -105,7 +107,9 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR ➤ CLICK /start TO BACK MENU"""
 GUNA NAMA YANG SAMA UNTUK TUNTUT  
 BONUS INI 
 ⚠️ NAMA DAFTAR MESTI SAMA DENGAN NAMA AKAUN BANK  
-AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR ➤ CLICK /start TO BACK MENU"""
+AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR 
+
+➤ CLICK /start TO BACK MENU"""
         },
         "🔥 DAILY APPS FREE 🔥": {
             "url": "https://afb88my1.com/promotion",
@@ -122,7 +126,9 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR ➤ CLICK /start TO BACK MENU"""
 ✅ Dibenarkan Main : MEGAH5|EPICWIN|PXPLAY|ACEWIN2|RICH GAMING (EVENT GAME ONLY)
 ✅ DOWNLOAD APPS UNTUK CLAIM MESTI DOWNLOAD APPS UNTUK CLAIM CLICK LINK: https://afb88.hfcapital.top/
 
-⚠️ XDAPAT REKOMEN SENDIRI,BANK ACCOUNT/NAMA INFO SALAH AKAN FORFEITED SEMUA POINT ➤ CLICK /start TO BACK MENU"""
+⚠️ XDAPAT REKOMEN SENDIRI,BANK ACCOUNT/NAMA INFO SALAH AKAN FORFEITED SEMUA POINT 
+
+➤ CLICK /start TO BACK MENU"""
         },
         "🌞 SOCIAL MEDIA 🌞": {
             "url": "https://afb88my1.com/promotion",
@@ -136,7 +142,9 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR ➤ CLICK /start TO BACK MENU"""
 📸 Instagram: https://instagram.com/afb88  
 🎥 WhatsApp Group: https://wa.me/+601133433880
 
-🎯 Dapatkan maklumat acara terkini, bonus dan kemas kini ➤ CLICK /start TO BACK MENU!"""
+🎯 Dapatkan maklumat acara terkini, bonus dan kemas kini 
+
+➤ CLICK /start TO BACK MENU!"""
         },
         "🎉 TELEGRAM BONUS 🎉": {
             "url": "https://afb88my1.com/promotion",
@@ -152,7 +160,9 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR ➤ CLICK /start TO BACK MENU"""
 ✅ Join Telegram Channel :https://t.me/afb88my
 ❌ TIDAK BOLEH DIGABUNG: TOP UP/REBATE/FREE/CREDIT/COMMISION BONUS
 
-👉 CLICK CLAIM NOW ➤ CLICK /start TO BACK MENU"""
+👉 CLICK CLAIM NOW 
+
+➤ CLICK /start TO BACK MENU"""
         },
     }
 
