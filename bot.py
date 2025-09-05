@@ -67,7 +67,7 @@ async def reply_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🌟 NEW REGISTER FREE 🌟": {
             "url": "https://afb88my1.com/promotion",
             "media_type": "photo",
-            "media": "https://ibb.co/BK2LVQ6t",  # bisa diganti gif/foto
+            "media": "https://ibb.co/BK2LVQ6t",
             "caption": """🌟 NEW REGISTER BONUS 🌟
 
 ⚠️ LANGGAR SYARAT AKAN FORFEITED SEMUA POINT ⚠️
@@ -140,8 +140,8 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR"""
         },
         "🎉 TELEGRAM BONUS 🎉": {
             "url": "https://afb88my1.com/promotion",
-            "media_type": "photo",
-            "media": "https://ibb.co/fZDhjmw",
+            "media_type": "photo",  # ✅ ubah ke photo
+            "media": "https://ibb.co/fZDhjmw",  # contoh link gambar langsung
             "caption": """🎉 TELEGRAM BONUS 🎉
 
 🎁 SUBSCRIBE TELEGRAM BONUS:  
