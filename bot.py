@@ -238,12 +238,10 @@ async def auto_inline_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        # balas langsung ke pesan admin
+        # kirim hanya tombol (tanpa teks)
         await context.bot.send_message(
             chat_id=chat_id,
-            text="Klik tombol di bawah untuk lanjut:",
-            reply_markup=reply_markup,
-            reply_to_message_id=update.message.message_id
+            reply_markup=reply_markup
         )
 
 # ================== MAIN ==================
