@@ -15,32 +15,6 @@ ADMIN_USER_ID = 1087968824
 SOURCE_CHAT_ID = -1003038090571
 TARGET_CHAT_IDS = [-1002967257984, -1002996882426]
 
-# ================== INLINE PROMO KEYBOARD (tambahan) ==================
-def get_keyboard():
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📢 Subcribe Channel", url="https://t.me/afb88my")],
-        [InlineKeyboardButton("📢 Group Cuci&Tips GAME", url="https://t.me/+b685QE242dMxOWE9")],
-        [InlineKeyboardButton("📢 Promotion", url="https://t.me/Veronica88bot")],
-    ])
-
-async def send_promo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message:
-        await update.message.reply_text(
-            "📌 Pilih menu di bawah:",
-            reply_markup=get_keyboard()
-        )
-
-async def admin_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat = update.effective_chat
-    user = update.effective_user
-
-    admins = await chat.get_administrators()
-    admin_ids = [admin.user.id for admin in admins]
-
-    # hanya admin yang bisa trigger
-    if user and user.id in admin_ids:
-        await send_promo(update, context)
-
 # ================== START & MENU ==================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -65,7 +39,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     main_menu = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
 
     # Gambar (bisa photo/gif)
-    media_type = "gif"
+    media_type = "gif"  # ubah ke "gif" jika mau gif
     media_url = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZudGg2bTVteGx2N3EwYng4a3ppMnhlcmltN2p2MTVweG1laXkyZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/tXSLbuTIf37SjvE6QY/giphy.gif"
 
     if media_type == "gif":
@@ -174,8 +148,8 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR
         },
         "🎉 TELEGRAM BONUS 🎉": {
             "url": "https://afb88my1.com/promotion",
-            "media_type": "photo",
-            "media": "https://ibb.co/21qTqmtY",
+            "media_type": "photo",  # disamakan dengan yang lain
+            "media": "https://ibb.co/21qTqmtY",  # tetap link asli kamu
             "caption": """🎉 TELEGRAM BONUS 🎉
 
 🎁 SUBSCRIBE TELEGRAM BONUS:  
@@ -251,6 +225,26 @@ async def forward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if failed:
         await update.message.reply_text(f"❌ Gagal forward: {', '.join(failed)}")
 
+# ================== AUTO REPLY ADMIN ==================
+async def admin_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat = update.effective_chat
+    user = update.effective_user
+
+    # Ambil daftar admin
+    admins = await chat.get_administrators()
+    admin_ids = [admin.user.id for admin in admins]
+
+    # Jika pengirim admin → kirim balasan tombol
+    if user and user.id in admin_ids:
+        keyboard = [
+            [InlineKeyboardButton("📢 Subcribe Channel", url="https://t.me/afb88my")],
+            [InlineKeyboardButton("📢 Group Cuci&Tips GAME", url="https://t.me/+b685QE242dMxOWE9")],
+            [InlineKeyboardButton("📢 Promotion", url="https://t.me/Veronica88bot")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.message.reply_text("📌 Pilih menu di bawah:", reply_markup=reply_markup)
+
 # ================== MAIN ==================
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
@@ -268,7 +262,7 @@ def main():
     app.add_handler(CallbackQueryHandler(button))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reply_menu))
 
-    # Handler tambahan: admin posting di grup → auto balas promo
+    # 🔥 Tambahan → Auto reply admin di grup
     app.add_handler(MessageHandler(filters.ALL & filters.ChatType.GROUPS, admin_post))
 
     print("🤖 Bot sudah jalan...")
