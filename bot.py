@@ -225,26 +225,6 @@ async def forward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if failed:
         await update.message.reply_text(f"❌ Gagal forward: {', '.join(failed)}")
 
-# ================== AUTO REPLY ADMIN ==================
-async def admin_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat = update.effective_chat
-    user = update.effective_user
-
-    # Ambil daftar admin
-    admins = await chat.get_administrators()
-    admin_ids = [admin.user.id for admin in admins]
-
-    # Jika pengirim admin → kirim balasan tombol
-    if user and user.id in admin_ids:
-        keyboard = [
-            [InlineKeyboardButton("📢 Subcribe Channel", url="https://t.me/afb88my")],
-            [InlineKeyboardButton("📢 Group Cuci&Tips GAME", url="https://t.me/+b685QE242dMxOWE9")],
-            [InlineKeyboardButton("📢 Promotion", url="https://t.me/Veronica88bot")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await update.message.reply_text("📌 Pilih menu di bawah:", reply_markup=reply_markup)
-
 # ================== MAIN ==================
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
@@ -261,9 +241,6 @@ def main():
     # Handlers
     app.add_handler(CallbackQueryHandler(button))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reply_menu))
-
-    # 🔥 Tambahan → Auto reply admin di grup
-    app.add_handler(MessageHandler(filters.ALL & filters.ChatType.GROUPS, admin_post))
 
     print("🤖 Bot sudah jalan...")
     app.run_polling()
