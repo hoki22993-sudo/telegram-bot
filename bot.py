@@ -232,14 +232,17 @@ async def auto_repost(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if chat_id == SOURCE_CHAT_ID and user_id == ADMIN_USER_ID:
         keyboard = [
-            [InlineKeyboardButton("📲 Telegram", url="https://t.me/afb88my"),
-             InlineKeyboardButton("📝 Register Skrg!", url="https://afb88my1.com/")],
-            [InlineKeyboardButton("🎁 Bonus Claim", url="https://afb88my1.com/promotion"),
-             InlineKeyboardButton("🎯 Tips Game", url="https://t.me/+b685QE242dMxOWE9")],
-            [InlineKeyboardButton("📘 Facebook", url="https://www.facebook.com/profile.php?id=61579884569151"),
-             InlineKeyboardButton("📸 Instagram", url="https://instagram.com/afb88")],
-            [InlineKeyboardButton("🎥 WhatsApp", url="https://wa.me/+601133433880"),
-             InlineKeyboardButton("🔞 Amoi Video", url="https://t.me/Xamoi2688")]
+            [InlineKeyboardButton("🎮 Register", url="https://afb88my1.com/register/SMSRegister"),
+             InlineKeyboardButton("🎁 Bonus Claim!", url="https://afb88my1.com/promotion")],▶️🎮🎁▶️
+            [InlineKeyboardButton("▶️ Join Channel 1", url="t.me/afb88my"),
+             InlineKeyboardButton("▶️ Join Channel 2", url="t.me/afb88casinomy")],
+            [InlineKeyboardButton("📱 Facebook", url="https://www.facebook.com/profile.php?id=61579884569151"),
+             InlineKeyboardButton("📱 FB Group", url="https://www.facebook.com/groups/772875495480578")],
+            [InlineKeyboardButton("📞 WhatsApp", url="https://wa.me/+601133433880"),
+             InlineKeyboardButton("🔞 Amoi Video", url="t.me/SexyJapaneseGirls")]
+            [InlineKeyboardButton("🔗 Link Syok", url="https://heylink.me/AFB88casino"),
+             InlineKeyboardButton("🤖 BOT AFB88", url="https://t.me/Veronica88bot")]
+             
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -287,3 +290,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
