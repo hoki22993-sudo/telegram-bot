@@ -39,7 +39,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     main_menu = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
 
     # Gambar (bisa photo/gif)
-    media_type = "gif"  # ubah ke "gif" jika mau gif
+    media_type = "gif"
     media_url = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZudGg2bTVteGx2N3EwYng4a3ppMnhlcmltN2p2MTVweG1laXkyZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/tXSLbuTIf37SjvE6QY/giphy.gif"
 
     if media_type == "gif":
@@ -148,8 +148,8 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR
         },
         "🎉 TELEGRAM BONUS 🎉": {
             "url": "https://afb88my1.com/promotion",
-            "media_type": "photo",  # disamakan dengan yang lain
-            "media": "https://ibb.co/21qTqmtY",  # tetap link asli kamu
+            "media_type": "photo",
+            "media": "https://ibb.co/21qTqmtY",
             "caption": """🎉 TELEGRAM BONUS 🎉
 
 🎁 SUBSCRIBE TELEGRAM BONUS:  
@@ -225,6 +225,27 @@ async def forward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if failed:
         await update.message.reply_text(f"❌ Gagal forward: {', '.join(failed)}")
 
+# ================== AUTO INLINE BUTTON (HANYA ADMIN DI GRUP) ==================
+async def auto_inline_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    user_id = update.effective_user.id
+
+    # hanya aktif di grup utama & hanya jika yang posting adalah admin
+    if chat_id == SOURCE_CHAT_ID and user_id == ADMIN_USER_ID:
+        keyboard = [
+            [InlineKeyboardButton("📲 Telegram", url="https://t.me/afb88my")],
+            [InlineKeyboardButton("📝 Register Skrg!", url="https://afb88my1.com/")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        # balas langsung ke pesan admin
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="Klik tombol di bawah untuk lanjut:",
+            reply_markup=reply_markup,
+            reply_to_message_id=update.message.message_id
+        )
+
 # ================== MAIN ==================
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
@@ -240,7 +261,12 @@ def main():
 
     # Handlers
     app.add_handler(CallbackQueryHandler(button))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reply_menu))
+
+    # reply menu (user private / chat biasa)
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE, reply_menu))
+
+    # auto inline tombol (khusus di grup utama, hanya admin)
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.ChatType.GROUPS, auto_inline_buttons))
 
     print("🤖 Bot sudah jalan...")
     app.run_polling()
