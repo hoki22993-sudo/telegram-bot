@@ -20,7 +20,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     username = f"@{user.username}" if user.username else user.first_name
 
-    # Tombol inline utama
+    # Tombol inline (utama)
     keyboard = [
         [InlineKeyboardButton("📢 SUBSCRIBE CHANNEL", url="https://t.me/afb88my")],
         [InlineKeyboardButton("💬 GROUP CUCI & TIPS GAME", url="https://t.me/+b685QE242dMxOWE9")],
@@ -29,7 +29,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    # Menu permanen
+    # Menu permanen (reply keyboard)
     reply_keyboard = [
         ["🌟 NEW REGISTER FREE 🌟"],
         ["📘 SHARE FACEBOOK 📘"],
@@ -38,8 +38,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     main_menu = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
 
-    # Gambar/gif
-    media_type = "gif"
+    # Gambar (bisa photo/gif)
+    media_type = "gif"  # ubah ke "gif" jika mau gif
     media_url = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZudGg2bTVteGx2N3EwYng4a3ppMnhlcmltN2p2MTVweG1laXkyZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/tXSLbuTIf37SjvE6QY/giphy.gif"
 
     if media_type == "gif":
@@ -64,7 +64,106 @@ async def reply_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
 
     menu_data = {
-        # ... (isi menu_data sama seperti sebelumnya, tidak diubah)
+        "🌟 NEW REGISTER FREE 🌟": {
+            "url": "https://afb88my1.com/promotion",
+            "media_type": "photo",
+            "media": "https://ibb.co/BK2LVQ6t",
+            "caption": """🌟 NEW REGISTER BONUS 🌟
+
+⚠️ LANGGAR SYARAT AKAN FORFEITED SEMUA POINT ⚠️
+
+✅ Keperluan SLOT ONLY
+
+✅ Free Credit RM88  
+✅ Min WD/CUCI RM2000  
+✅ Max Payment/WD RM40  
+✅ BELOW CREDIT RM 0.10 
+✅ Dibenarkan Main MEGAH5|EPICWIN|PXPLAY2|ACEWIN2|RICH GAMING ( EVENT GAME ONLY)
+✅ DOWNLOAD APPS UNTUK CLAIM MESTI DOWNLOAD APPS UNTUK CLAIM CLICK LINK: https://afb88.hfcapital.top/
+
+⚠️ 1 NAMA 1 ID SAHAJA,TIDAK BOLEH  
+GUNA NAMA YANG SAMA UNTUK TUNTUT  
+BONUS INI 
+⚠️ NAMA DAFTAR MESTI SAMA DENGAN NAMA AKAUN BANK  
+AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR 
+
+➤ CLICK /start TO BACK MENU"""
+        },
+        "📘 SHARE FACEBOOK 📘": {
+            "url": "https://afb88my1.com/promotion",
+            "media_type": "photo",
+            "media": "https://ibb.co/Z6B55VcX",
+            "caption": """📘 SHARE FACEBOOK 📘
+
+🧧 FREE CREDIT RM68 🧧  
+
+✅ STEP 1: Join Our Telegram Channel LINK JOIN:t.me/afb88my
+✅ STEP 2: Join Our Facebook Group LINK JOIN: https://www.facebook.com/share/g/1GGcZKo6zN/
+➡️ How To Claim Free Credit: Share Post To 5 Casino Group 3 Link
+➡️ Had Tuntutan : DAILY CLAIM X1
+✅ Dibenarkan Main : MEGAH5|EPICWIN|PXPLAY|ACEWIN2|RICH GAMING (EVENT GAME ONLY)
+✅ DOWNLOAD APPS UNTUK CLAIM MESTI DOWNLOAD APPS UNTUK CLAIM CLICK LINK: https://afb88.hfcapital.top/
+️ 1 NAMA 1 ID SAHAJA,TIDAK BOLEH  
+GUNA NAMA YANG SAMA UNTUK TUNTUT  
+BONUS INI 
+⚠️ NAMA DAFTAR MESTI SAMA DENGAN NAMA AKAUN BANK  
+AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR 
+
+➤ CLICK /start TO BACK MENU"""
+        },
+        "🔥 DAILY APPS FREE 🔥": {
+            "url": "https://afb88my1.com/promotion",
+            "media_type": "photo",
+            "media": "https://ibb.co/nsmVQFbg",
+            "caption": """🔥 DAILY APPS FREE 🔥
+
+🎁 Free Credit RM20 
+
+📌 Had Tuntutan Daily Claim X1
+💰 Min. Withdraw RM 600  
+💳 Max. Payment RM 10  
+💰 Below Credit RM 0.10
+✅ Dibenarkan Main : MEGAH5|EPICWIN|PXPLAY|ACEWIN2|RICH GAMING (EVENT GAME ONLY)
+✅ DOWNLOAD APPS UNTUK CLAIM MESTI DOWNLOAD APPS UNTUK CLAIM CLICK LINK: https://afb88.hfcapital.top/
+
+⚠️ XDAPAT REKOMEN SENDIRI,BANK ACCOUNT/NAMA INFO SALAH AKAN FORFEITED SEMUA POINT 
+
+➤ CLICK /start TO BACK MENU"""
+        },
+        "🌞 SOCIAL MEDIA 🌞": {
+            "url": "https://afb88my1.com/promotion",
+            "media_type": "photo",
+            "media": "https://ibb.co/HfyD6DWw",
+            "caption": """🌞 SOCIAL MEDIA 🌞
+
+📌FOLLOW SOCIAL MEDIA:  
+
+📘 Facebook: https://www.facebook.com/profile.php?id=61579884569151  
+📸 Instagram: https://instagram.com/afb88  
+🎥 WhatsApp Group: https://wa.me/+601133433880
+
+🎯 Dapatkan maklumat acara terkini, bonus dan kemas kini 
+
+➤ CLICK /start TO BACK MENU!"""
+        },
+        "🎉 TELEGRAM BONUS 🎉": {
+            "url": "https://afb88my1.com/promotion",
+            "media_type": "photo",  # disamakan dengan yang lain
+            "media": "https://ibb.co/21qTqmtY",  # tetap link asli kamu
+            "caption": """🎉 TELEGRAM BONUS 🎉
+
+🎁 SUBSCRIBE TELEGRAM BONUS:  
+✅ Free Credit RM 30
+✅ Had Tuntutan X1
+✅ Min.Withdraw RM 888
+✅ Max.Payment RM 15
+✅ Join Telegram Channel :https://t.me/afb88my
+❌ TIDAK BOLEH DIGABUNG: TOP UP/REBATE/FREE/CREDIT/COMMISION BONUS
+
+👉 CLICK CLAIM NOW 
+
+➤ CLICK /start TO BACK MENU"""
+        },
     }
 
     if text in menu_data:
@@ -91,6 +190,7 @@ async def reply_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+
     if query.data == "profile":
         await query.edit_message_text("👤 Ini adalah menu profil kamu.")
 
@@ -125,85 +225,77 @@ async def forward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if failed:
         await update.message.reply_text(f"❌ Gagal forward: {', '.join(failed)}")
 
-# ================== HELPER: 8 INLINE BUTTONS ==================
-def get_inline_keyboard():
+
+# ================== AUTO POST (KHUSUS ADMIN, TEKS & MEDIA) ==================
+async def auto_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    chat_id = update.effective_chat.id
+
+    # hanya owner & hanya di grup utama
+    if user_id != ADMIN_USER_ID or chat_id != SOURCE_CHAT_ID:
+        return
+
+    # tombol inline (8 tombol)
     keyboard = [
         [
+            InlineKeyboardButton("📢 Channel", url="https://t.me/afb88my"),
+            InlineKeyboardButton("💬 Group", url="https://t.me/+b685QE242dMxOWE9"),
+        ],
+        [
+            InlineKeyboardButton("🌐 Register", url="https://afb88my1.com/"),
+            InlineKeyboardButton("🎥 Amoi XXX", url="https://t.me/Xamoi2688"),
+        ],
+        [
             InlineKeyboardButton("📲 Telegram", url="https://t.me/afb88my"),
-            InlineKeyboardButton("📝 Register", url="https://afb88my1.com/")
+            InlineKeyboardButton("📝 Daftar", url="https://afb88my1.com/"),
         ],
         [
-            InlineKeyboardButton("🎁 Bonus", url="https://afb88my1.com/promotion"),
-            InlineKeyboardButton("💬 Grup Tips", url="https://t.me/+b685QE242dMxOWE9")
-        ],
-        [
-            InlineKeyboardButton("🔥 Apps Free", url="https://afb88.hfcapital.top/"),
-            InlineKeyboardButton("📘 Facebook", url="https://www.facebook.com/share/g/1GGcZKo6zN/")
-        ],
-        [
-            InlineKeyboardButton("🎉 Telegram Bonus", url="https://t.me/afb88my"),
-            InlineKeyboardButton("🌞 Sosial Media", url="https://instagram.com/afb88")
+            InlineKeyboardButton("🔥 Bonus", url="https://afb88my1.com/promotion"),
+            InlineKeyboardButton("🎁 Claim Free", url="https://afb88my1.com/claim"),
         ]
     ]
-    return InlineKeyboardMarkup(keyboard)
+    reply_markup = InlineKeyboardMarkup(keyboard)
 
-# ================== POST COMMAND (HANYA ADMIN) ==================
-async def post(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    chat_id = update.effective_chat.id
+    caption = update.message.caption or update.message.text or ""
 
-    if user_id != ADMIN_USER_ID:
-        await update.message.reply_text("❌ Anda bukan admin yang diizinkan!")
-        return
-
-    if context.args:
-        message_text = " ".join(context.args)
-    else:
-        await update.message.reply_text("❌ Contoh penggunaan: /post Selamat datang bosku!")
-        return
-
-    await context.bot.send_message(
-        chat_id=chat_id,
-        text=message_text,
-        reply_markup=get_inline_keyboard()
-    )
-
-# ================== AUTO POST MEDIA (HANYA ADMIN) ==================
-async def auto_post_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    chat_id = update.effective_chat.id
-
-    if user_id != ADMIN_USER_ID:
-        return
-
-    caption = update.message.caption or ""
-
+    # kalau foto
     if update.message.photo:
         file_id = update.message.photo[-1].file_id
         await context.bot.send_photo(
             chat_id=chat_id,
             photo=file_id,
             caption=caption,
-            reply_markup=get_inline_keyboard()
+            reply_markup=reply_markup
         )
 
+    # kalau video
     elif update.message.video:
         file_id = update.message.video.file_id
         await context.bot.send_video(
             chat_id=chat_id,
             video=file_id,
             caption=caption,
-            reply_markup=get_inline_keyboard()
+            reply_markup=reply_markup
         )
 
+    # kalau animasi/gif
     elif update.message.animation:
         file_id = update.message.animation.file_id
         await context.bot.send_animation(
             chat_id=chat_id,
             animation=file_id,
             caption=caption,
-            reply_markup=get_inline_keyboard()
+            reply_markup=reply_markup
         )
+
+    # kalau teks biasa
+    elif update.message.text:
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=caption,
+            reply_markup=reply_markup
+        )
+
 
 # ================== MAIN ==================
 def main():
@@ -217,16 +309,16 @@ def main():
     app.add_handler(CommandHandler("profile", start))
     app.add_handler(CommandHandler("contact", start))
     app.add_handler(CommandHandler("forward", forward_command))
-    app.add_handler(CommandHandler("post", post))
 
     # Handlers
     app.add_handler(CallbackQueryHandler(button))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE, reply_menu))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reply_menu))
 
-    # Media auto-post khusus admin
-    app.add_handler(MessageHandler(filters.PHOTO & filters.ChatType.GROUPS, auto_post_media))
-    app.add_handler(MessageHandler(filters.VIDEO & filters.ChatType.GROUPS, auto_post_media))
-    app.add_handler(MessageHandler(filters.ANIMATION & filters.ChatType.GROUPS, auto_post_media))
+    # auto post (khusus admin di grup utama)
+    app.add_handler(MessageHandler(
+        (filters.TEXT | filters.PHOTO | filters.VIDEO | filters.ANIMATION) & filters.ChatType.GROUPS,
+        auto_post
+    ))
 
     print("🤖 Bot sudah jalan...")
     app.run_polling()
