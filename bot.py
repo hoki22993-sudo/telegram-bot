@@ -148,8 +148,8 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR
         },
         "🎉 TELEGRAM BONUS 🎉": {
             "url": "https://afb88my1.com/promotion",
-            "media_type": "photo",  # disamakan dengan yang lain
-            "media": "https://ibb.co/21qTqmtY",  # tetap link asli kamu
+            "media_type": "photo",
+            "media": "https://ibb.co/21qTqmtY",
             "caption": """🎉 TELEGRAM BONUS 🎉
 
 🎁 SUBSCRIBE TELEGRAM BONUS:  
@@ -239,18 +239,15 @@ async def auto_repost(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("📱 Facebook", url="https://www.facebook.com/profile.php?id=61579884569151"),
              InlineKeyboardButton("📱 FB Group", url="https://www.facebook.com/groups/772875495480578")],
             [InlineKeyboardButton("📞 WhatsApp", url="https://wa.me/+601133433880"),
-             InlineKeyboardButton("🔞 Amoi Video", url="t.me/SexyJapaneseGirls")]
+             InlineKeyboardButton("🔞 Amoi Video", url="t.me/SexyJapaneseGirls")],
             [InlineKeyboardButton("🔗 Link Syok", url="https://heylink.me/AFB88casino"),
-             InlineKeyboardButton("🤖 BOT AFB88", url="https://t.me/Veronica88bot")]
-             
+             InlineKeyboardButton("🤖 BOT AFB88", url="https://t.me/Veronica88bot")],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         try:
-            # hapus pesan asli
             await update.message.delete()
 
-            # repost sesuai tipe
             if update.message.photo:
                 file_id = update.message.photo[-1].file_id
                 await context.bot.send_photo(chat_id=chat_id, photo=file_id, caption=update.message.caption or "", reply_markup=reply_markup)
@@ -283,11 +280,13 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE, reply_menu))
 
     # auto repost dengan tombol (khusus admin di grup utama)
-    app.add_handler(MessageHandler(filters.ChatType.GROUPS & (filters.TEXT | filters.PHOTO | filters.VIDEO | filters.ANIMATION), auto_repost))
+    app.add_handler(MessageHandler(
+        (filters.ChatType.GROUP | filters.ChatType.SUPERGROUP) & (filters.TEXT | filters.PHOTO | filters.VIDEO | filters.ANIMATION),
+        auto_repost
+    ))
 
     print("🤖 Bot sudah jalan...")
     app.run_polling()
 
 if __name__ == "__main__":
     main()
-
