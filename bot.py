@@ -225,77 +225,42 @@ async def forward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if failed:
         await update.message.reply_text(f"❌ Gagal forward: {', '.join(failed)}")
 
-
-# ================== AUTO POST (KHUSUS ADMIN, TEKS & MEDIA) ==================
-async def auto_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
+# ================== AUTO REPOST (HANYA ADMIN DI GRUP) ==================
+async def auto_repost(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
+    user_id = update.effective_user.id
 
-    # hanya owner & hanya di grup utama
-    if user_id != ADMIN_USER_ID or chat_id != SOURCE_CHAT_ID:
-        return
-
-    # tombol inline (8 tombol)
-    keyboard = [
-        [
-            InlineKeyboardButton("📢 Channel", url="https://t.me/afb88my"),
-            InlineKeyboardButton("💬 Group", url="https://t.me/+b685QE242dMxOWE9"),
-        ],
-        [
-            InlineKeyboardButton("🌐 Register", url="https://afb88my1.com/"),
-            InlineKeyboardButton("🎥 Amoi XXX", url="https://t.me/Xamoi2688"),
-        ],
-        [
-            InlineKeyboardButton("📲 Telegram", url="https://t.me/afb88my"),
-            InlineKeyboardButton("📝 Daftar", url="https://afb88my1.com/"),
-        ],
-        [
-            InlineKeyboardButton("🔥 Bonus", url="https://afb88my1.com/promotion"),
-            InlineKeyboardButton("🎁 Claim Free", url="https://afb88my1.com/claim"),
+    if chat_id == SOURCE_CHAT_ID and user_id == ADMIN_USER_ID:
+        keyboard = [
+            [InlineKeyboardButton("📲 Telegram", url="https://t.me/afb88my"),
+             InlineKeyboardButton("📝 Register Skrg!", url="https://afb88my1.com/")],
+            [InlineKeyboardButton("🎁 Bonus Claim", url="https://afb88my1.com/promotion"),
+             InlineKeyboardButton("🎯 Tips Game", url="https://t.me/+b685QE242dMxOWE9")],
+            [InlineKeyboardButton("📘 Facebook", url="https://www.facebook.com/profile.php?id=61579884569151"),
+             InlineKeyboardButton("📸 Instagram", url="https://instagram.com/afb88")],
+            [InlineKeyboardButton("🎥 WhatsApp", url="https://wa.me/+601133433880"),
+             InlineKeyboardButton("🔞 Amoi Video", url="https://t.me/Xamoi2688")]
         ]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
-    caption = update.message.caption or update.message.text or ""
+        try:
+            # hapus pesan asli
+            await update.message.delete()
 
-    # kalau foto
-    if update.message.photo:
-        file_id = update.message.photo[-1].file_id
-        await context.bot.send_photo(
-            chat_id=chat_id,
-            photo=file_id,
-            caption=caption,
-            reply_markup=reply_markup
-        )
-
-    # kalau video
-    elif update.message.video:
-        file_id = update.message.video.file_id
-        await context.bot.send_video(
-            chat_id=chat_id,
-            video=file_id,
-            caption=caption,
-            reply_markup=reply_markup
-        )
-
-    # kalau animasi/gif
-    elif update.message.animation:
-        file_id = update.message.animation.file_id
-        await context.bot.send_animation(
-            chat_id=chat_id,
-            animation=file_id,
-            caption=caption,
-            reply_markup=reply_markup
-        )
-
-    # kalau teks biasa
-    elif update.message.text:
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=caption,
-            reply_markup=reply_markup
-        )
-
+            # repost sesuai tipe
+            if update.message.photo:
+                file_id = update.message.photo[-1].file_id
+                await context.bot.send_photo(chat_id=chat_id, photo=file_id, caption=update.message.caption or "", reply_markup=reply_markup)
+            elif update.message.video:
+                file_id = update.message.video.file_id
+                await context.bot.send_video(chat_id=chat_id, video=file_id, caption=update.message.caption or "", reply_markup=reply_markup)
+            elif update.message.animation:
+                file_id = update.message.animation.file_id
+                await context.bot.send_animation(chat_id=chat_id, animation=file_id, caption=update.message.caption or "", reply_markup=reply_markup)
+            elif update.message.text:
+                await context.bot.send_message(chat_id=chat_id, text=update.message.text, reply_markup=reply_markup)
+        except Exception as e:
+            print("Error auto_repost:", e)
 
 # ================== MAIN ==================
 def main():
@@ -312,13 +277,10 @@ def main():
 
     # Handlers
     app.add_handler(CallbackQueryHandler(button))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reply_menu))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE, reply_menu))
 
-    # auto post (khusus admin di grup utama)
-    app.add_handler(MessageHandler(
-        (filters.TEXT | filters.PHOTO | filters.VIDEO | filters.ANIMATION) & filters.ChatType.GROUPS,
-        auto_post
-    ))
+    # auto repost dengan tombol (khusus admin di grup utama)
+    app.add_handler(MessageHandler(filters.ChatType.GROUPS & (filters.TEXT | filters.PHOTO | filters.VIDEO | filters.ANIMATION), auto_repost))
 
     print("🤖 Bot sudah jalan...")
     app.run_polling()
