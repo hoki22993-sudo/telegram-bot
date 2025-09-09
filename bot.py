@@ -25,7 +25,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("📢 SUBSCRIBE CHANNEL", url="https://t.me/afb88my")],
         [InlineKeyboardButton("💬 GROUP CUCI & TIPS GAME", url="https://t.me/+b685QE242dMxOWE9")],
         [InlineKeyboardButton("🌐 REGISTER & LOGIN", url="https://afb88my1.com/")],
-        [InlineKeyboardButton("🔞 AMOI VIDEO XXX", url="https://t.me/Xamoi2688")],
+        [InlineKeyboardButton("🔞 AMOI VIDEO ", url="https://t.me/Xamoi2688")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -239,9 +239,9 @@ async def auto_repost(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("📱 Facebook", url="https://www.facebook.com/profile.php?id=61579884569151"),
              InlineKeyboardButton("📱 FB Group", url="https://www.facebook.com/groups/772875495480578")],
             [InlineKeyboardButton("📞 WhatsApp", url="https://wa.me/+601133433880"),
-             InlineKeyboardButton("🔞 Amoi Video", url="t.me/SexyJapaneseGirls")],
+             InlineKeyboardButton("🔞 Amoi Video", url="https://t.me/Xamoi2688")],
             [InlineKeyboardButton("🔗 Link Syok", url="https://heylink.me/AFB88casino"),
-             InlineKeyboardButton("🤖 BOT AFB88", url="https://t.me/Veronica88bot")],
+             InlineKeyboardButton("🤖 BOT AFB88", url="https://t.me/afb88_bot")],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -290,3 +290,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
