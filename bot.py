@@ -236,6 +236,8 @@ async def auto_repost(update: Update, context: ContextTypes.DEFAULT_TYPE):
              InlineKeyboardButton("🎁 Bonus Claim!", url="https://afb88my1.com/promotion")],
             [InlineKeyboardButton("▶️ Join Channel 1", url="t.me/afb88my"),
              InlineKeyboardButton("▶️ Join Channel 2", url="t.me/afb88casinomy")],
+            [InlineKeyboardButton("▶️ Group Sembang", url="https://t.me/+b685QE242dMxOWE9"),
+             InlineKeyboardButton("🌐 Login", url="https://afb88my1.com/")],
             [InlineKeyboardButton("📱 Facebook", url="https://www.facebook.com/profile.php?id=61579884569151"),
              InlineKeyboardButton("📱 FB Group", url="https://www.facebook.com/groups/772875495480578")],
             [InlineKeyboardButton("📞 WhatsApp", url="https://wa.me/+601133433880"),
