@@ -9,7 +9,8 @@ from telegram.ext import (
 
 # ================= CONFIG =================
 BOT_TOKEN = os.environ.get("BOT_TOKEN") or "ISI_TOKEN_DI_SINI"
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL") or "https://your-domain.com/webhook"
+WEBHOOK_URL = os.environ.get("WEBHOOK_URL") or "https://your-render-app.onrender.com"
+PORT = int(os.environ.get("PORT", 10000))
 
 # Admin & grup forward
 ADMIN_USER_ID = 1087968824
@@ -288,10 +289,10 @@ def main():
         auto_repost
     ))
 
-    print("🤖 Bot webhook sudah jalan...")
+    print("🤖 Bot sudah jalan dengan Webhook...")
     app.run_webhook(
         listen="0.0.0.0",
-        port=int(os.environ.get("PORT", 8443)),
+        port=PORT,
         url_path=BOT_TOKEN,
         webhook_url=f"{WEBHOOK_URL}/{BOT_TOKEN}"
     )
