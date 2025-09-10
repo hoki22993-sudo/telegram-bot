@@ -33,7 +33,6 @@ async function sendStart(ctx) {
 
     const mediaUrl = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZudGg2bTVteGx2N3EwYng4a3ppMnhlcmltN2p2MTVweG1laXkyZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/tXSLbuTIf37SjvE6QY/giphy.gif";
 
-    // Kirim animasi + inline buttons
     await ctx.replyWithAnimation(mediaUrl, {
       caption: `👋 Hi ${username}, 
 
@@ -42,14 +41,12 @@ Sila join group2 yang saya share dulu. Pastikan anda dapat REZEKI di group2 saya
       ...inlineButtons
     });
 
-    // Kirim reply keyboard (menu permanen)
     await ctx.reply("➤ CLICK /start TO BACK MENU:", replyKeyboard);
   } catch (e) {
     console.error("Error sendStart:", e);
   }
 }
 
-// register start & several command aliases to behave same as /start
 bot.start(sendStart);
 bot.command("help", sendStart);
 bot.command("menu", sendStart);
@@ -57,7 +54,7 @@ bot.command("about", sendStart);
 bot.command("profile", sendStart);
 bot.command("contact", sendStart);
 
-// ================== REPLY MENU (hanya di PRIVATE chat, mirror python) ==================
+// ================== REPLY MENU ==================
 const menuData = {
   "🌟 NEW REGISTER FREE 🌟": {
     url: "https://afb88my1.com/promotion",
@@ -158,9 +155,7 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR
 
 bot.hears(Object.keys(menuData), async (ctx) => {
   try {
-    // mirror Python filter: hanya private chat
     if (!ctx.message || ctx.chat.type !== "private") return;
-
     const data = menuData[ctx.message.text];
     if (!data) return;
 
@@ -177,17 +172,7 @@ bot.hears(Object.keys(menuData), async (ctx) => {
   }
 });
 
-// ================== INLINE CALLBACKS ==================
-bot.action("profile", async (ctx) => {
-  try {
-    await ctx.answerCbQuery();
-    await ctx.editMessageText("👤 Ini adalah menu profil kamu.");
-  } catch (e) {
-    console.error("Error action profile:", e);
-  }
-});
-
-// ================== MANUAL /forward (reply to message) ==================
+// ================== MANUAL /forward ==================
 bot.command("forward", async (ctx) => {
   try {
     const chatId = ctx.chat.id;
@@ -222,16 +207,15 @@ bot.command("forward", async (ctx) => {
 
     if (failed.length) {
       await ctx.reply(`❌ Gagal forward: ${failed.join(", ")}`);
-    } else {
-      await ctx.reply("✅ Pesan berhasil di-forward ke semua grup target!");
     }
+    // Tidak ada pesan sukses ✅
   } catch (e) {
     console.error("Error /forward:", e);
     try { await ctx.reply("❌ Terjadi error saat forward, cek log."); } catch {}
   }
 });
 
-// ================== AUTO REPOST (HANYA ADMIN DI GRUP) + FORWARD COPY ==================
+// ================== AUTO REPOST ==================
 bot.on(["text", "photo", "video", "animation"], async (ctx) => {
   try {
     const chatId = ctx.chat.id;
@@ -253,10 +237,8 @@ bot.on(["text", "photo", "video", "animation"], async (ctx) => {
          Markup.button.url("🤖 BOT AFB88", "https://t.me/afb88_bot")],
       ]);
 
-      // Hapus pesan asli (jika bot punya izin)
-      try { await ctx.deleteMessage(); } catch (e) { /* ignore */ }
+      try { await ctx.deleteMessage(); } catch (e) {}
 
-      // Repost di grup sumber (kembalikan pesan dengan tombol)
       let sentMsg = null;
       if (ctx.message.photo) {
         sentMsg = await ctx.replyWithPhoto(ctx.message.photo[0].file_id, {
@@ -277,7 +259,6 @@ bot.on(["text", "photo", "video", "animation"], async (ctx) => {
         sentMsg = await ctx.reply(ctx.message.text, repostButtons);
       }
 
-      // Copy pesan hasil repost ke semua target chats (preserve buttons & caption)
       if (sentMsg) {
         for (const targetId of TARGET_CHAT_IDS) {
           try {
@@ -302,6 +283,5 @@ bot.launch()
   .then(() => console.log("🤖 Bot sudah jalan pakai Node.js (Telegraf)..."))
   .catch((e) => console.error("Bot launch error:", e));
 
-// graceful stop
 process.once("SIGINT", () => bot.stop("SIGINT"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));
