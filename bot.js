@@ -156,6 +156,7 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR
 bot.hears(Object.keys(menuData), async (ctx) => {
   try {
     if (!ctx.message || ctx.chat.type !== "private") return;
+
     const data = menuData[ctx.message.text];
     if (!data) return;
 
@@ -172,7 +173,7 @@ bot.hears(Object.keys(menuData), async (ctx) => {
   }
 });
 
-// ================== MANUAL /forward ==================
+// ================== MANUAL /forward (reply to message) ==================
 bot.command("forward", async (ctx) => {
   try {
     const chatId = ctx.chat.id;
@@ -208,73 +209,10 @@ bot.command("forward", async (ctx) => {
     if (failed.length) {
       await ctx.reply(`❌ Gagal forward: ${failed.join(", ")}`);
     }
-    // Tidak ada pesan sukses ✅
+    // ✅ tidak ada pesan sukses, hanya error yang tampil
   } catch (e) {
     console.error("Error /forward:", e);
     try { await ctx.reply("❌ Terjadi error saat forward, cek log."); } catch {}
-  }
-});
-
-// ================== AUTO REPOST ==================
-bot.on(["text", "photo", "video", "animation"], async (ctx) => {
-  try {
-    const chatId = ctx.chat.id;
-    const userId = ctx.from.id;
-
-    if (chatId === SOURCE_CHAT_ID && userId === ADMIN_USER_ID) {
-      const repostButtons = Markup.inlineKeyboard([
-        [Markup.button.url("🎮 Register", "https://afb88my1.com/register/SMSRegister"),
-         Markup.button.url("🌐 Login", "https://afb88my1.com/")],
-        [Markup.button.url("▶️ Join Channel 1", "t.me/afb88my"),
-         Markup.button.url("▶️ Join Channel 2", "t.me/afb88casinomy")],
-        [Markup.button.url("▶️ Group Sembang", "https://t.me/+b685QE242dMxOWE9"),
-         Markup.button.url("🎁 Bonus Claim!", "https://afb88my1.com/promotion")],
-        [Markup.button.url("📱 Facebook", "https://www.facebook.com/profile.php?id=61579884569151"),
-         Markup.button.url("📱 FB Group", "https://www.facebook.com/groups/772875495480578")],
-        [Markup.button.url("📞 WhatsApp", "https://wa.me/+601133433880"),
-         Markup.button.url("🔞 Amoi Video", "https://t.me/Xamoi2688")],
-        [Markup.button.url("🔗 Link Syok", "https://heylink.me/AFB88casino"),
-         Markup.button.url("🤖 BOT AFB88", "https://t.me/afb88_bot")],
-      ]);
-
-      try { await ctx.deleteMessage(); } catch (e) {}
-
-      let sentMsg = null;
-      if (ctx.message.photo) {
-        sentMsg = await ctx.replyWithPhoto(ctx.message.photo[0].file_id, {
-          caption: ctx.message.caption || "",
-          ...repostButtons
-        });
-      } else if (ctx.message.video) {
-        sentMsg = await ctx.replyWithVideo(ctx.message.video.file_id, {
-          caption: ctx.message.caption || "",
-          ...repostButtons
-        });
-      } else if (ctx.message.animation) {
-        sentMsg = await ctx.replyWithAnimation(ctx.message.animation.file_id, {
-          caption: ctx.message.caption || "",
-          ...repostButtons
-        });
-      } else if (ctx.message.text) {
-        sentMsg = await ctx.reply(ctx.message.text, repostButtons);
-      }
-
-      if (sentMsg) {
-        for (const targetId of TARGET_CHAT_IDS) {
-          try {
-            await bot.telegram.copyMessage(
-              targetId,
-              sentMsg.chat.id,
-              sentMsg.message_id
-            );
-          } catch (e) {
-            console.error(`Failed copyMessage to ${targetId}:`, e);
-          }
-        }
-      }
-    }
-  } catch (e) {
-    console.error("Error auto_repost handler:", e);
   }
 });
 
