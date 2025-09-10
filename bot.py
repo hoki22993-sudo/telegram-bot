@@ -1,6 +1,4 @@
 import os
-import threading
-from flask import Flask
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
 )
@@ -41,7 +39,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     main_menu = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
 
     # Gambar (bisa photo/gif)
-    media_type = "gif"
+    media_type = "gif"  # ubah ke "gif" jika mau gif
     media_url = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZudGg2bTVteGx2N3EwYng4a3ppMnhlcmltN2p2MTVweG1laXkyZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/tXSLbuTIf37SjvE6QY/giphy.gif"
 
     if media_type == "gif":
@@ -266,17 +264,6 @@ async def auto_repost(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             print("Error auto_repost:", e)
 
-# ================== FLASK KEEP-ALIVE ==================
-app_flask = Flask(__name__)
-
-@app_flask.route("/")
-def home():
-    return "🤖 Bot is alive!"
-
-def run_flask():
-    port = int(os.environ.get("PORT", 10000))
-    app_flask.run(host="0.0.0.0", port=port)
-
 # ================== MAIN ==================
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
@@ -300,11 +287,9 @@ def main():
         auto_repost
     ))
 
-    # Jalankan bot polling di thread terpisah
-    threading.Thread(target=app.run_polling, daemon=True).start()
-
-    # Jalankan flask untuk keep-alive
-    run_flask()
+    print("🤖 Bot sudah jalan...")
+    app.run_polling()
 
 if __name__ == "__main__":
     main()
+
