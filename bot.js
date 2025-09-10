@@ -1,7 +1,7 @@
 // bot.js
 import { Telegraf, Markup } from "telegraf";
 import dotenv from "dotenv";
-import fs from "fs";
+import express from "express";
 dotenv.config();
 
 // ================= CONFIG =================
@@ -10,33 +10,13 @@ const ADMIN_USER_ID = 1087968824;
 const SOURCE_CHAT_ID = -1003038090571;
 const TARGET_CHAT_IDS = [-1002967257984, -1002996882426];
 
-const SUBSCRIBERS_FILE = "subscribers.json";
 const bot = new Telegraf(BOT_TOKEN);
-
-// ================== HELPERS ==================
-function loadSubscribers() {
-  try {
-    return JSON.parse(fs.readFileSync(SUBSCRIBERS_FILE, "utf8"));
-  } catch {
-    return [];
-  }
-}
-function saveSubscribers(subs) {
-  fs.writeFileSync(SUBSCRIBERS_FILE, JSON.stringify(subs, null, 2));
-}
-let subscribers = loadSubscribers();
 
 // ================== START (fungsi dipakai ulang) ==================
 async function sendStart(ctx) {
   try {
     const user = ctx.from || {};
     const username = user.username ? `@${user.username}` : (user.first_name || "Tuan/Puan");
-
-    // Tambahkan user ke subscribers
-    if (!subscribers.includes(user.id)) {
-      subscribers.push(user.id);
-      saveSubscribers(subscribers);
-    }
 
     const inlineButtons = Markup.inlineKeyboard([
       [Markup.button.url("📢 SUBSCRIBE CHANNEL", "https://t.me/afb88my")],
@@ -54,6 +34,7 @@ async function sendStart(ctx) {
 
     const mediaUrl = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZudGg2bTVteGx2N3EwYng4a3ppMnhlcmltN2p2MTVweG1laXkyZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/tXSLbuTIf37SjvE6QY/giphy.gif";
 
+    // Kirim animasi + inline buttons
     await ctx.replyWithAnimation(mediaUrl, {
       caption: `👋 Hi ${username}, 
 
@@ -62,6 +43,7 @@ Sila join group2 yang saya share dulu. Pastikan anda dapat REZEKI di group2 saya
       ...inlineButtons
     });
 
+    // Kirim reply keyboard (menu permanen)
     await ctx.reply("➤ CLICK /start TO BACK MENU:", replyKeyboard);
   } catch (e) {
     console.error("Error sendStart:", e);
@@ -176,7 +158,9 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR
 
 bot.hears(Object.keys(menuData), async (ctx) => {
   try {
+    // hanya untuk private chat
     if (!ctx.message || ctx.chat.type !== "private") return;
+
     const data = menuData[ctx.message.text];
     if (!data) return;
 
@@ -193,7 +177,7 @@ bot.hears(Object.keys(menuData), async (ctx) => {
   }
 });
 
-// ================== MANUAL /forward ==================
+// ================== MANUAL /forward (reply to message) ==================
 bot.command("forward", async (ctx) => {
   try {
     const chatId = ctx.chat.id;
@@ -202,6 +186,7 @@ bot.command("forward", async (ctx) => {
     if (userId !== ADMIN_USER_ID) {
       return ctx.reply("❌ Anda bukan admin yang diizinkan!");
     }
+
     if (chatId !== SOURCE_CHAT_ID) {
       return ctx.reply("❌ Command hanya bisa digunakan di grup utama!");
     }
@@ -212,8 +197,6 @@ bot.command("forward", async (ctx) => {
     }
 
     const failed = [];
-
-    // forward ke grup target
     for (const targetId of TARGET_CHAT_IDS) {
       try {
         await bot.telegram.forwardMessage(
@@ -227,21 +210,6 @@ bot.command("forward", async (ctx) => {
       }
     }
 
-    // forward juga ke semua subscriber
-    for (const userId of [...subscribers]) {
-      try {
-        await bot.telegram.forwardMessage(
-          userId,
-          replyTo.chat.id,
-          replyTo.message_id
-        );
-      } catch (e) {
-        console.error(`Remove unsubscribed user ${userId}`);
-        subscribers = subscribers.filter((id) => id !== userId);
-        saveSubscribers(subscribers);
-      }
-    }
-
     if (failed.length) {
       await ctx.reply(`❌ Gagal forward: ${failed.join(", ")}`);
     }
@@ -251,7 +219,7 @@ bot.command("forward", async (ctx) => {
   }
 });
 
-// ================== AUTO INLINE (repost di grup utama) ==================
+// ================== AUTO INLINE (Hanya di grup utama) ==================
 bot.on(["text", "photo", "video", "animation"], async (ctx) => {
   try {
     const chatId = ctx.chat.id;
@@ -273,7 +241,7 @@ bot.on(["text", "photo", "video", "animation"], async (ctx) => {
          Markup.button.url("🤖 BOT AFB88", "https://t.me/afb88_bot")],
       ]);
 
-      try { await ctx.deleteMessage(); } catch {}
+      try { await ctx.deleteMessage(); } catch (e) {}
 
       if (ctx.message.photo) {
         await ctx.replyWithPhoto(ctx.message.photo[0].file_id, {
@@ -299,10 +267,32 @@ bot.on(["text", "photo", "video", "animation"], async (ctx) => {
   }
 });
 
+// ================== COMMAND /unsub ==================
+bot.command("unsub", async (ctx) => {
+  try {
+    await ctx.reply("✅ Anda telah berhenti berlangganan. Klik /start jika ingin kembali.");
+  } catch (e) {
+    console.error("Error /unsub:", e);
+  }
+});
+
 // ================== START BOT ==================
 bot.launch()
   .then(() => console.log("🤖 Bot sudah jalan pakai Node.js (Telegraf)..."))
   .catch((e) => console.error("Bot launch error:", e));
 
+// graceful stop
 process.once("SIGINT", () => bot.stop("SIGINT"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));
+
+// ================== KEEP ALIVE SERVER ==================
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get("/", (req, res) => {
+  res.send("🤖 Bot Telegram sedang berjalan...");
+});
+
+app.listen(PORT, () => {
+  console.log(`🌐 Keep-alive server jalan di port ${PORT}`);
+});
