@@ -1,4 +1,5 @@
 import os
+import asyncio
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
 )
@@ -9,8 +10,6 @@ from telegram.ext import (
 
 # ================= CONFIG =================
 BOT_TOKEN = os.environ.get("BOT_TOKEN") or "ISI_TOKEN_DI_SINI"
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL") or "https://your-render-app.onrender.com"
-PORT = int(os.environ.get("PORT", 10000))
 
 # Admin & grup forward
 ADMIN_USER_ID = 1087968824
@@ -41,7 +40,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     main_menu = ReplyKeyboardMarkup(reply_keyboard, resize_keyboard=True)
 
     # Gambar (bisa photo/gif)
-    media_type = "gif"  # ubah ke "gif" jika mau gif
+    media_type = "gif"
     media_url = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZudGg2bTVteGx2N3EwYng4a3ppMnhlcmltN2p2MTVweG1laXkyZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/tXSLbuTIf37SjvE6QY/giphy.gif"
 
     if media_type == "gif":
@@ -60,6 +59,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     await update.message.reply_text("➤ CLICK /start TO BACK MENU:", reply_markup=main_menu)
+
 
 # ================== REPLY MENU ==================
 async def reply_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -188,13 +188,14 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR
                 reply_markup=reply_markup
             )
 
+
 # ================== INLINE BUTTON ==================
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-
     if query.data == "profile":
         await query.edit_message_text("👤 Ini adalah menu profil kamu.")
+
 
 # ================== FORWARD COMMAND ==================
 async def forward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -227,7 +228,8 @@ async def forward_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if failed:
         await update.message.reply_text(f"❌ Gagal forward: {', '.join(failed)}")
 
-# ================== AUTO REPOST (HANYA ADMIN DI GRUP) ==================
+
+# ================== AUTO REPOST ==================
 async def auto_repost(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     user_id = update.effective_user.id
@@ -266,8 +268,9 @@ async def auto_repost(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             print("Error auto_repost:", e)
 
-# ================== MAIN ==================
-def main():
+
+# ================== MAIN (WEBHOOK) ==================
+async def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     # Commands
@@ -282,20 +285,23 @@ def main():
     # Handlers
     app.add_handler(CallbackQueryHandler(button))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE, reply_menu))
-
-    # auto repost dengan tombol (khusus admin di grup utama)
     app.add_handler(MessageHandler(
         (filters.ChatType.GROUP | filters.ChatType.SUPERGROUP) & (filters.TEXT | filters.PHOTO | filters.VIDEO | filters.ANIMATION),
         auto_repost
     ))
 
-    print("🤖 Bot sudah jalan dengan Webhook...")
-    app.run_webhook(
+    port = int(os.environ.get("PORT", 10000))
+    webhook_url = os.environ.get("WEBHOOK_URL") or f"https://{os.environ.get('RENDER_EXTERNAL_HOSTNAME')}/{BOT_TOKEN}"
+
+    print(f"🤖 Bot sudah jalan dengan webhook di {webhook_url} ...")
+
+    await app.run_webhook(
         listen="0.0.0.0",
-        port=PORT,
+        port=port,
         url_path=BOT_TOKEN,
-        webhook_url=f"{WEBHOOK_URL}/{BOT_TOKEN}"
+        webhook_url=webhook_url,
     )
 
+
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
