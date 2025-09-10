@@ -1,3 +1,4 @@
+// bot.js
 import { Telegraf, Markup } from "telegraf";
 import dotenv from "dotenv";
 dotenv.config();
@@ -10,41 +11,53 @@ const TARGET_CHAT_IDS = [-1002967257984, -1002996882426];
 
 const bot = new Telegraf(BOT_TOKEN);
 
-// ================== START & MENU ==================
-bot.start(async (ctx) => {
-  const user = ctx.from;
-  const username = user.username ? `@${user.username}` : user.first_name;
+// ================== START (fungsi dipakai ulang) ==================
+async function sendStart(ctx) {
+  try {
+    const user = ctx.from || {};
+    const username = user.username ? `@${user.username}` : (user.first_name || "Tuan/Puan");
 
-  // Tombol inline utama
-  const inlineButtons = Markup.inlineKeyboard([
-    [Markup.button.url("📢 SUBSCRIBE CHANNEL", "https://t.me/afb88my")],
-    [Markup.button.url("💬 GROUP CUCI & TIPS GAME", "https://t.me/+b685QE242dMxOWE9")],
-    [Markup.button.url("🌐 REGISTER & LOGIN", "https://afb88my1.com/")],
-    [Markup.button.url("🔞 AMOI VIDEO", "https://t.me/Xamoi2688")],
-  ]);
+    const inlineButtons = Markup.inlineKeyboard([
+      [Markup.button.url("📢 SUBSCRIBE CHANNEL", "https://t.me/afb88my")],
+      [Markup.button.url("💬 GROUP CUCI & TIPS GAME", "https://t.me/+b685QE242dMxOWE9")],
+      [Markup.button.url("🌐 REGISTER & LOGIN", "https://afb88my1.com/")],
+      [Markup.button.url("🔞 AMOI VIDEO", "https://t.me/Xamoi2688")],
+    ]);
 
-  // Menu permanen (reply keyboard)
-  const replyKeyboard = Markup.keyboard([
-    ["🌟 NEW REGISTER FREE 🌟"],
-    ["📘 SHARE FACEBOOK 📘"],
-    ["🔥 DAILY APPS FREE 🔥", "🌞 SOCIAL MEDIA 🌞"],
-    ["🎉 TELEGRAM BONUS 🎉"]
-  ]).resize();
+    const replyKeyboard = Markup.keyboard([
+      ["🌟 NEW REGISTER FREE 🌟"],
+      ["📘 SHARE FACEBOOK 📘"],
+      ["🔥 DAILY APPS FREE 🔥", "🌞 SOCIAL MEDIA 🌞"],
+      ["🎉 TELEGRAM BONUS 🎉"]
+    ]).resize();
 
-  const mediaUrl = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZudGg2bTVteGx2N3EwYng4a3ppMnhlcmltN2p2MTVweG1laXkyZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/tXSLbuTIf37SjvE6QY/giphy.gif";
+    const mediaUrl = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZudGg2bTVteGx2N3EwYng4a3ppMnhlcmltN2p2MTVweG1laXkyZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/tXSLbuTIf37SjvE6QY/giphy.gif";
 
-  await ctx.replyWithAnimation(mediaUrl, {
-    caption: `👋 Hi ${username}, 
+    // Kirim animasi + inline buttons
+    await ctx.replyWithAnimation(mediaUrl, {
+      caption: `👋 Hi ${username}, 
 
 Bossku 😘 Kalau anda sudah subscribe saya, saya pasti kasi anda untungan yg terbaik!! 
 Sila join group2 yang saya share dulu. Pastikan anda dapat REZEKI di group2 saya ❤️`,
-    ...inlineButtons,
-  });
+      ...inlineButtons
+    });
 
-  await ctx.reply("➤ CLICK /start TO BACK MENU:", replyKeyboard);
-});
+    // Kirim reply keyboard (menu permanen)
+    await ctx.reply("➤ CLICK /start TO BACK MENU:", replyKeyboard);
+  } catch (e) {
+    console.error("Error sendStart:", e);
+  }
+}
 
-// ================== REPLY MENU ==================
+// register start & several command aliases to behave same as /start
+bot.start(sendStart);
+bot.command("help", sendStart);
+bot.command("menu", sendStart);
+bot.command("about", sendStart);
+bot.command("profile", sendStart);
+bot.command("contact", sendStart);
+
+// ================== REPLY MENU (hanya di PRIVATE chat, mirror python) ==================
 const menuData = {
   "🌟 NEW REGISTER FREE 🌟": {
     url: "https://afb88my1.com/promotion",
@@ -144,65 +157,151 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR
 };
 
 bot.hears(Object.keys(menuData), async (ctx) => {
-  const data = menuData[ctx.message.text];
-  const inlineBtn = Markup.inlineKeyboard([
-    [Markup.button.url("CLAIM 🎁", data.url)],
-  ]);
+  try {
+    // mirror Python filter: hanya private chat
+    if (!ctx.message || ctx.chat.type !== "private") return;
 
-  await ctx.replyWithPhoto(data.media, {
-    caption: data.caption,
-    ...inlineBtn,
-  });
-});
+    const data = menuData[ctx.message.text];
+    if (!data) return;
 
-// ================== AUTO REPOST (HANYA ADMIN DI GRUP) ==================
-bot.on(["text", "photo", "video", "animation"], async (ctx) => {
-  const chatId = ctx.chat.id;
-  const userId = ctx.from.id;
-
-  if (chatId === SOURCE_CHAT_ID && userId === ADMIN_USER_ID) {
-    const repostButtons = Markup.inlineKeyboard([
-      [Markup.button.url("🎮 Register", "https://afb88my1.com/register/SMSRegister"),
-       Markup.button.url("🌐 Login", "https://afb88my1.com/")],
-      [Markup.button.url("▶️ Join Channel 1", "t.me/afb88my"),
-       Markup.button.url("▶️ Join Channel 2", "t.me/afb88casinomy")],
-      [Markup.button.url("▶️ Group Sembang", "https://t.me/+b685QE242dMxOWE9"),
-       Markup.button.url("🎁 Bonus Claim!", "https://afb88my1.com/promotion")],
-      [Markup.button.url("📱 Facebook", "https://www.facebook.com/profile.php?id=61579884569151"),
-       Markup.button.url("📱 FB Group", "https://www.facebook.com/groups/772875495480578")],
-      [Markup.button.url("📞 WhatsApp", "https://wa.me/+601133433880"),
-       Markup.button.url("🔞 Amoi Video", "https://t.me/Xamoi2688")],
-      [Markup.button.url("🔗 Link Syok", "https://heylink.me/AFB88casino"),
-       Markup.button.url("🤖 BOT AFB88", "https://t.me/afb88_bot")],
+    const inlineBtn = Markup.inlineKeyboard([
+      [Markup.button.url("CLAIM 🎁", data.url)],
     ]);
 
-    try {
-      await ctx.deleteMessage();
+    await ctx.replyWithPhoto(data.media, {
+      caption: data.caption,
+      ...inlineBtn
+    });
+  } catch (e) {
+    console.error("Error menu hears:", e);
+  }
+});
 
+// ================== INLINE CALLBACKS ==================
+bot.action("profile", async (ctx) => {
+  try {
+    await ctx.answerCbQuery();
+    await ctx.editMessageText("👤 Ini adalah menu profil kamu.");
+  } catch (e) {
+    console.error("Error action profile:", e);
+  }
+});
+
+// ================== MANUAL /forward (reply to message) ==================
+bot.command("forward", async (ctx) => {
+  try {
+    const chatId = ctx.chat.id;
+    const userId = ctx.from.id;
+
+    if (userId !== ADMIN_USER_ID) {
+      return ctx.reply("❌ Anda bukan admin yang diizinkan!");
+    }
+
+    if (chatId !== SOURCE_CHAT_ID) {
+      return ctx.reply("❌ Command hanya bisa digunakan di grup utama!");
+    }
+
+    const replyTo = ctx.message.reply_to_message;
+    if (!replyTo) {
+      return ctx.reply("❌ Reply ke pesan yang ingin di-forward.");
+    }
+
+    const failed = [];
+    for (const targetId of TARGET_CHAT_IDS) {
+      try {
+        await bot.telegram.forwardMessage(
+          targetId,
+          replyTo.chat.id,
+          replyTo.message_id
+        );
+      } catch (e) {
+        console.error(`Failed forward to ${targetId}:`, e);
+        failed.push(`${targetId}`);
+      }
+    }
+
+    if (failed.length) {
+      await ctx.reply(`❌ Gagal forward: ${failed.join(", ")}`);
+    } else {
+      await ctx.reply("✅ Pesan berhasil di-forward ke semua grup target!");
+    }
+  } catch (e) {
+    console.error("Error /forward:", e);
+    try { await ctx.reply("❌ Terjadi error saat forward, cek log."); } catch {}
+  }
+});
+
+// ================== AUTO REPOST (HANYA ADMIN DI GRUP) + FORWARD COPY ==================
+bot.on(["text", "photo", "video", "animation"], async (ctx) => {
+  try {
+    const chatId = ctx.chat.id;
+    const userId = ctx.from.id;
+
+    if (chatId === SOURCE_CHAT_ID && userId === ADMIN_USER_ID) {
+      const repostButtons = Markup.inlineKeyboard([
+        [Markup.button.url("🎮 Register", "https://afb88my1.com/register/SMSRegister"),
+         Markup.button.url("🌐 Login", "https://afb88my1.com/")],
+        [Markup.button.url("▶️ Join Channel 1", "t.me/afb88my"),
+         Markup.button.url("▶️ Join Channel 2", "t.me/afb88casinomy")],
+        [Markup.button.url("▶️ Group Sembang", "https://t.me/+b685QE242dMxOWE9"),
+         Markup.button.url("🎁 Bonus Claim!", "https://afb88my1.com/promotion")],
+        [Markup.button.url("📱 Facebook", "https://www.facebook.com/profile.php?id=61579884569151"),
+         Markup.button.url("📱 FB Group", "https://www.facebook.com/groups/772875495480578")],
+        [Markup.button.url("📞 WhatsApp", "https://wa.me/+601133433880"),
+         Markup.button.url("🔞 Amoi Video", "https://t.me/Xamoi2688")],
+        [Markup.button.url("🔗 Link Syok", "https://heylink.me/AFB88casino"),
+         Markup.button.url("🤖 BOT AFB88", "https://t.me/afb88_bot")],
+      ]);
+
+      // Hapus pesan asli (jika bot punya izin)
+      try { await ctx.deleteMessage(); } catch (e) { /* ignore */ }
+
+      // Repost di grup sumber (kembalikan pesan dengan tombol)
+      let sentMsg = null;
       if (ctx.message.photo) {
-        await ctx.replyWithPhoto(ctx.message.photo[0].file_id, {
+        sentMsg = await ctx.replyWithPhoto(ctx.message.photo[0].file_id, {
           caption: ctx.message.caption || "",
-          ...repostButtons,
+          ...repostButtons
         });
       } else if (ctx.message.video) {
-        await ctx.replyWithVideo(ctx.message.video.file_id, {
+        sentMsg = await ctx.replyWithVideo(ctx.message.video.file_id, {
           caption: ctx.message.caption || "",
-          ...repostButtons,
+          ...repostButtons
         });
       } else if (ctx.message.animation) {
-        await ctx.replyWithAnimation(ctx.message.animation.file_id, {
+        sentMsg = await ctx.replyWithAnimation(ctx.message.animation.file_id, {
           caption: ctx.message.caption || "",
-          ...repostButtons,
+          ...repostButtons
         });
       } else if (ctx.message.text) {
-        await ctx.reply(ctx.message.text, repostButtons);
+        sentMsg = await ctx.reply(ctx.message.text, repostButtons);
       }
-    } catch (e) {
-      console.error("Error auto_repost:", e);
+
+      // Copy pesan hasil repost ke semua target chats (preserve buttons & caption)
+      if (sentMsg) {
+        for (const targetId of TARGET_CHAT_IDS) {
+          try {
+            await bot.telegram.copyMessage(
+              targetId,
+              sentMsg.chat.id,
+              sentMsg.message_id
+            );
+          } catch (e) {
+            console.error(`Failed copyMessage to ${targetId}:`, e);
+          }
+        }
+      }
     }
+  } catch (e) {
+    console.error("Error auto_repost handler:", e);
   }
 });
 
 // ================== START BOT ==================
-bot.launch();
-console.log("🤖 Bot sudah jalan pakai Node.js (Telegraf)...");
+bot.launch()
+  .then(() => console.log("🤖 Bot sudah jalan pakai Node.js (Telegraf)..."))
+  .catch((e) => console.error("Bot launch error:", e));
+
+// graceful stop
+process.once("SIGINT", () => bot.stop("SIGINT"));
+process.once("SIGTERM", () => bot.stop("SIGTERM"));
