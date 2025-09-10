@@ -233,11 +233,11 @@ async def auto_repost(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if chat_id == SOURCE_CHAT_ID and user_id == ADMIN_USER_ID:
         keyboard = [
             [InlineKeyboardButton("🎮 Register", url="https://afb88my1.com/register/SMSRegister"),
-             InlineKeyboardButton("🎁 Bonus Claim!", url="https://afb88my1.com/promotion")],
+             InlineKeyboardButton("🌐 Login", url="https://afb88my1.com/")],
             [InlineKeyboardButton("▶️ Join Channel 1", url="t.me/afb88my"),
              InlineKeyboardButton("▶️ Join Channel 2", url="t.me/afb88casinomy")],
             [InlineKeyboardButton("▶️ Group Sembang", url="https://t.me/+b685QE242dMxOWE9"),
-             InlineKeyboardButton("🌐 Login", url="https://afb88my1.com/")],
+             InlineKeyboardButton("🎁 Bonus Claim!", url="https://afb88my1.com/promotion")],
             [InlineKeyboardButton("📱 Facebook", url="https://www.facebook.com/profile.php?id=61579884569151"),
              InlineKeyboardButton("📱 FB Group", url="https://www.facebook.com/groups/772875495480578")],
             [InlineKeyboardButton("📞 WhatsApp", url="https://wa.me/+601133433880"),
