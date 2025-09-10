@@ -1,7 +1,4 @@
 import os
-import threading
-import asyncio
-from flask import Flask
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
 )
@@ -267,23 +264,8 @@ async def auto_repost(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             print("Error auto_repost:", e)
 
-# ================== FLASK HEALTH (KEEP-ALIVE) ==================
-flask_app = Flask(__name__)
-
-@flask_app.route("/")
-def home():
-    return "✅ Bot is running"
-
-def run_flask():
-    port = int(os.environ.get("PORT", 10000))
-    # Use Flask's built-in server as a simple health endpoint for uptime monitors.
-    flask_app.run(host="0.0.0.0", port=port)
-
-# ================== MAIN (async) ==================
-async def main():
-    # start flask in a separate daemon thread so it doesn't block asyncio loop
-    threading.Thread(target=run_flask, daemon=True).start()
-
+# ================== MAIN ==================
+def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     # Commands
@@ -305,9 +287,9 @@ async def main():
         auto_repost
     ))
 
-    print("🤖 Bot sudah jalan... (polling + health endpoint)")
-    # run_polling is async in PTB v20; await it inside asyncio.run()
-    await app.run_polling()
+    print("🤖 Bot sudah jalan...")
+    app.run_polling()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
+
