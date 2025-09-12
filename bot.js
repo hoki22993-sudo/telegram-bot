@@ -3,6 +3,7 @@ import { Telegraf, Markup } from "telegraf";
 import dotenv from "dotenv";
 import fs from "fs";
 import express from "express";
+
 dotenv.config();
 
 // ================= CONFIG =================
@@ -17,7 +18,7 @@ const bot = new Telegraf(BOT_TOKEN);
 const SUBSCRIBERS_FILE = "subscribers.json";
 let subscribers = [];
 
-// Load subscribers file (jaga kalau file tidak ada / corrupt)
+// Load subscribers file
 try {
   if (fs.existsSync(SUBSCRIBERS_FILE)) {
     const raw = fs.readFileSync(SUBSCRIBERS_FILE, "utf8");
@@ -67,7 +68,6 @@ async function sendStart(ctx) {
 
     const mediaUrl = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZudGg2bTVteGx2N3EwYng4a3ppMnhlcmltN2p2MTVweG1laXkyZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/tXSLbuTIf37SjvE6QY/giphy.gif";
 
-    // Kirim animasi + inline buttons
     await ctx.replyWithAnimation(mediaUrl, {
       caption: `👋 Hi ${username}, 
 
@@ -76,7 +76,6 @@ Sila join group2 yang saya share dulu. Pastikan anda dapat REZEKI di group2 saya
       ...inlineButtons
     });
 
-    // Kirim reply keyboard (menu permanen)
     await ctx.reply("➤ CLICK /start TO BACK MENU:", replyKeyboard);
   } catch (e) {
     console.error("Error sendStart:", e);
@@ -191,7 +190,6 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR
 
 bot.hears(Object.keys(menuData), async (ctx) => {
   try {
-    // hanya untuk private chat
     if (!ctx.message || ctx.chat.type !== "private") return;
 
     const data = menuData[ctx.message.text];
@@ -231,7 +229,6 @@ bot.command("forward", async (ctx) => {
 
     const failed = [];
 
-    // forward ke target group
     for (const targetId of TARGET_CHAT_IDS) {
       try {
         await bot.telegram.forwardMessage(
@@ -245,8 +242,6 @@ bot.command("forward", async (ctx) => {
       }
     }
 
-    // forward juga ke semua subscriber (DM)
-    // jika gagal (user block/forbidden) akan dihapus otomatis dari list
     for (const subId of [...subscribers]) {
       try {
         await bot.telegram.forwardMessage(
@@ -261,19 +256,16 @@ bot.command("forward", async (ctx) => {
       }
     }
 
-    // hanya tampilkan jika ada error ke grup target
     if (failed.length) {
       await ctx.reply(`❌ Gagal forward: ${failed.join(", ")}`);
     }
-    // TIDAK mengirim pesan sukses jika semua berhasil (sesuai permintaan)
   } catch (e) {
     console.error("Error /forward:", e);
     try { await ctx.reply("❌ Terjadi error saat forward, cek log."); } catch {}
   }
 });
 
-// ================== AUTO INLINE (HAPUS + REPOST DI GRUP UTAMA) ==================
-// Hanya di grup SOURCE_CHAT_ID dan hanya jika pengirim adalah ADMIN_USER_ID
+// ================== AUTO INLINE ==================
 bot.on(["text", "photo", "video", "animation"], async (ctx) => {
   try {
     const chatId = ctx.chat.id;
@@ -295,10 +287,8 @@ bot.on(["text", "photo", "video", "animation"], async (ctx) => {
          Markup.button.url("🤖 BOT AFB88", "https://t.me/afb88_bot")],
       ]);
 
-      // Hapus pesan asli (jika bot punya izin)
-      try { await ctx.deleteMessage(); } catch (e) { /* ignore */ }
+      try { await ctx.deleteMessage(); } catch (e) {}
 
-      // Repost di grup sumber (kembalikan pesan yang sama dengan tombol inline)
       if (ctx.message.photo) {
         await ctx.replyWithPhoto(ctx.message.photo[0].file_id, {
           caption: ctx.message.caption || "",
@@ -339,23 +329,27 @@ bot.command("unsub", async (ctx) => {
   }
 });
 
-// ================== START BOT ==================
-bot.launch()
-  .then(() => console.log("🤖 Bot sudah jalan pakai Node.js (Telegraf)..."))
-  .catch((e) => console.error("Bot launch error:", e));
-
-// graceful stop
-process.once("SIGINT", () => bot.stop("SIGINT"));
-process.once("SIGTERM", () => bot.stop("SIGTERM"));
-
-// ================== KEEP ALIVE SERVER (UNTUK RENDER / UPTIMEROBOT) ==================
+// ================== WEBHOOK MODE (UNTUK RENDER) ==================
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+// webhook path unik
+const SECRET_PATH = "/webhook";
+
+// pasang webhook callback
+app.use(bot.webhookCallback(SECRET_PATH));
+
+// endpoint root
 app.get("/", (req, res) => {
-  res.send("🤖 Bot Telegram sedang berjalan...");
+  res.send("🤖 Bot Telegram sedang berjalan dengan webhook...");
 });
 
-app.listen(PORT, () => {
-  console.log(`🌐 Keep-alive server jalan di port ${PORT}`);
+app.listen(PORT, async () => {
+  console.log(`🌐 Server jalan di port ${PORT}`);
+  try {
+    await bot.telegram.setWebhook(`https://telegram-bot-j3of.onrender.com${SECRET_PATH}`);
+    console.log("✅ Webhook set sukses!");
+  } catch (e) {
+    console.error("❌ Gagal set webhook:", e);
+  }
 });
