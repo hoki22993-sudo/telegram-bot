@@ -3,7 +3,6 @@ import { Telegraf, Markup } from "telegraf";
 import dotenv from "dotenv";
 import fs from "fs";
 import express from "express";
-
 dotenv.config();
 
 // ================= CONFIG =================
@@ -12,26 +11,23 @@ const ADMIN_USER_ID = 1087968824;
 const SOURCE_CHAT_ID = -1003038090571;
 const TARGET_CHAT_IDS = [-1002967257984, -1002996882426];
 
-if (!BOT_TOKEN || BOT_TOKEN === "ISI_TOKEN_DI_SINI") {
-  console.error("❌ BOT_TOKEN belum diatur di .env atau Render Environment!");
-  process.exit(1);
-}
-
 const bot = new Telegraf(BOT_TOKEN);
 
 // ================== SUBSCRIBERS STORAGE ==================
 const SUBSCRIBERS_FILE = "subscribers.json";
 let subscribers = [];
 
-// Load subscribers
+// Load subscribers file (jaga kalau file tidak ada / corrupt)
 try {
   if (fs.existsSync(SUBSCRIBERS_FILE)) {
     const raw = fs.readFileSync(SUBSCRIBERS_FILE, "utf8");
     subscribers = JSON.parse(raw || "[]");
     if (!Array.isArray(subscribers)) subscribers = [];
+  } else {
+    subscribers = [];
   }
 } catch (e) {
-  console.error("❌ Gagal load subscribers.json:", e);
+  console.error("Failed load subscribers.json, starting empty.", e);
   subscribers = [];
 }
 
@@ -39,7 +35,7 @@ function saveSubscribers() {
   try {
     fs.writeFileSync(SUBSCRIBERS_FILE, JSON.stringify(subscribers, null, 2));
   } catch (e) {
-    console.error("❌ Gagal save subscribers.json:", e);
+    console.error("Failed save subscribers.json:", e);
   }
 }
 
@@ -49,7 +45,8 @@ async function sendStart(ctx) {
     const user = ctx.from || {};
     const username = user.username ? `@${user.username}` : (user.first_name || "Tuan/Puan");
 
-    if (user.id && !subscribers.includes(user.id)) {
+    // simpan subscriber (jika belum ada)
+    if (user && user.id && !subscribers.includes(user.id)) {
       subscribers.push(user.id);
       saveSubscribers();
     }
@@ -70,6 +67,7 @@ async function sendStart(ctx) {
 
     const mediaUrl = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZudGg2bTVteGx2N3EwYng4a3ppMnhlcmltN2p2MTVweG1laXkyZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/tXSLbuTIf37SjvE6QY/giphy.gif";
 
+    // Kirim animasi + inline buttons
     await ctx.replyWithAnimation(mediaUrl, {
       caption: `👋 Hi ${username}, 
 
@@ -78,6 +76,7 @@ Sila join group2 yang saya share dulu. Pastikan anda dapat REZEKI di group2 saya
       ...inlineButtons
     });
 
+    // Kirim reply keyboard (menu permanen)
     await ctx.reply("➤ CLICK /start TO BACK MENU:", replyKeyboard);
   } catch (e) {
     console.error("Error sendStart:", e);
@@ -85,9 +84,13 @@ Sila join group2 yang saya share dulu. Pastikan anda dapat REZEKI di group2 saya
 }
 
 bot.start(sendStart);
-bot.command(["help", "menu", "about", "profile", "contact"], sendStart);
+bot.command("help", sendStart);
+bot.command("menu", sendStart);
+bot.command("about", sendStart);
+bot.command("profile", sendStart);
+bot.command("contact", sendStart);
 
-// ================== MENU REPLY ==================
+// ================== REPLY MENU (PRIVATE chat) ==================
 const menuData = {
   "🌟 NEW REGISTER FREE 🌟": {
     url: "https://afb88my1.com/promotion",
@@ -97,6 +100,7 @@ const menuData = {
 ⚠️ LANGGAR SYARAT AKAN FORFEITED SEMUA POINT ⚠️
 
 ✅ Keperluan SLOT ONLY
+
 ✅ Free Credit RM88  
 ✅ Min WD/CUCI RM2000  
 ✅ Max Payment/WD RM40  
@@ -105,7 +109,8 @@ const menuData = {
 ✅ DOWNLOAD APPS UNTUK CLAIM MESTI DOWNLOAD APPS UNTUK CLAIM CLICK LINK: https://afb88.hfcapital.top/
 
 ⚠️ 1 NAMA 1 ID SAHAJA,TIDAK BOLEH  
-GUNA NAMA YANG SAMA UNTUK TUNTUT BONUS INI 
+GUNA NAMA YANG SAMA UNTUK TUNTUT  
+BONUS INI 
 ⚠️ NAMA DAFTAR MESTI SAMA DENGAN NAMA AKAUN BANK  
 AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR 
 
@@ -124,9 +129,9 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR
 ➡️ Had Tuntutan : DAILY CLAIM X1
 ✅ Dibenarkan Main : MEGAH5|EPICWIN|PXPLAY|ACEWIN2|RICH GAMING (EVENT GAME ONLY)
 ✅ DOWNLOAD APPS UNTUK CLAIM MESTI DOWNLOAD APPS UNTUK CLAIM CLICK LINK: https://afb88.hfcapital.top/
-
-⚠️ 1 NAMA 1 ID SAHAJA,TIDAK BOLEH  
-GUNA NAMA YANG SAMA UNTUK TUNTUT BONUS INI 
+️ 1 NAMA 1 ID SAHAJA,TIDAK BOLEH  
+GUNA NAMA YANG SAMA UNTUK TUNTUT  
+BONUS INI 
 ⚠️ NAMA DAFTAR MESTI SAMA DENGAN NAMA AKAUN BANK  
 AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR 
 
@@ -138,6 +143,7 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR
     caption: `🔥 DAILY APPS FREE 🔥
 
 🎁 Free Credit RM20 
+
 📌 Had Tuntutan Daily Claim X1
 💰 Min. Withdraw RM 600  
 💳 Max. Payment RM 10  
@@ -155,6 +161,7 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR
     caption: `🌞 SOCIAL MEDIA 🌞
 
 📌FOLLOW SOCIAL MEDIA:  
+
 📘 Facebook: https://www.facebook.com/profile.php?id=61579884569151  
 📸 Instagram: https://instagram.com/afb88  
 🎥 WhatsApp Group: https://wa.me/+601133433880
@@ -184,7 +191,9 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR
 
 bot.hears(Object.keys(menuData), async (ctx) => {
   try {
-    if (ctx.chat.type !== "private") return;
+    // hanya untuk private chat
+    if (!ctx.message || ctx.chat.type !== "private") return;
+
     const data = menuData[ctx.message.text];
     if (!data) return;
 
@@ -201,44 +210,76 @@ bot.hears(Object.keys(menuData), async (ctx) => {
   }
 });
 
-// ================== FORWARD COMMAND ==================
+// ================== MANUAL /forward (reply to message) ==================
 bot.command("forward", async (ctx) => {
   try {
-    if (ctx.from.id !== ADMIN_USER_ID) return ctx.reply("❌ Anda bukan admin!");
-    if (ctx.chat.id !== SOURCE_CHAT_ID) return ctx.reply("❌ Command hanya di grup utama!");
+    const chatId = ctx.chat.id;
+    const userId = ctx.from.id;
+
+    if (userId !== ADMIN_USER_ID) {
+      return ctx.reply("❌ Anda bukan admin yang diizinkan!");
+    }
+
+    if (chatId !== SOURCE_CHAT_ID) {
+      return ctx.reply("❌ Command hanya bisa digunakan di grup utama!");
+    }
 
     const replyTo = ctx.message.reply_to_message;
-    if (!replyTo) return ctx.reply("❌ Reply pesan yang mau di-forward.");
+    if (!replyTo) {
+      return ctx.reply("❌ Reply ke pesan yang ingin di-forward.");
+    }
 
     const failed = [];
 
+    // forward ke target group
     for (const targetId of TARGET_CHAT_IDS) {
       try {
-        await bot.telegram.forwardMessage(targetId, replyTo.chat.id, replyTo.message_id);
-      } catch {
-        failed.push(targetId);
+        await bot.telegram.forwardMessage(
+          targetId,
+          replyTo.chat.id,
+          replyTo.message_id
+        );
+      } catch (e) {
+        console.error(`Failed forward to group ${targetId}:`, e);
+        failed.push(`${targetId}`);
       }
     }
 
+    // forward juga ke semua subscriber (DM)
+    // jika gagal (user block/forbidden) akan dihapus otomatis dari list
     for (const subId of [...subscribers]) {
       try {
-        await bot.telegram.forwardMessage(subId, replyTo.chat.id, replyTo.message_id);
-      } catch {
+        await bot.telegram.forwardMessage(
+          subId,
+          replyTo.chat.id,
+          replyTo.message_id
+        );
+      } catch (e) {
+        console.error(`Remove unsubscribed user ${subId}:`, e?.message || e);
         subscribers = subscribers.filter((id) => id !== subId);
         saveSubscribers();
       }
     }
 
-    if (failed.length) ctx.reply(`❌ Gagal forward ke: ${failed.join(", ")}`);
+    // hanya tampilkan jika ada error ke grup target
+    if (failed.length) {
+      await ctx.reply(`❌ Gagal forward: ${failed.join(", ")}`);
+    }
+    // TIDAK mengirim pesan sukses jika semua berhasil (sesuai permintaan)
   } catch (e) {
     console.error("Error /forward:", e);
+    try { await ctx.reply("❌ Terjadi error saat forward, cek log."); } catch {}
   }
 });
 
-// ================== AUTO INLINE ==================
+// ================== AUTO INLINE (HAPUS + REPOST DI GRUP UTAMA) ==================
+// Hanya di grup SOURCE_CHAT_ID dan hanya jika pengirim adalah ADMIN_USER_ID
 bot.on(["text", "photo", "video", "animation"], async (ctx) => {
   try {
-    if (ctx.chat.id === SOURCE_CHAT_ID && ctx.from.id === ADMIN_USER_ID) {
+    const chatId = ctx.chat.id;
+    const userId = ctx.from.id;
+
+    if (chatId === SOURCE_CHAT_ID && userId === ADMIN_USER_ID) {
       const repostButtons = Markup.inlineKeyboard([
         [Markup.button.url("🎮 Register", "https://afb88my1.com/register/SMSRegister"),
          Markup.button.url("🌐 Login", "https://afb88my1.com/")],
@@ -254,49 +295,68 @@ bot.on(["text", "photo", "video", "animation"], async (ctx) => {
          Markup.button.url("🤖 BOT AFB88", "https://t.me/afb88_bot")],
       ]);
 
-      try { await ctx.deleteMessage(); } catch {}
+      // Hapus pesan asli (jika bot punya izin)
+      try { await ctx.deleteMessage(); } catch (e) { /* ignore */ }
 
+      // Repost di grup sumber (kembalikan pesan yang sama dengan tombol inline)
       if (ctx.message.photo) {
-        await ctx.replyWithPhoto(ctx.message.photo[0].file_id, { caption: ctx.message.caption || "", ...repostButtons });
+        await ctx.replyWithPhoto(ctx.message.photo[0].file_id, {
+          caption: ctx.message.caption || "",
+          ...repostButtons
+        });
       } else if (ctx.message.video) {
-        await ctx.replyWithVideo(ctx.message.video.file_id, { caption: ctx.message.caption || "", ...repostButtons });
+        await ctx.replyWithVideo(ctx.message.video.file_id, {
+          caption: ctx.message.caption || "",
+          ...repostButtons
+        });
       } else if (ctx.message.animation) {
-        await ctx.replyWithAnimation(ctx.message.animation.file_id, { caption: ctx.message.caption || "", ...repostButtons });
+        await ctx.replyWithAnimation(ctx.message.animation.file_id, {
+          caption: ctx.message.caption || "",
+          ...repostButtons
+        });
       } else if (ctx.message.text) {
         await ctx.reply(ctx.message.text, repostButtons);
       }
     }
   } catch (e) {
-    console.error("Error auto_inline:", e);
+    console.error("Error auto_inline handler:", e);
   }
 });
 
-// ================== UNSUB ==================
+// ================== COMMAND /unsub ==================
 bot.command("unsub", async (ctx) => {
-  const userId = ctx.from.id;
-  if (subscribers.includes(userId)) {
-    subscribers = subscribers.filter((id) => id !== userId);
-    saveSubscribers();
-    ctx.reply("✅ Anda telah berhenti berlangganan. Klik /start untuk kembali.");
-  } else {
-    ctx.reply("⚠️ Anda belum berlangganan.");
+  try {
+    const userId = ctx.from.id;
+    if (subscribers.includes(userId)) {
+      subscribers = subscribers.filter((id) => id !== userId);
+      saveSubscribers();
+      await ctx.reply("✅ Anda telah berhenti berlangganan. Klik /start jika ingin kembali.");
+    } else {
+      await ctx.reply("⚠️ Anda belum berlangganan.");
+    }
+  } catch (e) {
+    console.error("Error /unsub:", e);
   }
 });
 
-// ================== WEBHOOK MODE ==================
+// ================== START BOT ==================
+bot.launch()
+  .then(() => console.log("🤖 Bot sudah jalan pakai Node.js (Telegraf)..."))
+  .catch((e) => console.error("Bot launch error:", e));
+
+// graceful stop
+process.once("SIGINT", () => bot.stop("SIGINT"));
+process.once("SIGTERM", () => bot.stop("SIGTERM"));
+
+// ================== KEEP ALIVE SERVER (UNTUK RENDER / UPTIMEROBOT) ==================
 const app = express();
 const PORT = process.env.PORT || 10000;
-const SECRET_PATH = "/webhook";
 
-app.use(bot.webhookCallback(SECRET_PATH));
-app.get("/", (req, res) => res.send("🤖 Bot Telegram sedang berjalan dengan webhook..."));
-
-app.listen(PORT, async () => {
-  console.log(`🌐 Server jalan di port ${PORT}`);
-  try {
-    await bot.telegram.setWebhook(`https://telegram-bot-xxxxx.onrender.com${SECRET_PATH}`);
-    console.log("✅ Webhook set sukses!");
-  } catch (e) {
-    console.error("❌ Gagal set webhook:", e);
-  }
+app.get("/", (req, res) => {
+  res.send("🤖 Bot Telegram sedang berjalan...");
 });
+
+app.listen(PORT, () => {
+  console.log(`🌐 Keep-alive server jalan di port ${PORT}`);
+});
+
