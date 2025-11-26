@@ -7,9 +7,9 @@ dotenv.config();
 
 // ================= CONFIG =================
 const BOT_TOKEN = process.env.BOT_TOKEN || "ISI_TOKEN_DI_SINI";
-const ADMIN_USER_ID = 1087968824;
-const SOURCE_CHAT_ID = -1003038090571;
-const TARGET_CHAT_IDS = [-1002967257984, -1002996882426];
+const ADMIN_USER_ID = 8146896736;
+const SOURCE_CHAT_ID = -1003355430208;
+const TARGET_CHAT_IDS = [-1003351929392, -1003386119312];
 
 const bot = new Telegraf(BOT_TOKEN);
 
@@ -359,4 +359,3 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log(`🌐 Keep-alive server jalan di port ${PORT}`);
 });
-
