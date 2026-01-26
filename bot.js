@@ -52,11 +52,10 @@ async function sendStart(ctx) {
     }
 
     const inlineButtons = Markup.inlineKeyboard([
-      ["🌟 NEW REGISTER FREE 🌟"],
-      ["📘 SHARE FACEBOOK 📘"],
-      ["🔥 DAILY APPS FREE 🔥", "🌞 SOCIAL MEDIA 🌞"],
-      ["🎉 TELEGRAM BONUS 🎉"]
-
+      [Markup.button.url("📢 SUBSCRIBE CHANNEL", "https://t.me/afb88my")],
+      [Markup.button.url("💬 GROUP CUCI & TIPS GAME", "https://t.me/+b685QE242dMxOWE9")],
+      [Markup.button.url("🌐 REGISTER & LOGIN", "https://afb88my1.com/")],
+      [Markup.button.url("🔞 AMOI VIDEO", "https://t.me/Xamoi2688")],
     ]);
 
     const replyKeyboard = Markup.keyboard([
