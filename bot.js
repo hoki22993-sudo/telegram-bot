@@ -52,11 +52,10 @@ async function sendStart(ctx) {
     }
 
     const inlineButtons = Markup.inlineKeyboard([
-      [Markup.button.url(" 🌟 NEW REGISTER FREE 🌟")],
-      [Markup.button.url(" 📘 SHARE FACEBOOK 📘")],
-      [Markup.button.url(" 🔥 DAILY APPS FREE 🔥")],
-      [Markup.button.url("🎉 TELEGRAM BONUS 🎉")],
-      [Markup.button.url("🌞 SOCIAL MEDIA 🌞")],
+      ["🌟 NEW REGISTER FREE 🌟"],
+      ["📘 SHARE FACEBOOK 📘"],
+      ["🔥 DAILY APPS FREE 🔥", "🌞 SOCIAL MEDIA 🌞"],
+      ["🎉 TELEGRAM BONUS 🎉"]
 
     ]);
 
@@ -361,4 +360,3 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log(`🌐 Keep-alive server jalan di port ${PORT}`);
 });
-
