@@ -34,7 +34,7 @@ function saveSubscribers() {
 // ================== INLINE BUTTONS (TANPA URL) ==================
 function inlineButtons() {
   return Markup.inlineKeyboard([
-    [Markup.button.callback(" 🌟 NEW REGISTER FREE 🌟 ", "NEW_REGISTER")],
+    [Markup.button.callback(" 🌟 STEP FREE CREDIT 🌟 ", "NEW_REGISTER")],
     [Markup.button.callback(" 📘 SHARE FACEBOOK 📘 ", "SHARE_FACEBOOK")],
     [Markup.button.callback(" 🔥 DAILY APPS FREE 🔥 ", "DAILY_APPS")],
     [Markup.button.callback(" 🎉 TELEGRAM BONUS 🎉 ", "TELEGRAM_BONUS")],
@@ -74,8 +74,19 @@ bot.command("help", sendStart);
 const menuData = {
   "NEW_REGISTER": {
     media: "https://ibb.co/BK2LVQ6t",
-    caption: `🌟 NEW REGISTER BONUS 🌟
-Free Credit RM88
+    caption: `🌟 STEP FREE CREDIT 🌟
+Hallo Bossku! Ini Langkah-Langkah Step Untuk New Register Free RM88 Sila Baca Dengan Teliti Ya 🥰
+
+1️⃣. 📢 Join our Telegram channel ➡️ 🌐 
+https://t.me/+NQBQYnGkNUU5YmNl
+
+2️⃣. 👥 Join our Facebook group➡️ 📘
+ https://web.facebook.com/profile.php?id=61581338594732
+
+3️⃣. 📨 Share post ke 10 Casino Malaysia Group ➡️ 
+📘 https://www.facebook.com/share/p/1K6JKcn1zw/
+
+Lepastu send kat TELEGRAM AMOI 1 by 1 ya boss Thankyou
 
 ➤ /start untuk menu`
   },
@@ -196,3 +207,4 @@ const PORT = process.env.PORT || 10000;
 
 app.get("/", (req, res) => res.send("Bot is running"));
 app.listen(PORT);
+
