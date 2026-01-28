@@ -181,3 +181,4 @@ process.once("SIGTERM", () => bot.stop());
 const app = express();
 app.get("/", (_, res) => res.send("Bot running"));
 app.listen(process.env.PORT || 10000);
+
