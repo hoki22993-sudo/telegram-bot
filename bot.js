@@ -8,14 +8,14 @@ dotenv.config();
 // ================= CONFIG =================
 const BOT_TOKEN = process.env.BOT_TOKEN || "ISI_TOKEN_DI_SINI";
 
-// ADMIN (bisa lebih dari satu)
+// ADMIN (boleh ramai)
 const ADMIN_USER_IDS = [
   8146896736,
   8220185234,
   8261909092
 ];
 
-// SOURCE CHAT ID (tempat admin post)
+// CHAT SUMBER
 const SOURCE_CHAT_ID = -1002626291566;
 
 // TARGET GROUP & CHANNEL
@@ -133,19 +133,22 @@ bot.action(Object.keys(menuData), async (ctx) => {
   });
 });
 
-// ================= MANUAL FORWARD + DELETE COMMAND =================
+// ================= MANUAL FORWARD (SILENT MODE) =================
 bot.command("forward", async (ctx) => {
   // hanya admin
   if (!ADMIN_USER_IDS.includes(ctx.from.id)) return;
 
-  // harus reply ke pesan
+  // WAJIB reply ke mesej
   if (!ctx.message.reply_to_message) {
-    try { await ctx.deleteMessage(); } catch {}
-    return ctx.reply("❗ Sila reply mesej yang ingin di-forward.");
+    try {
+      await bot.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
+    } catch {}
+    return;
   }
 
   const msg = ctx.message.reply_to_message;
 
+  // forward ke semua target
   for (const target of TARGET_CHAT_IDS) {
     try {
       await bot.telegram.copyMessage(
@@ -153,15 +156,13 @@ bot.command("forward", async (ctx) => {
         msg.chat.id,
         msg.message_id
       );
-    } catch (e) {
-      console.log("Gagal forward ke:", target);
-    }
+    } catch {}
   }
 
-  // hapus command /forward setelah dijalankan
-  try { await ctx.deleteMessage(); } catch {}
-
-  await ctx.reply("✅ Berjaya forward ke semua group & channel.");
+  // hapus command /forward
+  try {
+    await bot.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
+  } catch {}
 });
 
 // ================= UNSUB =================
