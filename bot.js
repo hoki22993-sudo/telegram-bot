@@ -20,16 +20,21 @@ const SOURCE_CHAT_ID = -1002626291566;
 
 // TARGET GROUP & CHANNEL
 const TARGET_CHAT_IDS = [
-  -1003351929392,
-  -1003386119312,
-  -1003443785953,
-  -1003355430208,
+  -1003351929392, // group
+  -1003386119312, // group
+  -1003443785953, // channel
+  -1003355430208, // channel
   -1003303586267,
   -1003175423118,
   -1003418215358,
   -1003410432304,
   -1003390131591,
   -1003379058057
+];
+
+const CHANNEL_IDS = [
+  -1003443785953,
+  -1003355430208
 ];
 
 const bot = new Telegraf(BOT_TOKEN);
@@ -133,36 +138,32 @@ bot.action(Object.keys(menuData), async (ctx) => {
   });
 });
 
-// ================= MANUAL FORWARD (SILENT MODE) =================
+// ================= MANUAL FORWARD (AUTO CHANNEL/GROUP MODE) =================
 bot.command("forward", async (ctx) => {
-  // hanya admin
   if (!ADMIN_USER_IDS.includes(ctx.from.id)) return;
 
-  // WAJIB reply ke mesej
   if (!ctx.message.reply_to_message) {
-    try {
-      await bot.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
-    } catch {}
+    try { await bot.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id); } catch {}
     return;
   }
 
   const msg = ctx.message.reply_to_message;
 
-  // forward ke semua target
   for (const target of TARGET_CHAT_IDS) {
     try {
-      await bot.telegram.copyMessage(
-        target,
-        msg.chat.id,
-        msg.message_id
-      );
-    } catch {}
+      if (CHANNEL_IDS.includes(target)) {
+        // Forward sebenar → kekalkan premium emoji
+        await bot.telegram.forwardMessage(target, msg.chat.id, msg.message_id, { disable_notification: true });
+      } else {
+        // Copy message → clean tanpa sumber
+        await bot.telegram.copyMessage(target, msg.chat.id, msg.message_id);
+      }
+    } catch (err) {
+      console.log("Error forward/copy:", err);
+    }
   }
 
-  // hapus command /forward
-  try {
-    await bot.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
-  } catch {}
+  try { await bot.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id); } catch {}
 });
 
 // ================= UNSUB =================
@@ -181,4 +182,3 @@ process.once("SIGTERM", () => bot.stop());
 const app = express();
 app.get("/", (_, res) => res.send("Bot running"));
 app.listen(process.env.PORT || 10000);
-
