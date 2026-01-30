@@ -15,26 +15,21 @@ const ADMIN_USER_IDS = [
   8261909092
 ];
 
-// CHAT SUMBER
+// CHAT SUMBER (tak wajib, tapi simpan)
 const SOURCE_CHAT_ID = -1002626291566;
 
-// TARGET GROUP & CHANNEL
+// TARGET GROUP & CHANNEL (SEMUA AKAN DI-FORWARD)
 const TARGET_CHAT_IDS = [
-  -1003351929392, // group
-  -1003386119312, // group
-  -1003443785953, // channel
-  -1003355430208, // channel
+  -1003351929392,
+  -1003386119312,
+  -1003443785953,
+  -1003355430208,
   -1003303586267,
   -1003175423118,
   -1003418215358,
   -1003410432304,
   -1003390131591,
   -1003379058057
-];
-
-const CHANNEL_IDS = [
-  -1003443785953,
-  -1003355430208
 ];
 
 const bot = new Telegraf(BOT_TOKEN);
@@ -138,12 +133,15 @@ bot.action(Object.keys(menuData), async (ctx) => {
   });
 });
 
-// ================= MANUAL FORWARD (AUTO CHANNEL/GROUP MODE) =================
+// ================= MANUAL FORWARD (FORWARD ONLY) =================
 bot.command("forward", async (ctx) => {
   if (!ADMIN_USER_IDS.includes(ctx.from.id)) return;
 
+  // mesti reply mesej
   if (!ctx.message.reply_to_message) {
-    try { await bot.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id); } catch {}
+    try {
+      await bot.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
+    } catch {}
     return;
   }
 
@@ -151,19 +149,21 @@ bot.command("forward", async (ctx) => {
 
   for (const target of TARGET_CHAT_IDS) {
     try {
-      if (CHANNEL_IDS.includes(target)) {
-        // Forward sebenar → kekalkan premium emoji
-        await bot.telegram.forwardMessage(target, msg.chat.id, msg.message_id, { disable_notification: true });
-      } else {
-        // Copy message → clean tanpa sumber
-        await bot.telegram.copyMessage(target, msg.chat.id, msg.message_id);
-      }
+      await bot.telegram.forwardMessage(
+        target,
+        msg.chat.id,
+        msg.message_id,
+        { disable_notification: true }
+      );
     } catch (err) {
-      console.log("Error forward/copy:", err);
+      console.log("Forward error:", err);
     }
   }
 
-  try { await bot.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id); } catch {}
+  // padam command /forward
+  try {
+    await bot.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
+  } catch {}
 });
 
 // ================= UNSUB =================
@@ -175,8 +175,8 @@ bot.command("unsub", async (ctx) => {
 
 // ================= START BOT =================
 bot.launch();
-process.once("SIGINT", () => bot.stop());
-process.once("SIGTERM", () => bot.stop());
+process.once("SIGINT", () => bot.stop("SIGINT"));
+process.once("SIGTERM", () => bot.stop("SIGTERM"));
 
 // ================= KEEP ALIVE =================
 const app = express();
