@@ -22,9 +22,35 @@ const SOURCE_CHAT_ID = -1002626291566;
 
 // ================= TARGET GROUP & CHANNEL (AUTO FORWARD) =================
 const TARGET_CHAT_IDS = [
-  // Contoh group lama
+  // GROUP LAMA
+  -1003351929392,
+  -1003386119312,
+  -1003443785953,
+  -1003355430208,
+  -1003303586267,
   -1003175423118,
-  // Tambah target lain sesuai kebutuhan
+  -1003418215358,
+  -1003410432304,
+  -1003390131591,
+  -1003379058057,
+
+  // GROUP BARU (DITAMBAH)
+  -1003844321653,
+  -1003809651299,
+  -1003856057702,
+  -1003768500627,
+  -1003579544984,
+  -1003769925978,
+  -1003829950576,
+  -1003789525936,
+  -1003863836127,
+  -1003775950629,
+  -1003672634122,
+  -1003721040888,
+  -1003513490612,
+  -1003834662774,
+  -1003821483841,
+  -1003708734982
 ];
 
 // ================= BOT =================
@@ -49,7 +75,7 @@ function saveSubscribers() {
 // ================= INLINE BUTTON =================
 function inlineButtons() {
   return Markup.inlineKeyboard([
-    [Markup.button.callback(" 🌟 FREE CREDIT RM88 🌟 ", "NEW_REGISTER")],
+    [Markup.button.callback(" 🌟 FREE RM88 🌟 ", "NEW_REGISTER")],
     [Markup.button.callback(" 📘 SHARE FACEBOOK 📘 ", "SHARE_FACEBOOK")],
     [Markup.button.callback(" 🔥 DAILY APPS FREE 🔥 ", "DAILY_APPS")],
     [Markup.button.callback(" 🎉 TELEGRAM BONUS 🎉 ", "TELEGRAM_BONUS")],
@@ -158,19 +184,12 @@ bot.command("unsub", async (ctx) => {
   await ctx.reply("✅ Anda telah unsubscribe.");
 });
 
-// ================= AUTO FORWARD (ANTI-LOOP) =================
+// ================= AUTO FORWARD DARI SOURCE KE TARGET & SUBSCRIBER =================
 if (SOURCE_CHAT_ID) {
   bot.on("message", async (ctx) => {
     const msg = ctx.message;
 
-    // Hanya dari source chat asli
-    if (msg.chat.id !== SOURCE_CHAT_ID) return;
-
-    // Jangan forward pesan dari bot sendiri
-    if (msg.from.is_bot) return;
-
-    // Opsional: skip pesan yang sudah diforward
-    if (msg.forward_from_chat) return;
+    if (msg.chat.id !== SOURCE_CHAT_ID) return; // hanya dari source
 
     // Forward ke target group/channel
     for (const target of TARGET_CHAT_IDS) {
@@ -184,9 +203,6 @@ if (SOURCE_CHAT_ID) {
 
     // Forward ke semua subscriber
     for (const userId of subscribers) {
-      // Jangan forward ke bot sendiri
-      if (userId === ctx.botInfo.id) continue;
-
       try {
         await bot.telegram.forwardMessage(userId, msg.chat.id, msg.message_id, { disable_notification: true });
       } catch (err) {
