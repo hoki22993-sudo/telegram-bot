@@ -8,18 +8,19 @@ dotenv.config();
 // ================= CONFIG =================
 const BOT_TOKEN = process.env.BOT_TOKEN || "ISI_TOKEN_DI_SINI";
 
-// ADMIN (boleh ramai)
+// ================= ADMIN (BOLEH RAMAI) =================
 const ADMIN_USER_IDS = [
   8146896736,
   8220185234,
   8261909092
 ];
 
-// CHAT SUMBER (tak wajib, tapi simpan)
+// ================= CHAT SUMBER (OPTIONAL) =================
 const SOURCE_CHAT_ID = -1002626291566;
 
-// TARGET GROUP & CHANNEL (SEMUA AKAN DI-FORWARD)
+// ================= TARGET GROUP & CHANNEL (AUTO FORWARD) =================
 const TARGET_CHAT_IDS = [
+  // GROUP LAMA
   -1003351929392,
   -1003386119312,
   -1003443785953,
@@ -29,7 +30,25 @@ const TARGET_CHAT_IDS = [
   -1003418215358,
   -1003410432304,
   -1003390131591,
-  -1003379058057
+  -1003379058057,
+
+  // GROUP BARU (DITAMBAH)
+  -1003844321653,
+  -1003809651299,
+  -1003856057702,
+  -1003768500627,
+  -1003579544984,
+  -1003769925978,
+  -1003829950576,
+  -1003789525936,
+  -1003863836127,
+  -1003775950629,
+  -1003672634122,
+  -1003721040888,
+  -1003513490612,
+  -1003834662774,
+  -1003821483841,
+  -1003708734982
 ];
 
 const bot = new Telegraf(BOT_TOKEN);
@@ -133,11 +152,10 @@ bot.action(Object.keys(menuData), async (ctx) => {
   });
 });
 
-// ================= MANUAL FORWARD (FORWARD ONLY) =================
+// ================= MANUAL FORWARD (ADMIN ONLY) =================
 bot.command("forward", async (ctx) => {
   if (!ADMIN_USER_IDS.includes(ctx.from.id)) return;
 
-  // mesti reply mesej
   if (!ctx.message.reply_to_message) {
     try {
       await bot.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
@@ -160,7 +178,6 @@ bot.command("forward", async (ctx) => {
     }
   }
 
-  // padam command /forward
   try {
     await bot.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
   } catch {}
