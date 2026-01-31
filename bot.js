@@ -7,6 +7,8 @@ dotenv.config();
 
 // ================= CONFIG =================
 const BOT_TOKEN = process.env.BOT_TOKEN || "ISI_TOKEN_DI_SINI";
+const BOT_URL = process.env.BOT_URL || "https://YOUR-CHOREO-URL"; // Ganti dengan URL Choreo kamu
+const PORT = process.env.PORT || 10000;
 
 // ================= ADMIN (BOLEH RAMAI) =================
 const ADMIN_USER_IDS = [
@@ -21,36 +23,14 @@ const SOURCE_CHAT_ID = -1002626291566;
 // ================= TARGET GROUP & CHANNEL (AUTO FORWARD) =================
 const TARGET_CHAT_IDS = [
   // GROUP LAMA
-  -1003351929392,
-  -1003386119312,
-  -1003443785953,
-  -1003355430208,
-  -1003303586267,
   -1003175423118,
-  -1003418215358,
-  -1003410432304,
-  -1003390131591,
-  -1003379058057,
+
 
   // GROUP BARU (DITAMBAH)
-  -1003844321653,
-  -1003809651299,
-  -1003856057702,
-  -1003768500627,
-  -1003579544984,
-  -1003769925978,
-  -1003829950576,
-  -1003789525936,
-  -1003863836127,
-  -1003775950629,
-  -1003672634122,
-  -1003721040888,
-  -1003513490612,
-  -1003834662774,
-  -1003821483841,
-  -1003708734982
+
 ];
 
+// ================= BOT =================
 const bot = new Telegraf(BOT_TOKEN);
 
 // ================= SUBSCRIBERS =================
@@ -209,12 +189,25 @@ if (SOURCE_CHAT_ID) {
   });
 }
 
-// ================= START BOT =================
-bot.launch();
-process.once("SIGINT", () => bot.stop("SIGINT"));
-process.once("SIGTERM", () => bot.stop("SIGTERM"));
-
-// ================= KEEP ALIVE =================
+// ================= EXPRESS + WEBHOOK =================
 const app = express();
+app.use(express.json());
+
+// Telegram webhook callback
+app.use(bot.webhookCallback("/bot"));
+
+// Root route
 app.get("/", (_, res) => res.send("Bot running"));
-app.listen(process.env.PORT || 10000);
+
+// Start server dan set webhook ke Telegram
+app.listen(PORT, async () => {
+  console.log(`Server running on port ${PORT}`);
+
+  const webhookUrl = `${BOT_URL}/bot`;
+  try {
+    await bot.telegram.setWebhook(webhookUrl);
+    console.log("Webhook set:", webhookUrl);
+  } catch (err) {
+    console.error("Error setting webhook:", err);
+  }
+});
