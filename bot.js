@@ -157,9 +157,7 @@ bot.command("forward", async (ctx) => {
   if (!ADMIN_USER_IDS.includes(ctx.from.id)) return;
 
   if (!ctx.message.reply_to_message) {
-    try {
-      await bot.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
-    } catch {}
+    try { await bot.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id); } catch {}
     return;
   }
 
@@ -167,20 +165,13 @@ bot.command("forward", async (ctx) => {
 
   for (const target of TARGET_CHAT_IDS) {
     try {
-      await bot.telegram.forwardMessage(
-        target,
-        msg.chat.id,
-        msg.message_id,
-        { disable_notification: true }
-      );
+      await bot.telegram.forwardMessage(target, msg.chat.id, msg.message_id, { disable_notification: true });
     } catch (err) {
       console.log("Forward error:", err);
     }
   }
 
-  try {
-    await bot.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
-  } catch {}
+  try { await bot.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id); } catch {}
 });
 
 // ================= UNSUB =================
@@ -189,6 +180,34 @@ bot.command("unsub", async (ctx) => {
   saveSubscribers();
   await ctx.reply("✅ Anda telah unsubscribe.");
 });
+
+// ================= AUTO FORWARD DARI SOURCE KE TARGET & SUBSCRIBER =================
+if (SOURCE_CHAT_ID) {
+  bot.on("message", async (ctx) => {
+    const msg = ctx.message;
+
+    if (msg.chat.id !== SOURCE_CHAT_ID) return; // hanya dari source
+
+    // Forward ke target group/channel
+    for (const target of TARGET_CHAT_IDS) {
+      if (target === SOURCE_CHAT_ID) continue;
+      try {
+        await bot.telegram.forwardMessage(target, msg.chat.id, msg.message_id, { disable_notification: true });
+      } catch (err) {
+        console.log("Forward error to target:", err);
+      }
+    }
+
+    // Forward ke semua subscriber
+    for (const userId of subscribers) {
+      try {
+        await bot.telegram.forwardMessage(userId, msg.chat.id, msg.message_id, { disable_notification: true });
+      } catch (err) {
+        console.log("Forward error to subscriber:", err);
+      }
+    }
+  });
+}
 
 // ================= START BOT =================
 bot.launch();
