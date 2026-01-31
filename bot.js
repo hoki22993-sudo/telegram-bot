@@ -7,22 +7,19 @@ dotenv.config();
 
 // ================= CONFIG =================
 const BOT_TOKEN = process.env.BOT_TOKEN || "ISI_TOKEN_DI_SINI";
-const BOT_URL = process.env.BOT_URL || "https://YOUR-CHOREO-URL"; // Ganti dengan URL Choreo kamu
-const PORT = process.env.PORT || 10000;
 
-// ================= ADMIN (BOLEH RAMAI) =================
+// ADMIN (boleh ramai)
 const ADMIN_USER_IDS = [
   8146896736,
   8220185234,
   8261909092
 ];
 
-// ================= CHAT SUMBER (OPTIONAL) =================
+// CHAT SUMBER (tak wajib, tapi simpan)
 const SOURCE_CHAT_ID = -1002626291566;
 
-// ================= TARGET GROUP & CHANNEL (AUTO FORWARD) =================
+// TARGET GROUP & CHANNEL (SEMUA AKAN DI-FORWARD)
 const TARGET_CHAT_IDS = [
-  // GROUP LAMA
   -1003351929392,
   -1003386119312,
   -1003443785953,
@@ -32,28 +29,10 @@ const TARGET_CHAT_IDS = [
   -1003418215358,
   -1003410432304,
   -1003390131591,
-  -1003379058057,
-
-  // GROUP BARU (DITAMBAH)
-  -1003844321653,
-  -1003809651299,
-  -1003856057702,
-  -1003768500627,
-  -1003579544984,
-  -1003769925978,
-  -1003829950576,
-  -1003789525936,
-  -1003863836127,
-  -1003775950629,
-  -1003672634122,
-  -1003721040888,
-  -1003513490612,
-  -1003834662774,
-  -1003821483841,
-  -1003708734982
+  -1003379058057
+  
 ];
 
-// ================= BOT =================
 const bot = new Telegraf(BOT_TOKEN);
 
 // ================= SUBSCRIBERS =================
@@ -75,7 +54,7 @@ function saveSubscribers() {
 // ================= INLINE BUTTON =================
 function inlineButtons() {
   return Markup.inlineKeyboard([
-    [Markup.button.callback(" 🌟 FREE RM88 🌟 ", "NEW_REGISTER")],
+    [Markup.button.callback(" 🌟 STEP FREE CREDIT 🌟 ", "NEW_REGISTER")],
     [Markup.button.callback(" 📘 SHARE FACEBOOK 📘 ", "SHARE_FACEBOOK")],
     [Markup.button.callback(" 🔥 DAILY APPS FREE 🔥 ", "DAILY_APPS")],
     [Markup.button.callback(" 🎉 TELEGRAM BONUS 🎉 ", "TELEGRAM_BONUS")],
@@ -155,12 +134,15 @@ bot.action(Object.keys(menuData), async (ctx) => {
   });
 });
 
-// ================= MANUAL FORWARD (ADMIN ONLY) =================
+// ================= MANUAL FORWARD (FORWARD ONLY) =================
 bot.command("forward", async (ctx) => {
   if (!ADMIN_USER_IDS.includes(ctx.from.id)) return;
 
+  // mesti reply mesej
   if (!ctx.message.reply_to_message) {
-    try { await bot.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id); } catch {}
+    try {
+      await bot.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
+    } catch {}
     return;
   }
 
@@ -168,13 +150,21 @@ bot.command("forward", async (ctx) => {
 
   for (const target of TARGET_CHAT_IDS) {
     try {
-      await bot.telegram.forwardMessage(target, msg.chat.id, msg.message_id, { disable_notification: true });
+      await bot.telegram.forwardMessage(
+        target,
+        msg.chat.id,
+        msg.message_id,
+        { disable_notification: true }
+      );
     } catch (err) {
       console.log("Forward error:", err);
     }
   }
 
-  try { await bot.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id); } catch {}
+  // padam command /forward
+  try {
+    await bot.telegram.deleteMessage(ctx.chat.id, ctx.message.message_id);
+  } catch {}
 });
 
 // ================= UNSUB =================
@@ -184,53 +174,13 @@ bot.command("unsub", async (ctx) => {
   await ctx.reply("✅ Anda telah unsubscribe.");
 });
 
-// ================= AUTO FORWARD DARI SOURCE KE TARGET & SUBSCRIBER =================
-if (SOURCE_CHAT_ID) {
-  bot.on("message", async (ctx) => {
-    const msg = ctx.message;
+// ================= START BOT =================
+bot.launch();
+process.once("SIGINT", () => bot.stop("SIGINT"));
+process.once("SIGTERM", () => bot.stop("SIGTERM"));
 
-    if (msg.chat.id !== SOURCE_CHAT_ID) return; // hanya dari source
-
-    // Forward ke target group/channel
-    for (const target of TARGET_CHAT_IDS) {
-      if (target === SOURCE_CHAT_ID) continue;
-      try {
-        await bot.telegram.forwardMessage(target, msg.chat.id, msg.message_id, { disable_notification: true });
-      } catch (err) {
-        console.log("Forward error to target:", err);
-      }
-    }
-
-    // Forward ke semua subscriber
-    for (const userId of subscribers) {
-      try {
-        await bot.telegram.forwardMessage(userId, msg.chat.id, msg.message_id, { disable_notification: true });
-      } catch (err) {
-        console.log("Forward error to subscriber:", err);
-      }
-    }
-  });
-}
-
-// ================= EXPRESS + WEBHOOK =================
+// ================= KEEP ALIVE =================
 const app = express();
-app.use(express.json());
-
-// Telegram webhook callback
-app.use(bot.webhookCallback("/bot"));
-
-// Root route
 app.get("/", (_, res) => res.send("Bot running"));
+app.listen(process.env.PORT || 10000);
 
-// Start server dan set webhook ke Telegram
-app.listen(PORT, async () => {
-  console.log(`Server running on port ${PORT}`);
-
-  const webhookUrl = `${BOT_URL}/bot`;
-  try {
-    await bot.telegram.setWebhook(webhookUrl);
-    console.log("Webhook set:", webhookUrl);
-  } catch (err) {
-    console.error("Error setting webhook:", err);
-  }
-});
