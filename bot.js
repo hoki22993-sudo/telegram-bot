@@ -8,12 +8,8 @@ dotenv.config();
 // ================= CONFIG =================
 const BOT_TOKEN = process.env.BOT_TOKEN || "ISI_TOKEN_DI_SINI";
 const ADMIN_USER_ID = 8146896736;
-
-// GROUP UTAMA (sumber post)
 const SOURCE_CHAT_ID = -1002626291566;
-
-// TUJUAN FORWARD (channel)
-const TARGET_CHAT_IDS = [-1003175423118];
+const TARGET_CHAT_IDS = [-1003175423118,];
 
 const bot = new Telegraf(BOT_TOKEN);
 
@@ -59,7 +55,7 @@ async function sendStart(ctx) {
       [Markup.button.url("📢 SUBSCRIBE CHANNEL", "https://t.me/afb88my")],
       [Markup.button.url("💬 GROUP CUCI & TIPS GAME", "https://t.me/+b685QE242dMxOWE9")],
       [Markup.button.url("🌐 REGISTER & LOGIN", "https://afb88my1.com/")],
-      [Markup.button.url("🔞 AMOI VIDEO", "https://t.me/Xamoi2688")],
+      [Markup.button.url("🎁 GROUP HADIAH AFB88", "https://t.me/Xamoi2688")],
     ]);
 
     const replyKeyboard = Markup.keyboard([
