@@ -7,12 +7,12 @@ dotenv.config();
 
 // ================= CONFIG =================
 const BOT_TOKEN = process.env.BOT_TOKEN || "ISI_TOKEN_DI_SINI";
-const ADMIN_USER_ID = 8146896736;
-const SOURCE_CHAT_ID = -1002626291566;
+const ADMIN_USER_ID = 8146896736; // ID admin
+const SOURCE_CHAT_ID = -1002626291566; // Group utama
 const TARGET_CHAT_IDS = [
   -1003175423118,
   -1003443785953
-]; // ❗ JANGAN letak SOURCE_CHAT_ID di sini
+]; // ❌ Jangan letak SOURCE_CHAT_ID di sini
 
 const bot = new Telegraf(BOT_TOKEN);
 
@@ -40,11 +40,23 @@ async function sendStart(ctx) {
     ? `@${user.username}`
     : user.first_name || "Bossku";
 
+  // Tambah ke subscriber jika belum ada
   if (user.id && !subscribers.includes(user.id)) {
     subscribers.push(user.id);
     saveSubscribers();
+
+    // Log ke admin
+    try {
+      await bot.telegram.sendMessage(
+        ADMIN_USER_ID,
+        `📌 Subscriber baru: ${username} (${user.id})`
+      );
+    } catch {
+      console.log("Gagal kirim log subscriber ke admin");
+    }
   }
 
+  // Inline buttons menu
   const inlineButtons = Markup.inlineKeyboard([
     [Markup.button.url("📢 SUBSCRIBE CHANNEL", "https://t.me/afb88my")],
     [Markup.button.url("💬 GROUP CUCI & TIPS GAME", "https://t.me/+b685QE242dMxOWE9")],
@@ -78,6 +90,7 @@ bot.start(sendStart);
 bot.command(["menu", "help", "about", "profile", "contact"], sendStart);
 
 // ================= MENU DATA PRIVATE =================
+// (sama seperti sebelumnya, tetap menggunakan menuData)
 const menuData = {
   "🌟 NEW REGISTER FREE 🌟": {
     url: "https://afb88my1.com/promotion",
@@ -115,7 +128,7 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR
 ➡️ Had Tuntutan : DAILY CLAIM X1
 ✅ Dibenarkan Main : MEGAH5|EPICWIN|PXPLAY|ACEWIN2|RICH GAMING (EVENT GAME ONLY)
 ✅ DOWNLOAD APPS UNTUK CLAIM MESTI DOWNLOAD APPS UNTUK CLAIM CLICK LINK: https://afb88.hfcapital.top/
-️1 NAMA 1 ID SAHAJA,TIDAK BOLEH  
+⚠️ 1 NAMA 1 ID SAHAJA,TIDAK BOLEH  
 GUNA NAMA YANG SAMA UNTUK TUNTUT  
 BONUS INI 
 ⚠️ NAMA DAFTAR MESTI SAMA DENGAN NAMA AKAUN BANK  
@@ -175,6 +188,7 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR
   },
 };
 
+// ================= MENU HANDLER =================
 bot.hears(Object.keys(menuData), async (ctx) => {
   if (ctx.chat.type !== "private") return;
   const data = menuData[ctx.message.text];
@@ -182,21 +196,19 @@ bot.hears(Object.keys(menuData), async (ctx) => {
 
   await ctx.replyWithPhoto(data.media, {
     caption: data.caption,
-    ...Markup.inlineKeyboard([
-      [Markup.button.url("CLAIM 🎁", data.url)]
-    ])
+    ...Markup.inlineKeyboard([[Markup.button.url("CLAIM 🎁", data.url)]])
   });
 });
 
-// ================= /forward =================
+// ================= /forward COMMAND =================
 bot.command("forward", async (ctx) => {
   if (ctx.from.id !== ADMIN_USER_ID) return;
   if (ctx.chat.id !== SOURCE_CHAT_ID) return;
 
   const replyTo = ctx.message.reply_to_message;
-  if (!replyTo) return; // skip kalau tidak reply pesan
+  if (!replyTo) return;
 
-  // ===== forward ke group target (tidak termasuk group utama) =====
+  // ===== forward ke group target =====
   for (const targetId of TARGET_CHAT_IDS) {
     try {
       await bot.telegram.forwardMessage(targetId, replyTo.chat.id, replyTo.message_id, {
@@ -204,45 +216,51 @@ bot.command("forward", async (ctx) => {
       });
     } catch (err) {
       console.error("Forward ke target error:", err.description || err);
+      try {
+        await bot.telegram.sendMessage(ADMIN_USER_ID, `❌ Error forward ke group ${targetId}: ${err}`);
+      } catch {}
     }
   }
 
-  // ===== forward ke subscriber satu-satu =====
+  // ===== forward ke subscribers =====
   for (let i = 0; i < subscribers.length; i++) {
     const subId = subscribers[i];
     try {
       await bot.telegram.forwardMessage(subId, replyTo.chat.id, replyTo.message_id, {
         disable_notification: true
       });
+      // Delay adaptif random 500-800ms
       await new Promise(r => setTimeout(r, 500 + Math.random() * 300));
-    } catch {
+    } catch (err) {
       subscribers = subscribers.filter(id => id !== subId);
       saveSubscribers();
+      console.log(`❌ Subscriber ${subId} removed due to error:`, err.message || err);
+      try {
+        await bot.telegram.sendMessage(ADMIN_USER_ID, `⚠️ Subscriber ${subId} dihapus karena error forward`);
+      } catch {}
     }
   }
 
-  // ===== delete command /forward setelah berhasil =====
+  // ===== hapus command /forward =====
   try {
-    await ctx.deleteMessage(); // hapus pesan /forward
+    await ctx.deleteMessage();
   } catch (err) {
     console.error("Gagal delete command /forward:", err.description || err);
   }
-
-  // ❌ Tidak ada ctx.reply sama sekali, silent
 });
 
-// ================= PRIVATE CHAT: /unsub =================
+// ================= /unsub COMMAND =================
 bot.command("unsub", async (ctx) => {
-  subscribers = subscribers.filter((id) => id !== ctx.from.id);
+  subscribers = subscribers.filter(id => id !== ctx.from.id);
   saveSubscribers();
   await ctx.reply("✅ Anda telah berhenti langganan.");
 });
 
 // ================= LISTEN GROUP UTAMA =================
-// Hanya log, tidak auto repost/reply/inline
 bot.on("message", (ctx) => {
   if (ctx.chat.id === SOURCE_CHAT_ID) {
     console.log(`Pesan baru di group utama: ${ctx.message.message_id} dari ${ctx.from.username || ctx.from.first_name}`);
+    // ❌ Tidak auto-forward, tidak menambahkan button
   }
 });
 
