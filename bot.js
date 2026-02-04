@@ -16,7 +16,13 @@ const TARGET_CHAT_IDS = [
 
 const AUTO_DELETE_DELAY = 5000; // ms, hapus pesan bot di group utama setelah 5 detik
 
+// ================= INIT BOT =================
 const bot = new Telegraf(BOT_TOKEN);
+let botInfo = null;
+
+bot.telegram.getMe()
+  .then(info => { botInfo = info; console.log("✅ Bot info ready:", info.username); })
+  .catch(err => { console.error("❌ Gagal ambil bot info:", err); process.exit(1); });
 
 // ================= SUBSCRIBERS STORAGE =================
 const SUBSCRIBERS_FILE = "subscribers.json";
@@ -86,7 +92,6 @@ bot.start(sendStart);
 bot.command(["menu", "help", "about", "profile", "contact"], sendStart);
 
 // ================= MENU DATA PRIVATE =================
-// (sama seperti sebelumnya, tetap menggunakan menuData)
 const menuData = {
   "🌟 NEW REGISTER FREE 🌟": {
     url: "https://afb88my1.com/promotion",
@@ -183,6 +188,7 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR
 ➤ CLICK /start TO BACK MENU`,
   },
 };
+
 bot.hears(Object.keys(menuData), async (ctx) => {
   if (ctx.chat.type !== "private") return;
   const data = menuData[ctx.message.text];
@@ -242,20 +248,27 @@ bot.command("unsub", async (ctx) => {
 
 // ================= AUTO DELETE PESAN BOT DI GROUP UTAMA =================
 bot.on("message", async (ctx) => {
-  if (ctx.chat.id === SOURCE_CHAT_ID && ctx.from?.id === bot.botInfo.id) {
-    // Hapus pesan bot otomatis setelah delay
+  if (ctx.chat.id === SOURCE_CHAT_ID && ctx.from?.id === botInfo?.id) {
     setTimeout(async () => {
       try { await ctx.deleteMessage(); } catch {}
     }, AUTO_DELETE_DELAY);
   }
 });
 
-// ================= START BOT =================
-bot.launch();
-process.once("SIGINT", () => bot.stop("SIGINT"));
-process.once("SIGTERM", () => bot.stop("SIGTERM"));
-
-// ================= KEEP ALIVE =================
+// ================= WEBHOOK SETUP =================
 const app = express();
+const PORT = process.env.PORT || 10000;
+const DOMAIN = process.env.DOMAIN || "https://your-public-domain.com"; // Ganti dengan domain/public URL
+const WEBHOOK_PATH = `/bot${BOT_TOKEN}`;
+
+bot.telegram.setWebhook(`${DOMAIN}${WEBHOOK_PATH}`);
+app.use(bot.webhookCallback(WEBHOOK_PATH));
+
 app.get("/", (_, res) => res.send("🤖 Bot sedang berjalan"));
-app.listen(process.env.PORT || 10000);
+
+app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+
+// ================= ERROR HANDLING =================
+bot.catch((err, ctx) => {
+  console.error("❌ Bot error:", err);
+});
