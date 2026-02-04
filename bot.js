@@ -9,7 +9,7 @@ dotenv.config();
 const BOT_TOKEN = process.env.BOT_TOKEN || "ISI_TOKEN_DI_SINI";
 const ADMIN_USER_ID = 8146896736;
 const SOURCE_CHAT_ID = -1002626291566;
-const TARGET_CHAT_IDS = [-1003175423118,];
+const TARGET_CHAT_IDS = [-1003175423118,-1003443785953];
 
 const bot = new Telegraf(BOT_TOKEN);
 
