@@ -8,8 +8,8 @@ dotenv.config();
 // ================= CONFIG =================
 const BOT_TOKEN = process.env.BOT_TOKEN || "ISI_TOKEN_DI_SINI";
 const ADMIN_USER_ID = 8146896736; // ID admin
-const SOURCE_CHAT_ID = -1002626291566; // Group utama
-const TARGET_CHAT_IDS = [-1003175423118, -1003443785953]; // ❌ Jangan masukkan SOURCE_CHAT_ID
+const SOURCE_CHAT_ID = -1003355430208; // Group utama
+const TARGET_CHAT_IDS = [-1003351929392, -1003386119312]; // ❌ Jangan masukkan SOURCE_CHAT_ID
 const AUTO_DELETE_DELAY = 5000; // ms
 
 const bot = new Telegraf(BOT_TOKEN);
