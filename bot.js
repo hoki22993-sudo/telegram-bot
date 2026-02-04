@@ -12,7 +12,9 @@ const SOURCE_CHAT_ID = -1002626291566; // Group utama
 const TARGET_CHAT_IDS = [
   -1003175423118,
   -1003443785953
-]; // ❌ Jangan letak SOURCE_CHAT_ID di sini
+]; // ❌ Jangan masukkan SOURCE_CHAT_ID
+
+const AUTO_DELETE_DELAY = 5000; // ms, hapus pesan bot di group utama setelah 5 detik
 
 const bot = new Telegraf(BOT_TOKEN);
 
@@ -36,11 +38,8 @@ function saveSubscribers() {
 // ================= START / MENU =================
 async function sendStart(ctx) {
   const user = ctx.from || {};
-  const username = user.username
-    ? `@${user.username}`
-    : user.first_name || "Bossku";
+  const username = user.username ? `@${user.username}` : user.first_name || "Bossku";
 
-  // Tambah ke subscriber jika belum ada
   if (user.id && !subscribers.includes(user.id)) {
     subscribers.push(user.id);
     saveSubscribers();
@@ -51,12 +50,9 @@ async function sendStart(ctx) {
         ADMIN_USER_ID,
         `📌 Subscriber baru: ${username} (${user.id})`
       );
-    } catch {
-      console.log("Gagal kirim log subscriber ke admin");
-    }
+    } catch {}
   }
 
-  // Inline buttons menu
   const inlineButtons = Markup.inlineKeyboard([
     [Markup.button.url("📢 SUBSCRIBE CHANNEL", "https://t.me/afb88my")],
     [Markup.button.url("💬 GROUP CUCI & TIPS GAME", "https://t.me/+b685QE242dMxOWE9")],
@@ -187,8 +183,6 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR
 ➤ CLICK /start TO BACK MENU`,
   },
 };
-
-// ================= MENU HANDLER =================
 bot.hears(Object.keys(menuData), async (ctx) => {
   if (ctx.chat.type !== "private") return;
   const data = menuData[ctx.message.text];
@@ -208,59 +202,51 @@ bot.command("forward", async (ctx) => {
   const replyTo = ctx.message.reply_to_message;
   if (!replyTo) return;
 
-  // ===== forward ke group target =====
+  // Forward ke TARGET_CHAT_IDS, skip SOURCE_CHAT_ID
   for (const targetId of TARGET_CHAT_IDS) {
+    if (targetId === SOURCE_CHAT_ID) continue;
     try {
       await bot.telegram.forwardMessage(targetId, replyTo.chat.id, replyTo.message_id, {
         disable_notification: true
       });
     } catch (err) {
-      console.error("Forward ke target error:", err.description || err);
-      try {
-        await bot.telegram.sendMessage(ADMIN_USER_ID, `❌ Error forward ke group ${targetId}: ${err}`);
-      } catch {}
+      console.error("Forward ke target error:", err);
+      try { await bot.telegram.sendMessage(ADMIN_USER_ID, `❌ Error forward ke group ${targetId}: ${err}`); } catch {}
     }
   }
 
-  // ===== forward ke subscribers =====
+  // Forward ke subscribers dengan delay adaptif
   for (let i = 0; i < subscribers.length; i++) {
     const subId = subscribers[i];
     try {
-      await bot.telegram.forwardMessage(subId, replyTo.chat.id, replyTo.message_id, {
-        disable_notification: true
-      });
-      // Delay adaptif random 500-800ms
+      await bot.telegram.forwardMessage(subId, replyTo.chat.id, replyTo.message_id, { disable_notification: true });
       await new Promise(r => setTimeout(r, 500 + Math.random() * 300));
     } catch (err) {
       subscribers = subscribers.filter(id => id !== subId);
       saveSubscribers();
-      console.log(`❌ Subscriber ${subId} removed due to error:`, err.message || err);
-      try {
-        await bot.telegram.sendMessage(ADMIN_USER_ID, `⚠️ Subscriber ${subId} dihapus karena error forward`);
-      } catch {}
+      console.log(`❌ Subscriber ${subId} dihapus karena error:`, err.message || err);
+      try { await bot.telegram.sendMessage(ADMIN_USER_ID, `⚠️ Subscriber ${subId} dihapus karena error forward`); } catch {}
     }
   }
 
-  // ===== hapus command /forward =====
-  try {
-    await ctx.deleteMessage();
-  } catch (err) {
-    console.error("Gagal delete command /forward:", err.description || err);
-  }
+  // Hapus command /forward di group utama otomatis
+  try { await ctx.deleteMessage(); } catch (err) { console.error("Gagal delete /forward:", err); }
 });
 
-// ================= /unsub COMMAND =================
+// ================= /unsub =================
 bot.command("unsub", async (ctx) => {
   subscribers = subscribers.filter(id => id !== ctx.from.id);
   saveSubscribers();
   await ctx.reply("✅ Anda telah berhenti langganan.");
 });
 
-// ================= LISTEN GROUP UTAMA =================
-bot.on("message", (ctx) => {
-  if (ctx.chat.id === SOURCE_CHAT_ID) {
-    console.log(`Pesan baru di group utama: ${ctx.message.message_id} dari ${ctx.from.username || ctx.from.first_name}`);
-    // ❌ Tidak auto-forward, tidak menambahkan button
+// ================= AUTO DELETE PESAN BOT DI GROUP UTAMA =================
+bot.on("message", async (ctx) => {
+  if (ctx.chat.id === SOURCE_CHAT_ID && ctx.from?.id === bot.botInfo.id) {
+    // Hapus pesan bot otomatis setelah delay
+    setTimeout(async () => {
+      try { await ctx.deleteMessage(); } catch {}
+    }, AUTO_DELETE_DELAY);
   }
 });
 
