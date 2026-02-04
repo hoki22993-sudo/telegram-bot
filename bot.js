@@ -33,7 +33,7 @@ function saveSubscribers() {
   fs.writeFileSync(SUBSCRIBERS_FILE, JSON.stringify(subscribers, null, 2));
 }
 
-// ================= START =================
+// ================= START / MENU =================
 async function sendStart(ctx) {
   const user = ctx.from || {};
   const username = user.username
@@ -77,7 +77,7 @@ Sila join semua group dulu ya`,
 bot.start(sendStart);
 bot.command(["menu", "help", "about", "profile", "contact"], sendStart);
 
-// ================== REPLY MENU (PRIVATE chat) ==================
+// ================= MENU DATA PRIVATE =================
 const menuData = {
   "🌟 NEW REGISTER FREE 🌟": {
     url: "https://afb88my1.com/promotion",
@@ -87,12 +87,11 @@ const menuData = {
 ⚠️ LANGGAR SYARAT AKAN FORFEITED SEMUA POINT ⚠️
 
 ✅ Keperluan SLOT ONLY
-
 ✅ Free Credit RM88  
 ✅ Min WD/CUCI RM2000  
-✅ Max Payment/WD RM40  
+✅ Max Payment/WD RM40
 ✅ BELOW CREDIT RM 0.10 
-✅ Dibenarkan Main MEGAH5|EPICWIN|PXPLAY2|ACEWIN2|RICH GAMING ( EVENT GAME ONLY)
+✅ Dibenarkan Main MEGAH5|EPICWIN|PXPLAY2|ACEWIN2|RICH GAMING (EVENT GAME ONLY)
 ✅ DOWNLOAD APPS UNTUK CLAIM MESTI DOWNLOAD APPS UNTUK CLAIM CLICK LINK: https://afb88.hfcapital.top/
 
 ⚠️ 1 NAMA 1 ID SAHAJA,TIDAK BOLEH  
@@ -116,7 +115,7 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR
 ➡️ Had Tuntutan : DAILY CLAIM X1
 ✅ Dibenarkan Main : MEGAH5|EPICWIN|PXPLAY|ACEWIN2|RICH GAMING (EVENT GAME ONLY)
 ✅ DOWNLOAD APPS UNTUK CLAIM MESTI DOWNLOAD APPS UNTUK CLAIM CLICK LINK: https://afb88.hfcapital.top/
-️ 1 NAMA 1 ID SAHAJA,TIDAK BOLEH  
+️1 NAMA 1 ID SAHAJA,TIDAK BOLEH  
 GUNA NAMA YANG SAMA UNTUK TUNTUT  
 BONUS INI 
 ⚠️ NAMA DAFTAR MESTI SAMA DENGAN NAMA AKAUN BANK  
@@ -195,33 +194,26 @@ bot.command("forward", async (ctx) => {
   if (ctx.chat.id !== SOURCE_CHAT_ID) return;
 
   const replyTo = ctx.message.reply_to_message;
-  if (!replyTo) return;
+  if (!replyTo) return ctx.reply("Sila reply mesej yang ingin di-forward.");
 
-  // ===== forward ke group target =====
+  // ===== forward ke group target (tidak termasuk group utama) =====
   for (const targetId of TARGET_CHAT_IDS) {
-    if (targetId === SOURCE_CHAT_ID) continue;
-
     try {
-      await bot.telegram.forwardMessage(
-        targetId,
-        replyTo.chat.id,
-        replyTo.message_id,
-        { disable_notification: true }
-      );
-    } catch {}
+      await bot.telegram.forwardMessage(targetId, replyTo.chat.id, replyTo.message_id, {
+        disable_notification: true
+      });
+    } catch (err) {
+      console.error("Forward ke target error:", err.description || err);
+    }
   }
 
-  // ===== forward ke subscriber dengan delay adaptif =====
+  // ===== forward ke subscriber satu-satu =====
   for (let i = 0; i < subscribers.length; i++) {
     const subId = subscribers[i];
     try {
-      await bot.telegram.forwardMessage(
-        subId,
-        replyTo.chat.id,
-        replyTo.message_id,
-        { disable_notification: true }
-      );
-      // delay random 500-800ms supaya aman dari block
+      await bot.telegram.forwardMessage(subId, replyTo.chat.id, replyTo.message_id, {
+        disable_notification: true
+      });
       await new Promise(r => setTimeout(r, 500 + Math.random() * 300));
     } catch {
       subscribers = subscribers.filter(id => id !== subId);
@@ -229,52 +221,18 @@ bot.command("forward", async (ctx) => {
     }
   }
 
-  // DELETE pesan asli supaya auto inline tidak trigger
+  // ===== delete command /forward setelah berhasil =====
   try {
-    await bot.telegram.deleteMessage(replyTo.chat.id, replyTo.message_id);
-  } catch {}
-});
-
-// ================= AUTO INLINE (DELETE + REPOST) =================
-bot.on(["text", "photo", "video", "animation"], async (ctx) => {
-  if (ctx.chat.id !== SOURCE_CHAT_ID) return;
-  if (ctx.from.id !== ADMIN_USER_ID) return;
-
-  // skip command messages
-  if (ctx.message.text && ctx.message.text.startsWith("/")) return;
-
-  const buttons = Markup.inlineKeyboard([
-    [
-      Markup.button.url("🎮 Register", "https://afb88my.com/register/SMSRegister"),
-      Markup.button.url("🌐 Login", "https://afb88my.com/")
-    ],
-    [
-      Markup.button.url("▶️ Channel", "https://t.me/afb88my"),
-      Markup.button.url("🎁 Bonus", "https://afb88my.com/promotion")
-    ]
-  ]);
-
-  try { await ctx.deleteMessage(); } catch {}
-
-  if (ctx.message.photo) {
-    await ctx.replyWithPhoto(ctx.message.photo.at(-1).file_id, {
-      caption: ctx.message.caption || "",
-      ...buttons
-    });
-  } else if (ctx.message.video) {
-    await ctx.replyWithVideo(ctx.message.video.file_id, {
-      caption: ctx.message.caption || "",
-      ...buttons
-    });
-  } else if (ctx.message.animation) {
-    await ctx.replyWithAnimation(ctx.message.animation.file_id, {
-      caption: ctx.message.caption || "",
-      ...buttons
-    });
-  } else if (ctx.message.text) {
-    await ctx.reply(ctx.message.text, buttons);
+    await ctx.deleteMessage(); // hapus pesan /forward
+  } catch (err) {
+    console.error("Gagal delete command /forward:", err.description || err);
   }
+
+  ctx.reply("✅ Mesej berjaya di-forward ke target & subscriber");
 });
+// ================= AUTO INLINE DISABLED UNTUK GROUP UTAMA =================
+// Pesan di SOURCE_CHAT_ID tetap asli, tidak auto delete/repost
+// Bot hanya forward manual via /forward
 
 // ================= /unsub =================
 bot.command("unsub", async (ctx) => {
