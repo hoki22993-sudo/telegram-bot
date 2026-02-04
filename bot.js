@@ -78,34 +78,105 @@ Sila join semua group dulu ya`,
 bot.start(sendStart);
 bot.command(["menu", "help", "about", "profile", "contact"], sendStart);
 
-// ================= MENU DATA =================
+// ================== REPLY MENU (PRIVATE chat) ==================
 const menuData = {
   "🌟 NEW REGISTER FREE 🌟": {
-    media: "https://ibb.co/BK2LVQ6t",
     url: "https://afb88my1.com/promotion",
-    caption: "🌟 NEW REGISTER BONUS 🌟\n\nFree Credit RM88\n\n➤ /start"
+    media: "https://ibb.co/BK2LVQ6t",
+    caption: `🌟 NEW REGISTER BONUS 🌟
+
+⚠️ LANGGAR SYARAT AKAN FORFEITED SEMUA POINT ⚠️
+
+✅ Keperluan SLOT ONLY
+
+✅ Free Credit RM88  
+✅ Min WD/CUCI RM2000  
+✅ Max Payment/WD RM40  
+✅ BELOW CREDIT RM 0.10 
+✅ Dibenarkan Main MEGAH5|EPICWIN|PXPLAY2|ACEWIN2|RICH GAMING ( EVENT GAME ONLY)
+✅ DOWNLOAD APPS UNTUK CLAIM MESTI DOWNLOAD APPS UNTUK CLAIM CLICK LINK: https://afb88.hfcapital.top/
+
+⚠️ 1 NAMA 1 ID SAHAJA,TIDAK BOLEH  
+GUNA NAMA YANG SAMA UNTUK TUNTUT  
+BONUS INI 
+⚠️ NAMA DAFTAR MESTI SAMA DENGAN NAMA AKAUN BANK  
+AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR 
+
+➤ CLICK /start TO BACK MENU`,
   },
   "📘 SHARE FACEBOOK 📘": {
-    media: "https://ibb.co/Z6B55VcX",
     url: "https://afb88my1.com/promotion",
-    caption: "📘 SHARE FACEBOOK\n\nFree Credit RM68\n\n➤ /start"
+    media: "https://ibb.co/Z6B55VcX",
+    caption: `📘 SHARE FACEBOOK 📘
+
+🧧 FREE CREDIT RM68 🧧  
+
+✅ STEP 1: Join Our Telegram Channel LINK JOIN:t.me/afb88my
+✅ STEP 2: Join Our Facebook Group LINK JOIN: https://www.facebook.com/share/g/1GGcZKo6zN/
+➡️ How To Claim Free Credit: Share Post To 5 Casino Group 3 Link
+➡️ Had Tuntutan : DAILY CLAIM X1
+✅ Dibenarkan Main : MEGAH5|EPICWIN|PXPLAY|ACEWIN2|RICH GAMING (EVENT GAME ONLY)
+✅ DOWNLOAD APPS UNTUK CLAIM MESTI DOWNLOAD APPS UNTUK CLAIM CLICK LINK: https://afb88.hfcapital.top/
+️ 1 NAMA 1 ID SAHAJA,TIDAK BOLEH  
+GUNA NAMA YANG SAMA UNTUK TUNTUT  
+BONUS INI 
+⚠️ NAMA DAFTAR MESTI SAMA DENGAN NAMA AKAUN BANK  
+AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR 
+
+➤ CLICK /start TO BACK MENU`,
   },
   "🔥 DAILY APPS FREE 🔥": {
-    media: "https://ibb.co/nsmVQFbg",
     url: "https://afb88my1.com/promotion",
-    caption: "🔥 DAILY APPS FREE\n\nFree Credit RM20\n\n➤ /start"
+    media: "https://ibb.co/nsmVQFbg",
+    caption: `🔥 DAILY APPS FREE 🔥
+
+🎁 Free Credit RM20 
+
+📌 Had Tuntutan Daily Claim X1
+💰 Min. Withdraw RM 600  
+💳 Max. Payment RM 10  
+💰 Below Credit RM 0.10
+✅ Dibenarkan Main : MEGAH5|EPICWIN|PXPLAY|ACEWIN2|RICH GAMING (EVENT GAME ONLY)
+✅ DOWNLOAD APPS UNTUK CLAIM MESTI DOWNLOAD APPS UNTUK CLAIM CLICK LINK: https://afb88.hfcapital.top/
+
+⚠️ XDAPAT REKOMEN SENDIRI,BANK ACCOUNT/NAMA INFO SALAH AKAN FORFEITED SEMUA POINT 
+
+➤ CLICK /start TO BACK MENU`,
   },
   "🌞 SOCIAL MEDIA 🌞": {
+    url: "https://afb88my1.com/promotion",
     media: "https://ibb.co/HfyD6DWw",
-    url: "https://afb88my1.com/",
-    caption: "🌞 FOLLOW SOCIAL MEDIA\n\n➤ /start"
+    caption: `🌞 SOCIAL MEDIA 🌞
+
+📌FOLLOW SOCIAL MEDIA:  
+
+📘 Facebook: https://www.facebook.com/profile.php?id=61579884569151  
+📸 Instagram: https://instagram.com/afb88  
+🎥 WhatsApp Group: https://wa.me/+601133433880
+
+🎯 Dapatkan maklumat acara terkini, bonus dan kemas kini 
+
+➤ CLICK /start TO BACK MENU!`,
   },
   "🎉 TELEGRAM BONUS 🎉": {
-    media: "https://ibb.co/21qTqmtY",
     url: "https://afb88my1.com/promotion",
-    caption: "🎉 TELEGRAM BONUS\n\nFree Credit RM30\n\n➤ /start"
-  }
+    media: "https://ibb.co/21qTqmtY",
+    caption: `🎉 TELEGRAM BONUS 🎉
+
+🎁 SUBSCRIBE TELEGRAM BONUS:  
+✅ Free Credit RM 30
+✅ Had Tuntutan X1
+✅ Min.Withdraw RM 888
+✅ Max.Payment RM 15
+✅ Join Telegram Channel :https://t.me/afb88my
+❌ TIDAK BOLEH DIGABUNG: TOP UP/REBATE/FREE/CREDIT/COMMISION BONUS
+
+👉 CLICK CLAIM NOW 
+
+➤ CLICK /start TO BACK MENU`,
+  },
 };
+
 
 bot.hears(Object.keys(menuData), async (ctx) => {
   if (ctx.chat.type !== "private") return;
@@ -214,3 +285,4 @@ process.once("SIGTERM", () => bot.stop("SIGTERM"));
 const app = express();
 app.get("/", (_, res) => res.send("🤖 Bot sedang berjalan"));
 app.listen(process.env.PORT || 10000);
+
