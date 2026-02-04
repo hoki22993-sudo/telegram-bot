@@ -194,7 +194,7 @@ bot.command("forward", async (ctx) => {
   if (ctx.chat.id !== SOURCE_CHAT_ID) return;
 
   const replyTo = ctx.message.reply_to_message;
-  if (!replyTo) return ctx.reply("Sila reply mesej yang ingin di-forward.");
+  if (!replyTo) return; // skip kalau tidak reply pesan
 
   // ===== forward ke group target (tidak termasuk group utama) =====
   for (const targetId of TARGET_CHAT_IDS) {
@@ -228,17 +228,22 @@ bot.command("forward", async (ctx) => {
     console.error("Gagal delete command /forward:", err.description || err);
   }
 
-  ctx.reply("✅ Mesej berjaya di-forward ke target & subscriber");
+  // ❌ Tidak ada ctx.reply sama sekali, silent
 });
-// ================= AUTO INLINE DISABLED UNTUK GROUP UTAMA =================
-// Pesan di SOURCE_CHAT_ID tetap asli, tidak auto delete/repost
-// Bot hanya forward manual via /forward
 
-// ================= /unsub =================
+// ================= PRIVATE CHAT: /unsub =================
 bot.command("unsub", async (ctx) => {
   subscribers = subscribers.filter((id) => id !== ctx.from.id);
   saveSubscribers();
   await ctx.reply("✅ Anda telah berhenti langganan.");
+});
+
+// ================= LISTEN GROUP UTAMA =================
+// Hanya log, tidak auto repost/reply/inline
+bot.on("message", (ctx) => {
+  if (ctx.chat.id === SOURCE_CHAT_ID) {
+    console.log(`Pesan baru di group utama: ${ctx.message.message_id} dari ${ctx.from.username || ctx.from.first_name}`);
+  }
 });
 
 // ================= START BOT =================
