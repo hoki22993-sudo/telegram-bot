@@ -8,7 +8,6 @@ dotenv.config();
 // ================= CONFIG =================
 const BOT_TOKEN = process.env.BOT_TOKEN || "ISI_TOKEN_DI_SINI";
 const ADMIN_USER_ID = 8146896736;
-
 const SOURCE_CHAT_ID = -1002626291566;
 const TARGET_CHAT_IDS = [
   -1003175423118,
@@ -177,7 +176,6 @@ AKAUN BANK TIDAK BOLEH DIUBAH SELEPAS DAFTAR
   },
 };
 
-
 bot.hears(Object.keys(menuData), async (ctx) => {
   if (ctx.chat.type !== "private") return;
   const data = menuData[ctx.message.text];
@@ -199,7 +197,7 @@ bot.command("forward", async (ctx) => {
   const replyTo = ctx.message.reply_to_message;
   if (!replyTo) return;
 
-  // forward ke group target (TIDAK termasuk group asal)
+  // ===== forward ke group target =====
   for (const targetId of TARGET_CHAT_IDS) {
     if (targetId === SOURCE_CHAT_ID) continue;
 
@@ -213,8 +211,9 @@ bot.command("forward", async (ctx) => {
     } catch {}
   }
 
-  // forward ke subscriber
-  for (const subId of [...subscribers]) {
+  // ===== forward ke subscriber dengan delay adaptif =====
+  for (let i = 0; i < subscribers.length; i++) {
+    const subId = subscribers[i];
     try {
       await bot.telegram.forwardMessage(
         subId,
@@ -222,13 +221,18 @@ bot.command("forward", async (ctx) => {
         replyTo.message_id,
         { disable_notification: true }
       );
+      // delay random 500-800ms supaya aman dari block
+      await new Promise(r => setTimeout(r, 500 + Math.random() * 300));
     } catch {
-      subscribers = subscribers.filter((id) => id !== subId);
+      subscribers = subscribers.filter(id => id !== subId);
       saveSubscribers();
     }
   }
 
-  // ❌ TIADA mesej berjaya
+  // DELETE pesan asli supaya auto inline tidak trigger
+  try {
+    await bot.telegram.deleteMessage(replyTo.chat.id, replyTo.message_id);
+  } catch {}
 });
 
 // ================= AUTO INLINE (DELETE + REPOST) =================
@@ -236,14 +240,17 @@ bot.on(["text", "photo", "video", "animation"], async (ctx) => {
   if (ctx.chat.id !== SOURCE_CHAT_ID) return;
   if (ctx.from.id !== ADMIN_USER_ID) return;
 
+  // skip command messages
+  if (ctx.message.text && ctx.message.text.startsWith("/")) return;
+
   const buttons = Markup.inlineKeyboard([
     [
-      Markup.button.url("🎮 Register", "https://afb88my1.com/register/SMSRegister"),
-      Markup.button.url("🌐 Login", "https://afb88my1.com/")
+      Markup.button.url("🎮 Register", "https://afb88my.com/register/SMSRegister"),
+      Markup.button.url("🌐 Login", "https://afb88my.com/")
     ],
     [
       Markup.button.url("▶️ Channel", "https://t.me/afb88my"),
-      Markup.button.url("🎁 Bonus", "https://afb88my1.com/promotion")
+      Markup.button.url("🎁 Bonus", "https://afb88my.com/promotion")
     ]
   ]);
 
@@ -285,4 +292,3 @@ process.once("SIGTERM", () => bot.stop("SIGTERM"));
 const app = express();
 app.get("/", (_, res) => res.send("🤖 Bot sedang berjalan"));
 app.listen(process.env.PORT || 10000);
-
