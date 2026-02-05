@@ -14,7 +14,7 @@ if not BOT_TOKEN:
 ADMIN_USER_ID = 8146896736
 SOURCE_CHAT_ID = -1002626291566
 TARGET_CHAT_IDS = [-1003175423118, -1003443785953]
-AUTO_DELETE_DELAY = 5  # detik
+AUTO_DELETE_DELAY = 2  # detik
 
 # ================= SUBSCRIBERS (in-memory) =================
 subscribers = set()
@@ -193,3 +193,4 @@ threading.Thread(target=run_flask).start()
 
 print("✅ Bot sedang dijalankan...")
 app.run_polling()
+
