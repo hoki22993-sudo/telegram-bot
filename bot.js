@@ -1,4 +1,4 @@
-// bot.js — CHOREO VERSION
+// bot.js — CHOREO FINAL VERSION
 import { Telegraf, Markup } from "telegraf";
 import dotenv from "dotenv";
 import express from "express";
@@ -26,9 +26,8 @@ let subscribers = [];
 // ================= START / MENU =================
 async function sendStart(ctx) {
   const user = ctx.from || {};
-  const username = user.username
-    ? `@${user.username}`
-    : user.first_name || "Bossku";
+  const username =
+    user.username ? `@${user.username}` : user.first_name || "Bossku";
 
   if (user.id && !subscribers.includes(user.id)) {
     subscribers.push(user.id);
@@ -141,7 +140,7 @@ bot.command("forward", async (ctx) => {
         replyTo.message_id,
         { disable_notification: true }
       );
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 600));
     } catch {
       subscribers = subscribers.filter(id => id !== subId);
     }
@@ -156,14 +155,24 @@ bot.command("unsub", async (ctx) => {
   await ctx.reply("✅ Anda telah berhenti langganan.");
 });
 
-// ================= EXPRESS + WEBHOOK =================
+// ================= EXPRESS + WEBHOOK (FIXED & SAFE) =================
 const app = express();
-app.use(await bot.createWebhook({ domain: WEBHOOK_DOMAIN }));
 
+// webhook path unik (WAJIB)
+const webhookPath = `/telegraf/${BOT_TOKEN}`;
+
+// set webhook ke Telegram
+bot.telegram.setWebhook(`${WEBHOOK_DOMAIN}${webhookPath}`);
+
+// terima webhook dari Telegram
+app.use(bot.webhookCallback(webhookPath));
+
+// health check
 app.get("/", (_, res) => {
   res.send("🤖 Bot Telegram Choreo berjalan");
 });
 
+// start server
 app.listen(PORT, "0.0.0.0", () => {
   console.log("🚀 Bot running on Choreo");
 });
