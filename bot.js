@@ -1,24 +1,28 @@
+// ================= IMPORT =================
 import { Telegraf, Markup } from "telegraf";
 import express from "express";
 import dotenv from "dotenv";
+
 dotenv.config();
 
 // ================= CONFIG =================
 const BOT_TOKEN = process.env.BOT_TOKEN;
-if (!BOT_TOKEN) throw new Error("❌ BOT_TOKEN tidak ditemukan!");
+if (!BOT_TOKEN) {
+  throw new Error("❌ BOT_TOKEN environment variable not found!");
+}
 
 const ADMIN_USER_ID = 8146896736;
 const SOURCE_CHAT_ID = -1002626291566;
 const TARGET_CHAT_IDS = [-1003175423118, -1003443785953];
-const AUTO_DELETE_DELAY = 5000;
+const AUTO_DELETE_DELAY = 5000; // ms
 
 const bot = new Telegraf(BOT_TOKEN);
 
-// ================= SUBSCRIBERS =================
+// ================= SUBSCRIBERS (in-memory) =================
 const subscribers = new Set();
 
 // ================= MENU DATA =================
-const menuData = {
+const menu_data = {
   "🌟 NEW REGISTER FREE 🌟": {
     url: "https://afb88.hfcapital.top/",
     media: "https://i.ibb.co/BK2LVQ6t/image.png",
@@ -47,8 +51,7 @@ const menuData = {
 };
 
 // ================= HELPER =================
-async function addSubscriber(ctx) {
-  const user = ctx.from;
+async function addSubscriber(user) {
   if (!subscribers.has(user.id)) {
     subscribers.add(user.id);
     try {
@@ -62,7 +65,12 @@ async function addSubscriber(ctx) {
 
 // ================= START =================
 bot.start(async (ctx) => {
-  await addSubscriber(ctx);
+  const user = ctx.from;
+  const username = user.username
+    ? `@${user.username}`
+    : user.first_name || "Bossku";
+
+  await addSubscriber(user);
 
   const inlineButtons = Markup.inlineKeyboard([
     [Markup.button.url("📢 SUBSCRIBE CHANNEL", "https://t.me/afb88my")],
@@ -71,7 +79,7 @@ bot.start(async (ctx) => {
     [Markup.button.url("🎁 GROUP HADIAH AFB88", "https://t.me/Xamoi2688")]
   ]);
 
-  const keyboard = Markup.keyboard([
+  const replyKeyboard = Markup.keyboard([
     ["🌟 NEW REGISTER FREE 🌟"],
     ["📘 SHARE FACEBOOK 📘"],
     ["🔥 DAILY APPS FREE 🔥", "🌞 SOCIAL MEDIA 🌞"],
@@ -82,20 +90,26 @@ bot.start(async (ctx) => {
     await ctx.replyWithAnimation(
       "https://media.giphy.com/media/tXSLbuTIf37SjvE6QY/giphy.gif",
       {
-        caption: `👋 Hi ${ctx.from.first_name} Bossku 😘`,
+        caption: `👋 Hi ${username} Bossku 😘 Sila join semua group dulu ya ...`,
         ...inlineButtons
       }
     );
   } catch {}
 
-  await ctx.reply("➤ CLICK /start TO BACK MENU", keyboard);
+  await ctx.reply("➤ CLICK /start TO BACK MENU", replyKeyboard);
+});
+
+// alias command
+["menu", "help", "about", "profile", "contact"].forEach(cmd => {
+  bot.command(cmd, (ctx) => ctx.scene?.enter?.("start") || bot.handleUpdate(ctx.update));
 });
 
 // ================= MENU HANDLER =================
 bot.on("text", async (ctx) => {
   if (ctx.chat.type !== "private") return;
 
-  const data = menuData[ctx.message.text];
+  const text = ctx.message.text;
+  const data = menu_data[text];
   if (!data) return;
 
   try {
@@ -106,31 +120,42 @@ bot.on("text", async (ctx) => {
       }
     });
   } catch (e) {
-    console.log("Menu error:", e);
+    console.log("Menu reply error:", e);
   }
 });
 
-// ================= FORWARD =================
+// ================= FORWARD COMMAND =================
 bot.command("forward", async (ctx) => {
-  if (ctx.from.id !== ADMIN_USER_ID) return;
-  if (ctx.chat.id !== SOURCE_CHAT_ID) return;
-  if (!ctx.message.reply_to_message) return;
+  if (
+    ctx.from.id !== ADMIN_USER_ID ||
+    ctx.chat.id !== SOURCE_CHAT_ID
+  ) return;
 
-  const msg = ctx.message.reply_to_message;
+  const reply = ctx.message.reply_to_message;
+  if (!reply) return;
 
-  for (const target of TARGET_CHAT_IDS) {
+  for (const target_id of TARGET_CHAT_IDS) {
+    if (target_id === SOURCE_CHAT_ID) continue;
     try {
-      await bot.telegram.forwardMessage(target, msg.chat.id, msg.message_id);
+      await bot.telegram.forwardMessage(
+        target_id,
+        reply.chat.id,
+        reply.message_id
+      );
     } catch (e) {
       console.log("Forward error:", e);
     }
   }
 
-  for (const sub of subscribers) {
+  for (const sub of [...subscribers]) {
     try {
-      await bot.telegram.forwardMessage(sub, msg.chat.id, msg.message_id);
-      await new Promise(r => setTimeout(r, 600));
-    } catch {
+      await bot.telegram.forwardMessage(
+        sub,
+        reply.chat.id,
+        reply.message_id
+      );
+      await new Promise(r => setTimeout(r, 700));
+    } catch (e) {
       subscribers.delete(sub);
     }
   }
@@ -141,25 +166,39 @@ bot.command("forward", async (ctx) => {
 });
 
 // ================= UNSUB =================
-bot.command("unsub", (ctx) => {
+bot.command("unsub", async (ctx) => {
   subscribers.delete(ctx.from.id);
-  ctx.reply("✅ Anda telah berhenti langganan.");
+  await ctx.reply("✅ Anda telah berhenti langganan.");
 });
 
 // ================= AUTO DELETE =================
 bot.on("message", async (ctx) => {
-  if (ctx.chat.id === SOURCE_CHAT_ID && ctx.from.id === bot.botInfo?.id) {
-    setTimeout(() => {
-      ctx.deleteMessage().catch(() => {});
+  if (
+    ctx.chat.id === SOURCE_CHAT_ID &&
+    ctx.from.id === ctx.botInfo.id
+  ) {
+    setTimeout(async () => {
+      try {
+        await ctx.deleteMessage();
+      } catch {}
     }, AUTO_DELETE_DELAY);
   }
 });
 
-// ================= EXPRESS KEEP ALIVE =================
+// ================= KEEP ALIVE =================
 const app = express();
-app.get("/", (req, res) => res.send("🤖 Bot sedang berjalan"));
-app.listen(process.env.PORT || 10000);
+
+app.get("/", (req, res) => {
+  res.send("🤖 Bot sedang berjalan");
+});
+
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => console.log("Web server running"));
 
 // ================= RUN =================
 bot.launch();
-console.log("✅ Bot running...");
+console.log("✅ Bot sedang dijalankan...");
+
+// graceful stop
+process.once("SIGINT", () => bot.stop("SIGINT"));
+process.once("SIGTERM", () => bot.stop("SIGTERM"));
