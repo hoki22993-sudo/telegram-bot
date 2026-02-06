@@ -20,6 +20,12 @@ const TARGET_CHAT_IDS = [
     -1003303586267,
     -1003351929392,
     -1003386119312,
+    -1002068306604,
+    -1002174638632,
+    -1002112370494,
+    -1002199080095,
+    -1001925377693,
+    -1002153443910,
 
     // ===== CHANNEL =====
     -1003175423118,
@@ -236,3 +242,4 @@ process.once("SIGTERM", () => bot.stop("SIGTERM"));
 const app = express();
 app.get("/", (_, res) => res.send("🤖 Bot sedang berjalan"));
 app.listen(process.env.PORT || 10000);
+
