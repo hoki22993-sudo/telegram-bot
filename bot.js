@@ -1,4 +1,4 @@
-// bot.js (versi lengkap, bahasa Malaysia, anti-link semua group)
+// bot.js (versi lengkap, bahasa Malaysia, anti-link semua group + debug moderasi)
 import { Telegraf, Markup } from "telegraf";
 import dotenv from "dotenv";
 import fs from "fs";
@@ -47,7 +47,6 @@ const ENABLE_LINK_ANTISPAM = true; // true = blok link dari bukan admin di semua
 
 // Senarai kata/frasa yang di-ban (semua dalam huruf kecil)
 const BANNED_WORDS = [
-  // contoh, tukar ikut keperluan anda:
   "promo luar",
   "free kredit luar",
   "bonus 100%",
@@ -358,7 +357,7 @@ bot.command("forward", async (ctx) => {
   }
 });
 
-// ================= MODERASI: LINK & KATA TERLARANG DI SEMUA GROUP =================
+// ================= MODERASI: LINK & KATA TERLARANG DI SEMUA GROUP (DENGAN DEBUG) =================
 async function handleModeration(ctx) {
   if (!ENABLE_LINK_ANTISPAM) return;
   if (!ctx.chat) return;
@@ -369,15 +368,17 @@ async function handleModeration(ctx) {
 
   if (!ctx.from) return;
 
-  const botId = bot.botInfo?.id;
-  if (botId && ctx.from.id === botId) return; // mesej dari bot sendiri
-
   const msg = ctx.message;
   if (!msg) return;
 
   const text = (msg.text || msg.caption || "").toString();
   const textLower = text.toLowerCase();
   const entities = msg.entities || msg.caption_entities || [];
+
+  console.log("[MOD] Dapat pesan di chat", ctx.chat.id,
+    "dari", ctx.from.id,
+    "type", chatType,
+    "text:", text);
 
   let hasLink = false;
 
@@ -392,12 +393,15 @@ async function handleModeration(ctx) {
 
   const hasBannedWord = BANNED_WORDS.some(w => w && textLower.includes(w));
 
+  console.log("[MOD] hasLink =", hasLink, "hasBannedWord =", hasBannedWord);
+
   if (!hasLink && !hasBannedWord) return;
 
   // Semak jika pengirim adalah admin group itu
   let isAdmin = false;
   try {
     const member = await ctx.getChatMember(ctx.from.id);
+    console.log("[MOD] Status member:", member.status);
     if (member.status === "administrator" || member.status === "creator") {
       isAdmin = true;
     }
@@ -405,11 +409,15 @@ async function handleModeration(ctx) {
     console.error("Gagal semak status ahli:", err.message);
   }
 
-  if (isAdmin) return; // admin bebas hantar apa-apa
+  if (isAdmin) {
+    console.log("[MOD] Pesan ada link/kata ban tapi dari admin, dibiarkan.");
+    return;
+  }
 
   // Padam mesej melanggar peraturan
   try {
     await ctx.deleteMessage();
+    console.log("[MOD] Berjaya padam pesan spam.");
   } catch (err) {
     console.error("Gagal padam mesej melanggar peraturan:", err.message);
   }
