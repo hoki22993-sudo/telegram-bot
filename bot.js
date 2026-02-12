@@ -1,4 +1,4 @@
-// bot.js
+// bot.js (versi lengkap, bahasa Malaysia)
 import { Telegraf, Markup } from "telegraf";
 import dotenv from "dotenv";
 import fs from "fs";
@@ -6,328 +6,490 @@ import express from "express";
 
 dotenv.config();
 
-// ================= CONFIG =================
+// ================= KONFIGURASI ASAS =================
 const BOT_TOKEN = process.env.BOT_TOKEN || "ISI_TOKEN_DI_SINI";
-const ADMIN_USER_ID = 8146896736; // ID admin
+const ADMIN_USER_ID = 8146896736; // ID admin (akaun telegram anda)
 const PORT = parseInt(process.env.PORT || "8080", 10);
 
-// ===== GROUP & CHANNEL =====
-const SOURCE_CHAT_ID = -1002626291566; // GROUP UTAMA
+// ===== ID GROUP & CHANNEL =====
+const SOURCE_CHAT_ID = -1002626291566; // GROUP UTAMA (tempat anda guna /forward)
 
 const TARGET_CHAT_IDS = [
-    // ===== GROUP =====
-    -1003443785953,
-    -1003355430208,
-    -1003303586267,
-    -1003351929392,
-    -1003386119312,
-    -1002068306604,
-    -1002174638632,
-    -1002112370494,
-    -1002199080095,
-    -1001925377693,
-    -1002153443910,
+  // ===== GROUP LAIN =====
+  -1003443785953,
+  -1003355430208,
+  -1003303586267,
+  -1003351929392,
+  -1003386119312,
+  -1002068306604,
+  -1002174638632,
+  -1002112370494,
+  -1002199080095,
+  -1001925377693,
+  -1002153443910,
 
-    // ===== CHANNEL =====
-    -1003175423118,
-    -1003418215358,
-    -1003410432304,
-    -1003390131591,
-    -1003379058057
+  // ===== CHANNEL =====
+  -1003175423118,
+  -1003418215358,
+  -1003410432304,
+  -1003390131591,
+  -1003379058057
 ];
 
-const AUTO_DELETE_DELAY = 5000; // ms
+const AUTO_DELETE_DELAY = 5000; // ms – auto delete mesej bot di group utama
 
+// Tetapan siaran ke subscriber
+const SUB_BATCH_SIZE = 20;            // hantar serentak ke 20 orang per batch
+const SUB_DELAY_BETWEEN_BATCH = 1000; // jeda 1 saat antara batch
+
+// Tetapan anti-spam
+const ENABLE_LINK_ANTISPAM = true; // true = blok link dari bukan admin di group utama
+
+// Senarai kata/frasa yang di-ban (semua dalam huruf kecil)
+const BANNED_WORDS = [
+  // contoh, tukar ikut keperluan anda:
+  "promo luar",
+  "free kredit luar",
+  "bonus 200%",
+  "competitor1",
+  "competitor2"
+].map(w => w.toLowerCase());
+
+// ===== SEMAK BOT_TOKEN =====
 if (!BOT_TOKEN || BOT_TOKEN === "ISI_TOKEN_DI_SINI") {
-    console.error(
-        "[STARTUP] ❌ BOT_TOKEN kosong / masih 'ISI_TOKEN_DI_SINI'. " +
-        "Isi dulu env BOT_TOKEN (di .env atau di Choreo)."
-    );
-    process.exit(1);
+  console.error(
+    "[STARTUP] ❌ BOT_TOKEN kosong / masih 'ISI_TOKEN_DI_SINI'. " +
+    "Sila isi env BOT_TOKEN dahulu."
+  );
+  process.exit(1);
 }
 
 const bot = new Telegraf(BOT_TOKEN);
 
-// Log error global supaya ketahuan kalau ada masalah
+// Tangkap error telegraf supaya mudah debug
 bot.catch((err, ctx) => {
-    console.error("[TELEGRAF] Error di update", ctx.update, err);
+  console.error("[TELEGRAF] Ralat pada update:", err.message, "update:", ctx.update);
 });
 
-// ================= SUBSCRIBERS STORAGE =================
+// ================= SIMPANAN SUBSCRIBER (FAIL JSON) =================
 const SUBSCRIBERS_FILE = "subscribers.json";
 let subscribers = [];
 
 try {
-    if (fs.existsSync(SUBSCRIBERS_FILE)) {
-        subscribers = JSON.parse(fs.readFileSync(SUBSCRIBERS_FILE, "utf8") || "[]");
-        if (!Array.isArray(subscribers)) subscribers = [];
-    }
+  if (fs.existsSync(SUBSCRIBERS_FILE)) {
+    subscribers = JSON.parse(fs.readFileSync(SUBSCRIBERS_FILE, "utf8") || "[]");
+    if (!Array.isArray(subscribers)) subscribers = [];
+  }
 } catch {
-    subscribers = [];
+  subscribers = [];
 }
 
 function saveSubscribers() {
-    fs.writeFileSync(SUBSCRIBERS_FILE, JSON.stringify(subscribers, null, 2));
+  fs.writeFileSync(SUBSCRIBERS_FILE, JSON.stringify(subscribers, null, 2));
 }
 
-// ================= EXPRESS (Harus jalan dulu untuk health check) =================
+// Helper
+const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+
+// ================= EXPRESS (HEALTH CHECK) =================
 const app = express();
 app.get("/", (_, res) => res.send("🤖 Bot sedang berjalan"));
 app.get("/health", (_, res) => res.json({ status: "ok", bot: "running" }));
 
-// ================= START / MENU =================
+// ================= /start & MENU UTAMA =================
 async function sendStart(ctx) {
-    const user = ctx.from || {};
-    const username = user.username ? `@${user.username}` : user.first_name || "Bossku";
+  const user = ctx.from || {};
+  const username = user.username ? `@${user.username}` : user.first_name || "Bossku";
 
-    // Tambah subscriber
-    if (user.id && !subscribers.includes(user.id)) {
-        subscribers.push(user.id);
-        saveSubscribers();
+  // Daftar subscriber
+  if (user.id && !subscribers.includes(user.id)) {
+    subscribers.push(user.id);
+    saveSubscribers();
 
-        try {
-            await bot.telegram.sendMessage(
-                ADMIN_USER_ID,
-                `📌 Subscriber baru: ${username} (${user.id})`
-            );
-        } catch {}
+    try {
+      await bot.telegram.sendMessage(
+        ADMIN_USER_ID,
+        `📌 Subscriber baru: ${username} (${user.id})`
+      );
+    } catch {}
+  }
+
+  const inlineButtons = Markup.inlineKeyboard([
+    [Markup.button.url("📢 CHANNEL UTAMA", "https://t.me/afb88my")],
+    [Markup.button.url("💬 GROUP CUCI & TIPS GAME", "https://t.me/+b685QE242dMxOWE9")],
+    [Markup.button.url("🌐 REGISTER & LOGIN", "https://afb88my1.com/")],
+    [Markup.button.url("🎁 GROUP HADIAH AFB88", "https://t.me/Xamoi2688")]
+  ]);
+
+  const replyKeyboard = Markup.keyboard([
+    ["🌟 NEW REGISTER FREE 🌟"],
+    ["📘 SHARE FACEBOOK 📘"],
+    ["🔥 DAILY APPS FREE 🔥", "🌞 SOCIAL MEDIA 🌞"],
+    ["🎉 TELEGRAM BONUS 🎉"]
+  ]).resize();
+
+  await ctx.replyWithAnimation(
+    "https://media3.giphy.com/media/tXSLbuTIf37SjvE6QY/giphy.gif",
+    {
+      caption: `👋 Hi ${username} Bossku 😘
+Kalau sudah join semua channel & group, amoi akan cuba bagi info paling untung untuk anda ❤️
+
+📌 Sila tekan butang di bawah untuk lihat promo-promo yang ada.`,
+      ...inlineButtons
     }
+  );
 
-    const inlineButtons = Markup.inlineKeyboard([
-        [Markup.button.url("📢 SUBSCRIBE CHANNEL", "https://t.me/afb88my")],
-        [Markup.button.url("💬 GROUP CUCI & TIPS GAME", "https://t.me/+b685QE242dMxOWE9")],
-        [Markup.button.url("🌐 REGISTER & LOGIN", "https://afb88my1.com/")],
-        [Markup.button.url("🎁 GROUP HADIAH AFB88", "https://t.me/Xamoi2688")]
-    ]);
-
-    const replyKeyboard = Markup.keyboard([
-        ["🌟 NEW REGISTER FREE 🌟"],
-        ["📘 SHARE FACEBOOK 📘"],
-        ["🔥 DAILY APPS FREE 🔥", "🌞 SOCIAL MEDIA 🌞"],
-        ["🎉 TELEGRAM BONUS 🎉"]
-    ]).resize();
-
-    await ctx.replyWithAnimation(
-        "https://media3.giphy.com/media/tXSLbuTIf37SjvE6QY/giphy.gif",
-        {
-            caption: `👋 Hi ${username} Bossku 😘 Kalau sudah subscribe, amoi pasti kasi untung terbaik ❤️ Sila join semua group dulu ya, ...`,
-            ...inlineButtons
-        }
-    );
-
-    await ctx.reply("➤ CLICK /start TO BACK MENU", replyKeyboard);
+  await ctx.reply("➤ Tekan /start bila-bila masa untuk kembali ke menu utama.", replyKeyboard);
 }
 
 bot.start(sendStart);
 bot.command(["menu", "help", "about", "profile", "contact"], sendStart);
 
-// ================= MENU DATA PRIVATE (key HARUS sama dengan keyboard) =================
+// ================= DATA MENU PRIVATE =================
 const menuData = {
-    "🌟 NEW REGISTER FREE 🌟": {
-        url: "https://afb88my1.com/promotion",
-        media: "https://ibb.co/BK2LVQ6t",
-        caption: `🌟 NEW REGISTER BONUS 🌟
-⚠️ LANGGAR SYARAT AKAN FORFEITED SEMUA POINT ⚠️
-✅ Keperluan SLOT ONLY
+  "🌟 NEW REGISTER FREE 🌟": {
+    url: "https://afb88my1.com/promotion",
+    media: "https://ibb.co/BK2LVQ6t",
+    caption: `🌟 NEW REGISTER BONUS AFB88 🌟
+⚠️ Langgar syarat, semua point akan FORFEIT ⚠️
+✅ Keperluan SLOT SAHAJA
 ✅ Free Credit R188
-✅ Min WD/CUCI RM 6600
+✅ Min WD/Cuci RM 6600
 ✅ Max Payment/WD RM20
-✅ Dibenarkan Main AFB GAMING ( EVENT GAME ONLY)
-✅ Dibenarkan Main MEGAH5|EPICWIN|PXPLAY2|ACEWIN2|RICH GAMING (EVENT GAME ONLY)
-✅ DOWNLOAD APPS UNTUK CLAIM
-CLICK LINK: https://afb88.hfcapital.top/
-⚠️ 1 NAMA 1 ID SAHAJA
-⚠️ NAMA DAFTAR MESTI SAMA DENGAN NAMA AKAUN BANK
-➤ CLICK /start TO BACK MENU`
-    },
-    "📘 SHARE FACEBOOK 📘": {
-        url: "https://afb88my1.com/promotion",
-        media: "https://ibb.co/Z6B55VcX",
-        caption: `📘 SHARE FACEBOOK 📘
-🧧 FREE CREDIT RM68 🧧
+✅ Dibenarkan main AFB GAMING (EVENT GAME SAHAJA)
+✅ Dibenarkan main MEGAH5 | EPICWIN | PXPLAY2 | ACEWIN2 | RICH GAMING (EVENT GAME SAHAJA)
+✅ Sila download apps untuk claim
+📎 LINK: https://afb88.hfcapital.top/
+
+⚠️ 1 nama 1 ID sahaja
+⚠️ Nama daftar mesti sama dengan nama akaun bank
+
+➤ Tekan /start untuk kembali ke menu`
+  },
+  "📘 SHARE FACEBOOK 📘": {
+    url: "https://afb88my1.com/promotion",
+    media: "https://ibb.co/Z6B55VcX",
+    caption: `📘 PROMO SHARE FACEBOOK 📘
+🧧 Free Credit RM68 🧧
+
+Syarat:
 ✅ Join Telegram Channel
 ✅ Join Facebook Group
-➡️ Share ke 5 Casino Group
-➡️ Daily Claim X1
-➤ CLICK /start TO BACK MENU`
-    },
-    "🔥 DAILY APPS FREE 🔥": {
-        url: "https://afb88my1.com/promotion",
-        media: "https://ibb.co/nsmVQFbg",
-        caption: `🔥 DAILY APPS FREE 🔥
+➡️ Share ke 5 group casino
+➡️ Daily claim 1x sehari
+
+➤ Tekan /start untuk kembali ke menu`
+  },
+  "🔥 DAILY APPS FREE 🔥": {
+    url: "https://afb88my1.com/promotion",
+    media: "https://ibb.co/nsmVQFbg",
+    caption: `🔥 DAILY APPS FREE 🔥
 🎁 Free Credit RM20
-📌 Daily Claim X1
+📌 Daily claim 1x
 💰 Min WD RM600
-➤ CLICK /start TO BACK MENU`
-    },
-    "🌞 SOCIAL MEDIA 🌞": {
-        url: "https://afb88my1.com/promotion",
-        media: "https://ibb.co/HfyD6DWw",
-        caption: `🌞 SOCIAL MEDIA 🌞
+
+➤ Tekan /start untuk kembali ke menu`
+  },
+  "🌞 SOCIAL MEDIA 🌞": {
+    url: "https://afb88my1.com/promotion",
+    media: "https://ibb.co/HfyD6DWw",
+    caption: `🌞 SOCIAL MEDIA OFFICIAL AFB88 🌞
 📘 Facebook
 📸 Instagram
 🎥 WhatsApp Group
-➤ CLICK /start TO BACK MENU`
-    },
-    "🎉 TELEGRAM BONUS 🎉": {
-        url: "https://afb88my1.com/promotion",
-        media: "https://ibb.co/21qTqmtY",
-        caption: `🎉 TELEGRAM BONUS 🎉
+
+➤ Tekan /start untuk kembali ke menu`
+  },
+  "🎉 TELEGRAM BONUS 🎉": {
+    url: "https://afb88my1.com/promotion",
+    media: "https://ibb.co/21qTqmtY",
+    caption: `🎉 TELEGRAM BONUS KHAS 🎉
 🎁 Free Credit RM30
-✅ Claim X1
-➤ CLICK /start TO BACK MENU`
-    }
+✅ Claim 1x
+
+➤ Tekan /start untuk kembali ke menu`
+  }
 };
 
 bot.hears(Object.keys(menuData), async (ctx) => {
-    if (ctx.chat?.type !== "private") return;
+  if (ctx.chat?.type !== "private") return;
 
-    const data = menuData[ctx.message?.text];
-    if (!data) return;
+  const data = menuData[ctx.message?.text];
+  if (!data) return;
+
+  try {
+    await ctx.replyWithPhoto(data.media, {
+      caption: data.caption,
+      ...Markup.inlineKeyboard([[Markup.button.url("CLAIM 🎁", data.url)]])
+    });
+  } catch (err) {
+    console.error("Ralat hantar foto:", err.message);
+    await ctx.reply(data.caption + `\n\n🔗 ${data.url}`, {
+      ...Markup.inlineKeyboard([[Markup.button.url("CLAIM 🎁", data.url)]])
+    });
+  }
+});
+
+// ================= /unsub (berhenti langganan) =================
+bot.command("unsub", async (ctx) => {
+  if (!ctx.from) return;
+  subscribers = subscribers.filter(id => id !== ctx.from.id);
+  saveSubscribers();
+  await ctx.reply("✅ Anda telah berhenti langganan siaran dari bot ini.");
+});
+
+// ================= BANTUAN SIARAN / BROADCAST =================
+let isBroadcastRunning = false;
+
+// Forward ke group & channel target (bukan group utama)
+async function broadcastToTargets(replyTo) {
+  for (const targetId of TARGET_CHAT_IDS) {
+    // Anti-loop: jangan pernah hantar balik ke group utama
+    if (targetId === SOURCE_CHAT_ID) continue;
 
     try {
-        await ctx.replyWithPhoto(data.media, {
-            caption: data.caption,
-            ...Markup.inlineKeyboard([[Markup.button.url("CLAIM 🎁", data.url)]])
-        });
+      await bot.telegram.forwardMessage(
+        targetId,
+        replyTo.chat.id,
+        replyTo.message_id,
+        { disable_notification: true }
+      );
     } catch (err) {
-        console.error("Error send photo:", err.message);
-        await ctx.reply(data.caption + `\n\n🔗 ${data.url}`, {
-            ...Markup.inlineKeyboard([[Markup.button.url("CLAIM 🎁", data.url)]])
-        });
+      console.error("Ralat forward ke target", targetId, ":", err.message);
+      try {
+        await bot.telegram.sendMessage(
+          ADMIN_USER_ID,
+          `❌ Ralat forward ke ${targetId}`
+        );
+      } catch {}
     }
-});
+  }
+}
 
-// ================= /forward COMMAND =================
-bot.command("forward", async (ctx) => {
-    if (!ctx.from || ctx.from.id !== ADMIN_USER_ID) return;
-    if (ctx.chat?.id !== SOURCE_CHAT_ID) return;
+// Forward ke semua subscriber dengan batch + delay
+async function broadcastToSubscribers(replyTo) {
+  if (!subscribers.length) return;
 
-    const replyTo = ctx.message?.reply_to_message;
-    if (!replyTo) return;
+  const invalidIds = new Set();
 
-    for (const targetId of TARGET_CHAT_IDS) {
+  console.log(
+    `[BROADCAST] Mula hantar ke ${subscribers.length} subscriber ` +
+    `(batch=${SUB_BATCH_SIZE}, delay=${SUB_DELAY_BETWEEN_BATCH}ms)`
+  );
+
+  for (let i = 0; i < subscribers.length; i += SUB_BATCH_SIZE) {
+    const batch = subscribers.slice(i, i + SUB_BATCH_SIZE);
+
+    await Promise.all(
+      batch.map(async (subId) => {
         try {
-            await bot.telegram.forwardMessage(
-                targetId,
-                replyTo.chat.id,
-                replyTo.message_id,
-                { disable_notification: true }
-            );
+          await bot.telegram.forwardMessage(
+            subId,
+            replyTo.chat.id,
+            replyTo.message_id,
+            { disable_notification: true }
+          );
         } catch (err) {
-            try {
-                await bot.telegram.sendMessage(
-                    ADMIN_USER_ID,
-                    `❌ Error forward ke ${targetId}`
-                );
-            } catch {}
+          console.error(
+            "Ralat forward ke subscriber",
+            subId,
+            ":",
+            err.description || err.message
+          );
+
+          const code = err?.response?.error_code;
+          if (code === 400 || code === 403) {
+            invalidIds.add(subId);
+          }
         }
+      })
+    );
+
+    if (i + SUB_BATCH_SIZE < subscribers.length) {
+      await sleep(SUB_DELAY_BETWEEN_BATCH);
     }
+  }
 
-    for (let i = 0; i < subscribers.length; i++) {
-        const subId = subscribers[i];
-        try {
-            await bot.telegram.forwardMessage(
-                subId,
-                replyTo.chat.id,
-                replyTo.message_id,
-                { disable_notification: true }
-            );
-            await new Promise(r => setTimeout(r, 500 + Math.random() * 300));
-        } catch {
-            subscribers = subscribers.filter(id => id !== subId);
-            saveSubscribers();
-        }
-    }
-
-    try { await ctx.deleteMessage(); } catch {}
-});
-
-// ================= /unsub COMMAND =================
-bot.command("unsub", async (ctx) => {
-    if (!ctx.from) return;
-    subscribers = subscribers.filter(id => id !== ctx.from.id);
+  if (invalidIds.size > 0) {
+    subscribers = subscribers.filter((id) => !invalidIds.has(id));
     saveSubscribers();
-    await ctx.reply("✅ Anda telah berhenti langganan.");
+    console.log(`[BROADCAST] Buang ${invalidIds.size} subscriber tidak sah / block bot`);
+  }
+
+  console.log("[BROADCAST] Selesai hantar ke semua subscriber");
+}
+
+// ================= /forward (untuk admin di group utama) =================
+bot.command("forward", async (ctx) => {
+  if (!ctx.from || ctx.from.id !== ADMIN_USER_ID) return;      // hanya admin
+  if (ctx.chat?.id !== SOURCE_CHAT_ID) return;                 // hanya di group utama
+
+  const replyTo = ctx.message?.reply_to_message;
+  if (!replyTo) {
+    await ctx.reply("❗ Sila guna /forward sebagai *reply* kepada mesej yang ingin dihantar.", {
+      parse_mode: "Markdown"
+    });
+    return;
+  }
+
+  if (isBroadcastRunning) {
+    await ctx.reply("⏳ Siaran sebelum ini masih berjalan, sila tunggu sehingga selesai.");
+    return;
+  }
+
+  isBroadcastRunning = true;
+  const totalSubs = subscribers.length;
+
+  try {
+    await ctx.reply(`🚀 Mula forward ke group/channel sasaran & ${totalSubs} subscriber...`);
+
+    await broadcastToTargets(replyTo);
+    await broadcastToSubscribers(replyTo);
+
+    await ctx.reply("✅ Forward selesai, semua sasaran telah diproses.");
+  } catch (err) {
+    console.error("[BROADCAST] Ralat umum:", err);
+    try {
+      await ctx.reply("❌ Berlaku ralat ketika forward, sila semak log.");
+    } catch {}
+  } finally {
+    isBroadcastRunning = false;
+    try { await ctx.deleteMessage(); } catch {}
+  }
 });
 
-// ================= AUTO DELETE BOT MESSAGE =================
-bot.on("message", async (ctx) => {
-    const botId = bot.botInfo?.id;
-    if (!botId) return;
-    if (ctx.chat?.id === SOURCE_CHAT_ID && ctx.from?.id === botId) {
-        const chatId = ctx.chat.id;
-        const msgId = ctx.message?.message_id;
-        if (chatId && msgId) {
-            setTimeout(() => {
-                bot.telegram.deleteMessage(chatId, msgId).catch(() => {});
-            }, AUTO_DELETE_DELAY);
-        }
+// ================= MODERASI: LINK & KATA TERLARANG DI GROUP UTAMA =================
+async function handleModeration(ctx) {
+  if (!ENABLE_LINK_ANTISPAM) return;
+  if (ctx.chat?.id !== SOURCE_CHAT_ID) return;
+  if (!ctx.from) return;
+
+  const botId = bot.botInfo?.id;
+  if (botId && ctx.from.id === botId) return; // mesej dari bot sendiri
+
+  const msg = ctx.message;
+  if (!msg) return;
+
+  const text = (msg.text || msg.caption || "").toString();
+  const textLower = text.toLowerCase();
+  const entities = msg.entities || msg.caption_entities || [];
+
+  let hasLink = false;
+
+  if (entities && entities.length) {
+    if (entities.some(e => e.type === "url" || e.type === "text_link")) {
+      hasLink = true;
     }
+  }
+  if (!hasLink && /https?:\/\/|www\.|t\.me\//i.test(text)) {
+    hasLink = true;
+  }
+
+  const hasBannedWord = BANNED_WORDS.some(w => w && textLower.includes(w));
+
+  if (!hasLink && !hasBannedWord) return;
+
+  // Semak jika pengirim adalah admin
+  let isAdmin = false;
+  try {
+    const member = await ctx.getChatMember(ctx.from.id);
+    if (member.status === "administrator" || member.status === "creator") {
+      isAdmin = true;
+    }
+  } catch (err) {
+    console.error("Gagal semak status ahli:", err.message);
+  }
+
+  if (isAdmin) return; // admin bebas hantar apa-apa
+
+  // Padam mesej melanggar peraturan
+  try {
+    await ctx.deleteMessage();
+  } catch (err) {
+    console.error("Gagal padam mesej melanggar peraturan:", err.message);
+  }
+
+  // Hantar amaran ringkas (akan auto delete)
+  try {
+    const warn = await ctx.reply(
+      "⚠️ Mesej anda melanggar peraturan group (link luar / kata yang tidak dibenarkan). " +
+      "Hanya admin dibenarkan kongsi link atau promo luar."
+    );
+    setTimeout(() => {
+      bot.telegram.deleteMessage(warn.chat.id, warn.message_id).catch(() => {});
+    }, 5000);
+  } catch {}
+}
+
+// Handler semua mesej
+bot.on("message", async (ctx) => {
+  // 1) Moderasi group utama
+  try {
+    await handleModeration(ctx);
+  } catch (err) {
+    console.error("Ralat di handleModeration:", err.message);
+  }
+
+  // 2) Auto delete mesej bot sendiri di group utama
+  const botId = bot.botInfo?.id;
+  if (!botId) return;
+  if (ctx.chat?.id === SOURCE_CHAT_ID && ctx.from?.id === botId) {
+    const chatId = ctx.chat.id;
+    const msgId = ctx.message?.message_id;
+    if (chatId && msgId) {
+      setTimeout(() => {
+        bot.telegram.deleteMessage(chatId, msgId).catch(() => {});
+      }, AUTO_DELETE_DELAY);
+    }
+  }
 });
 
 // ================= STARTUP =================
 async function main() {
-    // debug token (jangan pernah print full token)
+  console.log(
+    "[STARTUP] PORT=" + PORT +
+    ", BOT_TOKEN=" + (BOT_TOKEN ? "***ada***" : "KOSONG!")
+  );
+
+  const server = app.listen(PORT, "0.0.0.0", () => {
+    console.log("[STARTUP] ✅ Server sedang mendengar pada port " + PORT);
+  });
+
+  server.on("error", (err) => {
+    console.error("[STARTUP] ❌ Ralat Express:", err.message);
+    process.exit(1);
+  });
+
+  // Semak sambungan bot ke Telegram
+  try {
+    const me = await bot.telegram.getMe();
     console.log(
-        "[STARTUP] BOT_TOKEN prefix=",
-        BOT_TOKEN.slice(0, 10),
-        " len=",
-        BOT_TOKEN.length
+      "[STARTUP] ✅ Bot berjaya sambung sebagai @" + me.username + " (id=" + me.id + ")"
     );
-
-    console.log(
-        "[STARTUP] PORT=" + PORT +
-        ", BOT_TOKEN=" + (BOT_TOKEN ? "***ada***" : "KOSONG!")
+  } catch (err) {
+    console.error(
+      "[STARTUP] ❌ Gagal sambung ke Telegram. Kemungkinan besar BOT_TOKEN salah / bot telah dipadam."
     );
+    console.error("[STARTUP] Butiran ralat:", err.message);
+    return;
+  }
 
-    // 1. Express dulu (untuk health check cloud platform)
-    const server = app.listen(PORT, "0.0.0.0", () => {
-        console.log("[STARTUP] ✅ Server listening on port " + PORT);
-    });
+  try {
+    await bot.launch();
+    console.log("[STARTUP] ✅ Bot Telegram sedang berjalan");
+  } catch (err) {
+    console.error("[STARTUP] ❌ Gagal mula bot:", err.message);
+  }
 
-    server.on("error", (err) => {
-        console.error("[STARTUP] ❌ Express error:", err.message);
-        process.exit(1);
-    });
-
-    // 2. Tes koneksi ke Telegram dulu, supaya kalau token salah kelihatan jelas
-    try {
-        const me = await bot.telegram.getMe();
-        console.log(
-            "[STARTUP] ✅ Bot connect sebagai @" +
-            me.username +
-            " (id=" + me.id + ")"
-        );
-    } catch (err) {
-        console.error(
-            "[STARTUP] ❌ Gagal connect ke Telegram. Kemungkinan besar BOT_TOKEN salah / bot sudah dihapus."
-        );
-        console.error("[STARTUP] Detail error:", err.message);
-        // Jangan matikan server supaya platform tetap anggap sehat,
-        // tapi bot memang tidak akan bisa respon sampai BOT_TOKEN dibenarkan.
-        return;
-    }
-
-    // 3. Jalankan bot
-    try {
-        await bot.launch();
-        console.log("[STARTUP] ✅ Bot Telegram berjalan (long polling)");
-    } catch (err) {
-        console.error("[STARTUP] ❌ Gagal start bot:", err.message);
-        console.error("[STARTUP] Cek: BOT_TOKEN valid? Env var sudah di-set di Choreo?");
-    }
-
-    // Graceful shutdown
-    const stop = () => {
-        try { bot.stop("SIGTERM"); } catch {}
-        server.close(() => process.exit(0));
-    };
-    process.once("SIGINT", stop);
-    process.once("SIGTERM", stop);
+  const stop = () => {
+    try { bot.stop("SIGTERM"); } catch {}
+    server.close(() => process.exit(0));
+  };
+  process.once("SIGINT", stop);
+  process.once("SIGTERM", stop);
 }
 
 main().catch((err) => {
-    console.error("[STARTUP] ❌ Fatal:", err);
-    process.exit(1);
+  console.error("[STARTUP] ❌ Ralat fatal:", err);
+  process.exit(1);
 });
