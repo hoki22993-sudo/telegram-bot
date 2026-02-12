@@ -1,4 +1,4 @@
-// bot.js (versi lengkap, bahasa Malaysia)
+// bot.js (versi lengkap, bahasa Malaysia, anti-link semua group)
 import { Telegraf, Markup } from "telegraf";
 import dotenv from "dotenv";
 import fs from "fs";
@@ -43,13 +43,13 @@ const SUB_BATCH_SIZE = 20;            // hantar serentak ke 20 orang per batch
 const SUB_DELAY_BETWEEN_BATCH = 1000; // jeda 1 saat antara batch
 
 // Tetapan anti-spam
-const ENABLE_LINK_ANTISPAM = true; // true = blok link dari bukan admin di group utama
+const ENABLE_LINK_ANTISPAM = true; // true = blok link dari bukan admin di semua group
 
 // Senarai kata/frasa yang di-ban (semua dalam huruf kecil)
 const BANNED_WORDS = [
   // contoh, tukar ikut keperluan anda:
   "promo luar",
-  "babi",
+  "free kredit luar",
   "bonus 100%",
   "kencing",
   "anjing"
@@ -358,10 +358,15 @@ bot.command("forward", async (ctx) => {
   }
 });
 
-// ================= MODERASI: LINK & KATA TERLARANG DI GROUP UTAMA =================
+// ================= MODERASI: LINK & KATA TERLARANG DI SEMUA GROUP =================
 async function handleModeration(ctx) {
   if (!ENABLE_LINK_ANTISPAM) return;
-  if (ctx.chat?.id !== SOURCE_CHAT_ID) return;
+  if (!ctx.chat) return;
+
+  const chatType = ctx.chat.type;
+  // Hanya group & supergroup (bukan channel / private)
+  if (chatType !== "group" && chatType !== "supergroup") return;
+
   if (!ctx.from) return;
 
   const botId = bot.botInfo?.id;
@@ -389,7 +394,7 @@ async function handleModeration(ctx) {
 
   if (!hasLink && !hasBannedWord) return;
 
-  // Semak jika pengirim adalah admin
+  // Semak jika pengirim adalah admin group itu
   let isAdmin = false;
   try {
     const member = await ctx.getChatMember(ctx.from.id);
@@ -423,14 +428,14 @@ async function handleModeration(ctx) {
 
 // Handler semua mesej
 bot.on("message", async (ctx) => {
-  // 1) Moderasi group utama
+  // 1) Moderasi semua group
   try {
     await handleModeration(ctx);
   } catch (err) {
     console.error("Ralat di handleModeration:", err.message);
   }
 
-  // 2) Auto delete mesej bot sendiri di group utama
+  // 2) Auto delete mesej bot sendiri di group utama (optional)
   const botId = bot.botInfo?.id;
   if (!botId) return;
   if (ctx.chat?.id === SOURCE_CHAT_ID && ctx.from?.id === botId) {
