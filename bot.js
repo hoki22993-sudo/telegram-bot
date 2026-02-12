@@ -49,10 +49,10 @@ const ENABLE_LINK_ANTISPAM = true; // true = blok link dari bukan admin di group
 const BANNED_WORDS = [
   // contoh, tukar ikut keperluan anda:
   "promo luar",
-  "free kredit luar",
-  "bonus 200%",
-  "competitor1",
-  "competitor2"
+  "babi",
+  "bonus 100%",
+  "kencing",
+  "anjing"
 ].map(w => w.toLowerCase());
 
 // ===== SEMAK BOT_TOKEN =====
