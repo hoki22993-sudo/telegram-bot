@@ -9,6 +9,7 @@ dotenv.config();
 // ================= CONFIG =================
 const BOT_TOKEN = process.env.BOT_TOKEN || "ISI_TOKEN_DI_SINI";
 const ADMIN_USER_ID = 8146896736; // ID admin
+const PORT = parseInt(process.env.PORT || "10000", 10);
 
 // ===== GROUP & CHANNEL =====
 const SOURCE_CHAT_ID = -1002626291566; // GROUP UTAMA
@@ -56,6 +57,11 @@ function saveSubscribers() {
     fs.writeFileSync(SUBSCRIBERS_FILE, JSON.stringify(subscribers, null, 2));
 }
 
+// ================= EXPRESS (Harus jalan dulu untuk health check) =================
+const app = express();
+app.get("/", (_, res) => res.send("🤖 Bot sedang berjalan"));
+app.get("/health", (_, res) => res.json({ status: "ok", bot: "running" }));
+
 // ================= START / MENU =================
 async function sendStart(ctx) {
     const user = ctx.from || {};
@@ -102,7 +108,7 @@ async function sendStart(ctx) {
 bot.start(sendStart);
 bot.command(["menu", "help", "about", "profile", "contact"], sendStart);
 
-// ================= MENU DATA PRIVATE =================
+// ================= MENU DATA PRIVATE (key HARUS sama dengan keyboard) =================
 const menuData = {
     "🌟 NEW REGISTER FREE 🌟": {
         url: "https://afb88my1.com/promotion",
@@ -110,10 +116,10 @@ const menuData = {
         caption: `🌟 NEW REGISTER BONUS 🌟
 ⚠️ LANGGAR SYARAT AKAN FORFEITED SEMUA POINT ⚠️
 ✅ Keperluan SLOT ONLY
-✅ Free Credit RM88
-✅ Min WD/CUCI RM2000
-✅ Max Payment/WD RM40
-✅ BELOW CREDIT RM 0.10
+✅ Free Credit R188
+✅ Min WD/CUCI RM 6600
+✅ Max Payment/WD RM20
+✅ Dibenarkan Main AFB GAMING ( EVENT GAME ONLY)
 ✅ Dibenarkan Main MEGAH5|EPICWIN|PXPLAY2|ACEWIN2|RICH GAMING (EVENT GAME ONLY)
 ✅ DOWNLOAD APPS UNTUK CLAIM
 CLICK LINK: https://afb88.hfcapital.top/
@@ -161,23 +167,30 @@ CLICK LINK: https://afb88.hfcapital.top/
 };
 
 bot.hears(Object.keys(menuData), async (ctx) => {
-    if (ctx.chat.type !== "private") return;
+    if (ctx.chat?.type !== "private") return;
 
-    const data = menuData[ctx.message.text];
+    const data = menuData[ctx.message?.text];
     if (!data) return;
 
-    await ctx.replyWithPhoto(data.media, {
-        caption: data.caption,
-        ...Markup.inlineKeyboard([[Markup.button.url("CLAIM 🎁", data.url)]])
-    });
+    try {
+        await ctx.replyWithPhoto(data.media, {
+            caption: data.caption,
+            ...Markup.inlineKeyboard([[Markup.button.url("CLAIM 🎁", data.url)]])
+        });
+    } catch (err) {
+        console.error("Error send photo:", err.message);
+        await ctx.reply(data.caption + `\n\n🔗 ${data.url}`, {
+            ...Markup.inlineKeyboard([[Markup.button.url("CLAIM 🎁", data.url)]])
+        });
+    }
 });
 
 // ================= /forward COMMAND =================
 bot.command("forward", async (ctx) => {
-    if (ctx.from.id !== ADMIN_USER_ID) return;
-    if (ctx.chat.id !== SOURCE_CHAT_ID) return;
+    if (!ctx.from || ctx.from.id !== ADMIN_USER_ID) return;
+    if (ctx.chat?.id !== SOURCE_CHAT_ID) return;
 
-    const replyTo = ctx.message.reply_to_message;
+    const replyTo = ctx.message?.reply_to_message;
     if (!replyTo) return;
 
     for (const targetId of TARGET_CHAT_IDS) {
@@ -219,6 +232,7 @@ bot.command("forward", async (ctx) => {
 
 // ================= /unsub COMMAND =================
 bot.command("unsub", async (ctx) => {
+    if (!ctx.from) return;
     subscribers = subscribers.filter(id => id !== ctx.from.id);
     saveSubscribers();
     await ctx.reply("✅ Anda telah berhenti langganan.");
@@ -226,20 +240,43 @@ bot.command("unsub", async (ctx) => {
 
 // ================= AUTO DELETE BOT MESSAGE =================
 bot.on("message", async (ctx) => {
-    if (ctx.chat.id === SOURCE_CHAT_ID && ctx.from?.id === bot.botInfo.id) {
-        setTimeout(async () => {
-            try { await ctx.deleteMessage(); } catch {}
-        }, AUTO_DELETE_DELAY);
+    const botId = bot.botInfo?.id;
+    if (!botId) return;
+    if (ctx.chat?.id === SOURCE_CHAT_ID && ctx.from?.id === botId) {
+        const chatId = ctx.chat.id;
+        const msgId = ctx.message?.message_id;
+        if (chatId && msgId) {
+            setTimeout(() => {
+                bot.telegram.deleteMessage(chatId, msgId).catch(() => {});
+            }, AUTO_DELETE_DELAY);
+        }
     }
 });
 
-// ================= START BOT =================
-bot.launch();
-process.once("SIGINT", () => bot.stop("SIGINT"));
-process.once("SIGTERM", () => bot.stop("SIGTERM"));
+// ================= STARTUP =================
+async function main() {
+    // 1. Express dulu (untuk health check cloud platform)
+    const server = app.listen(PORT, "0.0.0.0", () => {
+        console.log(`✅ Server listening on port ${PORT}`);
+    });
 
-// ================= KEEP ALIVE =================
-const app = express();
-app.get("/", (_, res) => res.send("🤖 Bot sedang berjalan"));
-app.listen(process.env.PORT || 10000);
+    // 2. Jalankan bot
+    try {
+        await bot.launch();
+        console.log("✅ Bot Telegram berjalan");
+    } catch (err) {
+        console.error("❌ Gagal start bot:", err.message);
+        server.close();
+        process.exit(1);
+    }
 
+    // Graceful shutdown
+    const stop = () => {
+        bot.stop("SIGTERM");
+        server.close(() => process.exit(0));
+    };
+    process.once("SIGINT", stop);
+    process.once("SIGTERM", stop);
+}
+
+main();
