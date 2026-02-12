@@ -9,7 +9,7 @@ dotenv.config();
 // ================= CONFIG =================
 const BOT_TOKEN = process.env.BOT_TOKEN || "ISI_TOKEN_DI_SINI";
 const ADMIN_USER_ID = 8146896736; // ID admin
-const PORT = parseInt(process.env.PORT || "10000", 10);
+const PORT = parseInt(process.env.PORT || "8080", 10);
 
 // ===== GROUP & CHANNEL =====
 const SOURCE_CHAT_ID = -1002626291566; // GROUP UTAMA
@@ -255,28 +255,37 @@ bot.on("message", async (ctx) => {
 
 // ================= STARTUP =================
 async function main() {
+    console.log("[STARTUP] PORT=" + PORT + ", BOT_TOKEN=" + (BOT_TOKEN ? "***ada***" : "KOSONG!"));
+
     // 1. Express dulu (untuk health check cloud platform)
     const server = app.listen(PORT, "0.0.0.0", () => {
-        console.log(`✅ Server listening on port ${PORT}`);
+        console.log("[STARTUP] ✅ Server listening on port " + PORT);
     });
 
-    // 2. Jalankan bot
+    server.on("error", (err) => {
+        console.error("[STARTUP] ❌ Express error:", err.message);
+        process.exit(1);
+    });
+
+    // 2. Jalankan bot (jangan exit jika gagal - biar container tetap jalan)
     try {
         await bot.launch();
-        console.log("✅ Bot Telegram berjalan");
+        console.log("[STARTUP] ✅ Bot Telegram berjalan");
     } catch (err) {
-        console.error("❌ Gagal start bot:", err.message);
-        server.close();
-        process.exit(1);
+        console.error("[STARTUP] ❌ Gagal start bot:", err.message);
+        console.error("[STARTUP] Cek: BOT_TOKEN valid? Env var sudah di-set di Choreo?");
     }
 
     // Graceful shutdown
     const stop = () => {
-        bot.stop("SIGTERM");
+        try { bot.stop("SIGTERM"); } catch {}
         server.close(() => process.exit(0));
     };
     process.once("SIGINT", stop);
     process.once("SIGTERM", stop);
 }
 
-main();
+main().catch((err) => {
+    console.error("[STARTUP] ❌ Fatal:", err);
+    process.exit(1);
+});
