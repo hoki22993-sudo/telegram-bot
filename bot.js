@@ -38,7 +38,20 @@ const TARGET_CHAT_IDS = [
 
 const AUTO_DELETE_DELAY = 5000; // ms
 
+if (!BOT_TOKEN || BOT_TOKEN === "ISI_TOKEN_DI_SINI") {
+    console.error(
+        "[STARTUP] ❌ BOT_TOKEN kosong / masih 'ISI_TOKEN_DI_SINI'. " +
+        "Isi dulu env BOT_TOKEN (di .env atau di Choreo)."
+    );
+    process.exit(1);
+}
+
 const bot = new Telegraf(BOT_TOKEN);
+
+// Log error global supaya ketahuan kalau ada masalah
+bot.catch((err, ctx) => {
+    console.error("[TELEGRAF] Error di update", ctx.update, err);
+});
 
 // ================= SUBSCRIBERS STORAGE =================
 const SUBSCRIBERS_FILE = "subscribers.json";
@@ -255,7 +268,18 @@ bot.on("message", async (ctx) => {
 
 // ================= STARTUP =================
 async function main() {
-    console.log("[STARTUP] PORT=" + PORT + ", BOT_TOKEN=" + (BOT_TOKEN ? "***ada***" : "KOSONG!"));
+    // debug token (jangan pernah print full token)
+    console.log(
+        "[STARTUP] BOT_TOKEN prefix=",
+        BOT_TOKEN.slice(0, 10),
+        " len=",
+        BOT_TOKEN.length
+    );
+
+    console.log(
+        "[STARTUP] PORT=" + PORT +
+        ", BOT_TOKEN=" + (BOT_TOKEN ? "***ada***" : "KOSONG!")
+    );
 
     // 1. Express dulu (untuk health check cloud platform)
     const server = app.listen(PORT, "0.0.0.0", () => {
@@ -267,10 +291,28 @@ async function main() {
         process.exit(1);
     });
 
-    // 2. Jalankan bot (jangan exit jika gagal - biar container tetap jalan)
+    // 2. Tes koneksi ke Telegram dulu, supaya kalau token salah kelihatan jelas
+    try {
+        const me = await bot.telegram.getMe();
+        console.log(
+            "[STARTUP] ✅ Bot connect sebagai @" +
+            me.username +
+            " (id=" + me.id + ")"
+        );
+    } catch (err) {
+        console.error(
+            "[STARTUP] ❌ Gagal connect ke Telegram. Kemungkinan besar BOT_TOKEN salah / bot sudah dihapus."
+        );
+        console.error("[STARTUP] Detail error:", err.message);
+        // Jangan matikan server supaya platform tetap anggap sehat,
+        // tapi bot memang tidak akan bisa respon sampai BOT_TOKEN dibenarkan.
+        return;
+    }
+
+    // 3. Jalankan bot
     try {
         await bot.launch();
-        console.log("[STARTUP] ✅ Bot Telegram berjalan");
+        console.log("[STARTUP] ✅ Bot Telegram berjalan (long polling)");
     } catch (err) {
         console.error("[STARTUP] ❌ Gagal start bot:", err.message);
         console.error("[STARTUP] Cek: BOT_TOKEN valid? Env var sudah di-set di Choreo?");
