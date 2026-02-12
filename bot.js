@@ -1,4 +1,4 @@
-// bot.js
+// ================= IMPORT =================
 import { Telegraf, Markup } from "telegraf";
 import dotenv from "dotenv";
 import fs from "fs";
@@ -7,14 +7,17 @@ import express from "express";
 dotenv.config();
 
 // ================= CONFIG =================
-const BOT_TOKEN = process.env.BOT_TOKEN || "ISI_TOKEN_DI_SINI";
-const ADMIN_USER_ID = 8146896736; // ID admin
+const BOT_TOKEN = process.env.BOT_TOKEN;
 
-// ===== GROUP & CHANNEL =====
-const SOURCE_CHAT_ID = -1002626291566; // GROUP UTAMA
+if (!BOT_TOKEN) {
+    console.error("❌ BOT_TOKEN tidak dijumpai dalam ENV!");
+    process.exit(1);
+}
+
+const ADMIN_USER_ID = 8146896736;
+const SOURCE_CHAT_ID = -1002626291566;
 
 const TARGET_CHAT_IDS = [
-    // ===== GROUP =====
     -1003443785953,
     -1003355430208,
     -1003303586267,
@@ -26,8 +29,6 @@ const TARGET_CHAT_IDS = [
     -1002199080095,
     -1001925377693,
     -1002153443910,
-
-    // ===== CHANNEL =====
     -1003175423118,
     -1003418215358,
     -1003410432304,
@@ -35,12 +36,12 @@ const TARGET_CHAT_IDS = [
     -1003379058057
 ];
 
-const AUTO_DELETE_DELAY = 5000; // ms
+const AUTO_DELETE_DELAY = 5000;
 
 const bot = new Telegraf(BOT_TOKEN);
 
 // ================= SUBSCRIBERS STORAGE =================
-const SUBSCRIBERS_FILE = "subscribers.json";
+const SUBSCRIBERS_FILE = "./subscribers.json";
 let subscribers = [];
 
 try {
@@ -48,20 +49,24 @@ try {
         subscribers = JSON.parse(fs.readFileSync(SUBSCRIBERS_FILE, "utf8") || "[]");
         if (!Array.isArray(subscribers)) subscribers = [];
     }
-} catch {
+} catch (err) {
+    console.error("❌ Error baca subscribers:", err);
     subscribers = [];
 }
 
 function saveSubscribers() {
-    fs.writeFileSync(SUBSCRIBERS_FILE, JSON.stringify(subscribers, null, 2));
+    try {
+        fs.writeFileSync(SUBSCRIBERS_FILE, JSON.stringify(subscribers, null, 2));
+    } catch (err) {
+        console.error("❌ Error save subscribers:", err);
+    }
 }
 
-// ================= START / MENU =================
+// ================= START FUNCTION =================
 async function sendStart(ctx) {
     const user = ctx.from || {};
     const username = user.username ? `@${user.username}` : user.first_name || "Bossku";
 
-    // Tambah subscriber
     if (user.id && !subscribers.includes(user.id)) {
         subscribers.push(user.id);
         saveSubscribers();
@@ -102,130 +107,10 @@ async function sendStart(ctx) {
 bot.start(sendStart);
 bot.command(["menu", "help", "about", "profile", "contact"], sendStart);
 
-// ================= MENU DATA PRIVATE =================
-const menuData = {
-    "🌟 NEW REGISTER FREE 🌟": {
-        url: "https://afb88my1.com/promotion",
-        media: "https://ibb.co/BK2LVQ6t",
-        caption: `🌟 NEW REGISTER BONUS 🌟
-⚠️ LANGGAR SYARAT AKAN FORFEITED SEMUA POINT ⚠️
-✅ Keperluan SLOT ONLY
-✅ Free Credit RM88
-✅ Min WD/CUCI RM2000
-✅ Max Payment/WD RM40
-✅ BELOW CREDIT RM 0.10
-✅ Dibenarkan Main MEGAH5|EPICWIN|PXPLAY2|ACEWIN2|RICH GAMING (EVENT GAME ONLY)
-✅ DOWNLOAD APPS UNTUK CLAIM
-CLICK LINK: https://afb88.hfcapital.top/
-⚠️ 1 NAMA 1 ID SAHAJA
-⚠️ NAMA DAFTAR MESTI SAMA DENGAN NAMA AKAUN BANK
-➤ CLICK /start TO BACK MENU`
-    },
-    "📘 SHARE FACEBOOK 📘": {
-        url: "https://afb88my1.com/promotion",
-        media: "https://ibb.co/Z6B55VcX",
-        caption: `📘 SHARE FACEBOOK 📘
-🧧 FREE CREDIT RM68 🧧
-✅ Join Telegram Channel
-✅ Join Facebook Group
-➡️ Share ke 5 Casino Group
-➡️ Daily Claim X1
-➤ CLICK /start TO BACK MENU`
-    },
-    "🔥 DAILY APPS FREE 🔥": {
-        url: "https://afb88my1.com/promotion",
-        media: "https://ibb.co/nsmVQFbg",
-        caption: `🔥 DAILY APPS FREE 🔥
-🎁 Free Credit RM20
-📌 Daily Claim X1
-💰 Min WD RM600
-➤ CLICK /start TO BACK MENU`
-    },
-    "🌞 SOCIAL MEDIA 🌞": {
-        url: "https://afb88my1.com/promotion",
-        media: "https://ibb.co/HfyD6DWw",
-        caption: `🌞 SOCIAL MEDIA 🌞
-📘 Facebook
-📸 Instagram
-🎥 WhatsApp Group
-➤ CLICK /start TO BACK MENU`
-    },
-    "🎉 TELEGRAM BONUS 🎉": {
-        url: "https://afb88my1.com/promotion",
-        media: "https://ibb.co/21qTqmtY",
-        caption: `🎉 TELEGRAM BONUS 🎉
-🎁 Free Credit RM30
-✅ Claim X1
-➤ CLICK /start TO BACK MENU`
-    }
-};
-
-bot.hears(Object.keys(menuData), async (ctx) => {
-    if (ctx.chat.type !== "private") return;
-
-    const data = menuData[ctx.message.text];
-    if (!data) return;
-
-    await ctx.replyWithPhoto(data.media, {
-        caption: data.caption,
-        ...Markup.inlineKeyboard([[Markup.button.url("CLAIM 🎁", data.url)]])
-    });
-});
-
-// ================= /forward COMMAND =================
-bot.command("forward", async (ctx) => {
-    if (ctx.from.id !== ADMIN_USER_ID) return;
-    if (ctx.chat.id !== SOURCE_CHAT_ID) return;
-
-    const replyTo = ctx.message.reply_to_message;
-    if (!replyTo) return;
-
-    for (const targetId of TARGET_CHAT_IDS) {
-        try {
-            await bot.telegram.forwardMessage(
-                targetId,
-                replyTo.chat.id,
-                replyTo.message_id,
-                { disable_notification: true }
-            );
-        } catch (err) {
-            try {
-                await bot.telegram.sendMessage(
-                    ADMIN_USER_ID,
-                    `❌ Error forward ke ${targetId}`
-                );
-            } catch {}
-        }
-    }
-
-    for (let i = 0; i < subscribers.length; i++) {
-        const subId = subscribers[i];
-        try {
-            await bot.telegram.forwardMessage(
-                subId,
-                replyTo.chat.id,
-                replyTo.message_id,
-                { disable_notification: true }
-            );
-            await new Promise(r => setTimeout(r, 500 + Math.random() * 300));
-        } catch {
-            subscribers = subscribers.filter(id => id !== subId);
-            saveSubscribers();
-        }
-    }
-
-    try { await ctx.deleteMessage(); } catch {}
-});
-
-// ================= /unsub COMMAND =================
-bot.command("unsub", async (ctx) => {
-    subscribers = subscribers.filter(id => id !== ctx.from.id);
-    saveSubscribers();
-    await ctx.reply("✅ Anda telah berhenti langganan.");
-});
-
-// ================= AUTO DELETE BOT MESSAGE =================
+// ================= SAFE AUTO DELETE =================
 bot.on("message", async (ctx) => {
+    if (!bot.botInfo) return;
+
     if (ctx.chat.id === SOURCE_CHAT_ID && ctx.from?.id === bot.botInfo.id) {
         setTimeout(async () => {
             try { await ctx.deleteMessage(); } catch {}
@@ -234,12 +119,24 @@ bot.on("message", async (ctx) => {
 });
 
 // ================= START BOT =================
-bot.launch();
-process.once("SIGINT", () => bot.stop("SIGINT"));
-process.once("SIGTERM", () => bot.stop("SIGTERM"));
+(async () => {
+    try {
+        await bot.launch();
+        console.log("✅ Bot berjaya start!");
+    } catch (err) {
+        console.error("❌ Bot gagal start:", err);
+        process.exit(1);
+    }
+})();
 
-// ================= KEEP ALIVE =================
+// ================= EXPRESS KEEP ALIVE =================
 const app = express();
 app.get("/", (_, res) => res.send("🤖 Bot sedang berjalan"));
-app.listen(process.env.PORT || 10000);
 
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+    console.log(`🌍 Server running on port ${PORT}`);
+});
+
+process.once("SIGINT", () => bot.stop("SIGINT"));
+process.once("SIGTERM", () => bot.stop("SIGTERM"));
