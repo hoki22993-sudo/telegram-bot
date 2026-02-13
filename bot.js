@@ -235,24 +235,25 @@ bot.command(["menu", "help", "about", "profile", "contact"], sendStart);
 
 // ================= DATA MENU PRIVATE =================
 const menuData = {
-  "🌟 NEW REGISTER FREE 🌟": {
+  "🌟 STEP CUCI FREE TEKAN SINI 🌟": {
     url: "https://afb88my1.com/promotion",
     media: "https://ibb.co/BK2LVQ6t",
     caption: `🌟 NEW REGISTER BONUS AFB88 🌟
-⚠️ Langgar syarat, semua point akan FORFEIT ⚠️
-✅ Keperluan SLOT SAHAJA
-✅ Free Credit R188
-✅ Min WD/Cuci RM 6600
-✅ Max Payment/WD RM20
-✅ Dibenarkan main AFB GAMING (EVENT GAME SAHAJA)
-✅ Dibenarkan main MEGAH5 | EPICWIN | PXPLAY2 | ACEWIN2 | RICH GAMING (EVENT GAME SAHAJA)
-✅ Sila download apps untuk claim
-📎 LINK: https://afb88.hfcapital.top/
-
-⚠️ 1 nama 1 ID sahaja
-⚠️ Nama daftar mesti sama dengan nama akaun bank
+Hallo bossku, Ini langkah- langkah step Untuk "CUCI BONUS" Sila baca dengan teliti ya 😊🙏
+✅ 1️⃣. ➡️ Join our Telegram channel ⬇️
+https://t.me/+NQBQYnGkNUU5YmNl
+✅ 2️⃣.  ➡️Join our Facebook group ⬇️
+ https://www.facebook.com/profile.php?id=61579884569151
+✅ 3️⃣. ➡️Share post ke 5 Casino Group ⬇️
+https://web.facebook.com/share/p/17r4JJ5JJV/
+✅ 3️⃣. ➡️Share post ke 5 Casino Group ⬇️
+https://web.facebook.com/share/p/17r4JJ5JJV/
+✅ 4️⃣. ➡️Join Facebook group Group ⬇️
+https://web.facebook.com/groups/772875495480578
+✅ Lepastu send kat livechat atau telegram 1 by 1 ya boss thankyou 🤗
 
 ➤ Tekan /start untuk kembali ke menu`
+
   },
   "📘 SHARE FACEBOOK 📘": {
     url: "https://afb88my1.com/promotion",
