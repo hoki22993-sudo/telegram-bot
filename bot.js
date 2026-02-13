@@ -210,7 +210,7 @@ async function sendStart(ctx) {
   ]);
 
   const replyKeyboard = Markup.keyboard([
-    ["🌟 NEW REGISTER FREE 🌟"],
+    ["🌟 STEP CUCI FREE TEKAN SINI 🌟"],
     ["📘 SHARE FACEBOOK 📘"],
     ["🔥 DAILY APPS FREE 🔥", "🌞 SOCIAL MEDIA 🌞"],
     ["🎉 TELEGRAM BONUS 🎉"]
@@ -251,7 +251,6 @@ https://web.facebook.com/share/p/17r4JJ5JJV/
 ✅ 4️⃣. ➡️Join Facebook group Group ⬇️
 https://web.facebook.com/groups/772875495480578
 ✅ Lepastu send kat livechat atau telegram 1 by 1 ya boss thankyou 🤗
-
 ➤ Tekan /start untuk kembali ke menu`
 
   },
