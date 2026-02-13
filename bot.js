@@ -1,7 +1,7 @@
-// bot.js (versi lengkap, bahasa Malaysia, anti-link semua group + debug moderasi)
+// bot.js (versi lengkap, anti-link + MongoDB subscriber)
 import { Telegraf, Markup } from "telegraf";
 import dotenv from "dotenv";
-import fs from "fs";
+import { MongoClient } from "mongodb";
 import express from "express";
 
 dotenv.config();
@@ -10,6 +10,8 @@ dotenv.config();
 const BOT_TOKEN = process.env.BOT_TOKEN || "ISI_TOKEN_DI_SINI";
 const ADMIN_USER_ID = 8146896736; // ID admin (akaun telegram anda)
 const PORT = parseInt(process.env.PORT || "8080", 10);
+// Wajib isi di .env: MONGODB_URI=mongodb+srv://botuser:PASSWORD@cluster0.uxxklgz.mongodb.net/botdb?retryWrites=true&w=majority
+const MONGODB_URI = (process.env.MONGODB_URI || "").trim();
 
 // ===== ID GROUP & CHANNEL =====
 const SOURCE_CHAT_ID = -1002626291566; // GROUP UTAMA (tempat anda guna /forward)
@@ -52,13 +54,13 @@ const BANNED_WORDS = [
   "bonus 100%",
   "kencing",
   "anjing"
-].map(w => w.toLowerCase());
+].map((w) => w.toLowerCase());
 
 // ===== SEMAK BOT_TOKEN =====
 if (!BOT_TOKEN || BOT_TOKEN === "ISI_TOKEN_DI_SINI") {
   console.error(
     "[STARTUP] ❌ BOT_TOKEN kosong / masih 'ISI_TOKEN_DI_SINI'. " +
-    "Sila isi env BOT_TOKEN dahulu."
+      "Sila isi env BOT_TOKEN dahulu."
   );
   process.exit(1);
 }
@@ -70,21 +72,102 @@ bot.catch((err, ctx) => {
   console.error("[TELEGRAF] Ralat pada update:", err.message, "update:", ctx.update);
 });
 
-// ================= SIMPANAN SUBSCRIBER (FAIL JSON) =================
-const SUBSCRIBERS_FILE = "subscribers.json";
-let subscribers = [];
+// ================= MONGODB – SUBSCRIBER PERSISTENT =================
+let mongoClient = null;
+let subscribersCollection = null;
+const DB_NAME = "botdb";
+const SUBSCRIBERS_COLLECTION = "subscribers";
 
-try {
-  if (fs.existsSync(SUBSCRIBERS_FILE)) {
-    subscribers = JSON.parse(fs.readFileSync(SUBSCRIBERS_FILE, "utf8") || "[]");
-    if (!Array.isArray(subscribers)) subscribers = [];
+async function connectMongo() {
+  if (!MONGODB_URI) {
+    console.error(
+      "[MONGODB] ❌ MONGODB_URI kosong. Sila isi dalam .env:\n" +
+        "MONGODB_URI=mongodb+srv://botuser:PASSWORD@cluster0.uxxklgz.mongodb.net/botdb?retryWrites=true&w=majority"
+    );
+    return false;
   }
-} catch {
-  subscribers = [];
+  const maxRetries = 3;
+  const retryDelayMs = 2000;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log("[MONGODB] Sambung... percubaan", attempt, "/", maxRetries);
+      mongoClient = new MongoClient(MONGODB_URI);
+      await mongoClient.connect();
+      const db = mongoClient.db(DB_NAME);
+      subscribersCollection = db.collection(SUBSCRIBERS_COLLECTION);
+      await subscribersCollection.createIndex({ userId: 1 }, { unique: true });
+      console.log("[MONGODB] ✅ Konek langsung ke MongoDB — koleksi:", SUBSCRIBERS_COLLECTION);
+      return true;
+    } catch (err) {
+      console.error("[MONGODB] Percubaan", attempt, "gagal:", err.message);
+      if (mongoClient) {
+        try {
+          await mongoClient.close();
+        } catch {}
+        mongoClient = null;
+        subscribersCollection = null;
+      }
+      if (attempt < maxRetries) {
+        console.log("[MONGODB] Cuba lagi dalam", retryDelayMs / 1000, "saat...");
+        await new Promise((r) => setTimeout(r, retryDelayMs));
+      } else {
+        console.error(
+          "[MONGODB] ❌ Gagal selepas",
+          maxRetries,
+          "percubaan. Sila semak MONGODB_URI dan Network Access di Atlas."
+        );
+        return false;
+      }
+    }
+  }
+  return false;
 }
 
-function saveSubscribers() {
-  fs.writeFileSync(SUBSCRIBERS_FILE, JSON.stringify(subscribers, null, 2));
+async function addSubscriber(userId) {
+  if (!subscribersCollection) return false;
+  try {
+    await subscribersCollection.updateOne(
+      { userId },
+      { $set: { userId, updatedAt: new Date() } },
+      { upsert: true }
+    );
+    return true;
+  } catch (err) {
+    console.error("[MONGODB] addSubscriber ralat:", err.message);
+    return false;
+  }
+}
+
+async function removeSubscriber(userId) {
+  if (!subscribersCollection) return false;
+  try {
+    await subscribersCollection.deleteOne({ userId });
+    return true;
+  } catch (err) {
+    console.error("[MONGODB] removeSubscriber ralat:", err.message);
+    return false;
+  }
+}
+
+async function getAllSubscribers() {
+  if (!subscribersCollection) return [];
+  try {
+    const cursor = subscribersCollection.find({}, { projection: { userId: 1, _id: 0 } });
+    const list = await cursor.toArray();
+    return list.map((doc) => doc.userId);
+  } catch (err) {
+    console.error("[MONGODB] getAllSubscribers ralat:", err.message);
+    return [];
+  }
+}
+
+async function removeSubscribersByIds(userIds) {
+  if (!subscribersCollection || !userIds.length) return;
+  try {
+    await subscribersCollection.deleteMany({ userId: { $in: [...userIds] } });
+  } catch (err) {
+    console.error("[MONGODB] removeSubscribersByIds ralat:", err.message);
+  }
 }
 
 // Helper
@@ -93,24 +176,30 @@ const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 // ================= EXPRESS (HEALTH CHECK) =================
 const app = express();
 app.get("/", (_, res) => res.send("🤖 Bot sedang berjalan"));
-app.get("/health", (_, res) => res.json({ status: "ok", bot: "running" }));
+app.get("/health", (_, res) =>
+  res.json({
+    status: "ok",
+    bot: "running",
+    mongodb: subscribersCollection ? "connected" : "disconnected"
+  })
+);
 
 // ================= /start & MENU UTAMA =================
 async function sendStart(ctx) {
   const user = ctx.from || {};
   const username = user.username ? `@${user.username}` : user.first_name || "Bossku";
 
-  // Daftar subscriber
-  if (user.id && !subscribers.includes(user.id)) {
-    subscribers.push(user.id);
-    saveSubscribers();
-
-    try {
-      await bot.telegram.sendMessage(
-        ADMIN_USER_ID,
-        `📌 Subscriber baru: ${username} (${user.id})`
-      );
-    } catch {}
+  // Daftar subscriber (simpan ke MongoDB)
+  if (user.id) {
+    const added = await addSubscriber(user.id);
+    if (added) {
+      try {
+        await bot.telegram.sendMessage(
+          ADMIN_USER_ID,
+          `📌 Subscriber baru: ${username} (${user.id})`
+        );
+      } catch {}
+    }
   }
 
   const inlineButtons = Markup.inlineKeyboard([
@@ -232,8 +321,7 @@ bot.hears(Object.keys(menuData), async (ctx) => {
 // ================= /unsub (berhenti langganan) =================
 bot.command("unsub", async (ctx) => {
   if (!ctx.from) return;
-  subscribers = subscribers.filter(id => id !== ctx.from.id);
-  saveSubscribers();
+  await removeSubscriber(ctx.from.id);
   await ctx.reply("✅ Anda telah berhenti langganan siaran dari bot ini.");
 });
 
@@ -243,7 +331,6 @@ let isBroadcastRunning = false;
 // Forward ke group & channel target (bukan group utama)
 async function broadcastToTargets(replyTo) {
   for (const targetId of TARGET_CHAT_IDS) {
-    // Anti-loop: jangan pernah hantar balik ke group utama
     if (targetId === SOURCE_CHAT_ID) continue;
 
     try {
@@ -256,24 +343,22 @@ async function broadcastToTargets(replyTo) {
     } catch (err) {
       console.error("Ralat forward ke target", targetId, ":", err.message);
       try {
-        await bot.telegram.sendMessage(
-          ADMIN_USER_ID,
-          `❌ Ralat forward ke ${targetId}`
-        );
+        await bot.telegram.sendMessage(ADMIN_USER_ID, `❌ Ralat forward ke ${targetId}`);
       } catch {}
     }
   }
 }
 
-// Forward ke semua subscriber dengan batch + delay
+// Forward ke semua subscriber (baca dari MongoDB)
 async function broadcastToSubscribers(replyTo) {
+  const subscribers = await getAllSubscribers();
   if (!subscribers.length) return;
 
   const invalidIds = new Set();
 
   console.log(
     `[BROADCAST] Mula hantar ke ${subscribers.length} subscriber ` +
-    `(batch=${SUB_BATCH_SIZE}, delay=${SUB_DELAY_BETWEEN_BATCH}ms)`
+      `(batch=${SUB_BATCH_SIZE}, delay=${SUB_DELAY_BETWEEN_BATCH}ms)`
   );
 
   for (let i = 0; i < subscribers.length; i += SUB_BATCH_SIZE) {
@@ -310,8 +395,7 @@ async function broadcastToSubscribers(replyTo) {
   }
 
   if (invalidIds.size > 0) {
-    subscribers = subscribers.filter((id) => !invalidIds.has(id));
-    saveSubscribers();
+    await removeSubscribersByIds([...invalidIds]);
     console.log(`[BROADCAST] Buang ${invalidIds.size} subscriber tidak sah / block bot`);
   }
 
@@ -320,14 +404,15 @@ async function broadcastToSubscribers(replyTo) {
 
 // ================= /forward (untuk admin di group utama) =================
 bot.command("forward", async (ctx) => {
-  if (!ctx.from || ctx.from.id !== ADMIN_USER_ID) return;      // hanya admin
-  if (ctx.chat?.id !== SOURCE_CHAT_ID) return;                 // hanya di group utama
+  if (!ctx.from || ctx.from.id !== ADMIN_USER_ID) return;
+  if (ctx.chat?.id !== SOURCE_CHAT_ID) return;
 
   const replyTo = ctx.message?.reply_to_message;
   if (!replyTo) {
-    await ctx.reply("❗ Sila guna /forward sebagai *reply* kepada mesej yang ingin dihantar.", {
-      parse_mode: "Markdown"
-    });
+    await ctx.reply(
+      "❗ Sila guna /forward sebagai *reply* kepada mesej yang ingin dihantar.",
+      { parse_mode: "Markdown" }
+    );
     return;
   }
 
@@ -337,7 +422,7 @@ bot.command("forward", async (ctx) => {
   }
 
   isBroadcastRunning = true;
-  const totalSubs = subscribers.length;
+  const totalSubs = (await getAllSubscribers()).length;
 
   try {
     await ctx.reply(`🚀 Mula forward ke group/channel sasaran & ${totalSubs} subscriber...`);
@@ -353,17 +438,18 @@ bot.command("forward", async (ctx) => {
     } catch {}
   } finally {
     isBroadcastRunning = false;
-    try { await ctx.deleteMessage(); } catch {}
+    try {
+      await ctx.deleteMessage();
+    } catch {}
   }
 });
 
-// ================= MODERASI: LINK & KATA TERLARANG DI SEMUA GROUP (DENGAN DEBUG) =================
+// ================= MODERASI: LINK & KATA TERLARANG DI SEMUA GROUP =================
 async function handleModeration(ctx) {
   if (!ENABLE_LINK_ANTISPAM) return;
   if (!ctx.chat) return;
 
   const chatType = ctx.chat.type;
-  // Hanya group & supergroup (bukan channel / private)
   if (chatType !== "group" && chatType !== "supergroup") return;
 
   if (!ctx.from) return;
@@ -375,15 +461,21 @@ async function handleModeration(ctx) {
   const textLower = text.toLowerCase();
   const entities = msg.entities || msg.caption_entities || [];
 
-  console.log("[MOD] Dapat pesan di chat", ctx.chat.id,
-    "dari", ctx.from.id,
-    "type", chatType,
-    "text:", text);
+  console.log(
+    "[MOD] Dapat pesan di chat",
+    ctx.chat.id,
+    "dari",
+    ctx.from.id,
+    "type",
+    chatType,
+    "text:",
+    text
+  );
 
   let hasLink = false;
 
   if (entities && entities.length) {
-    if (entities.some(e => e.type === "url" || e.type === "text_link")) {
+    if (entities.some((e) => e.type === "url" || e.type === "text_link")) {
       hasLink = true;
     }
   }
@@ -391,13 +483,12 @@ async function handleModeration(ctx) {
     hasLink = true;
   }
 
-  const hasBannedWord = BANNED_WORDS.some(w => w && textLower.includes(w));
+  const hasBannedWord = BANNED_WORDS.some((w) => w && textLower.includes(w));
 
   console.log("[MOD] hasLink =", hasLink, "hasBannedWord =", hasBannedWord);
 
   if (!hasLink && !hasBannedWord) return;
 
-  // Semak jika pengirim adalah admin group itu
   let isAdmin = false;
   try {
     const member = await ctx.getChatMember(ctx.from.id);
@@ -414,7 +505,6 @@ async function handleModeration(ctx) {
     return;
   }
 
-  // Padam mesej melanggar peraturan
   try {
     await ctx.deleteMessage();
     console.log("[MOD] Berjaya padam pesan spam.");
@@ -422,11 +512,10 @@ async function handleModeration(ctx) {
     console.error("Gagal padam mesej melanggar peraturan:", err.message);
   }
 
-  // Hantar amaran ringkas (akan auto delete)
   try {
     const warn = await ctx.reply(
       "⚠️ Mesej anda melanggar peraturan group (link luar / kata yang tidak dibenarkan). " +
-      "Hanya admin dibenarkan kongsi link atau promo luar."
+        "Hanya admin dibenarkan kongsi link atau promo luar."
     );
     setTimeout(() => {
       bot.telegram.deleteMessage(warn.chat.id, warn.message_id).catch(() => {});
@@ -434,16 +523,13 @@ async function handleModeration(ctx) {
   } catch {}
 }
 
-// Handler semua mesej
 bot.on("message", async (ctx) => {
-  // 1) Moderasi semua group
   try {
     await handleModeration(ctx);
   } catch (err) {
     console.error("Ralat di handleModeration:", err.message);
   }
 
-  // 2) Auto delete mesej bot sendiri di group utama (optional)
   const botId = bot.botInfo?.id;
   if (!botId) return;
   if (ctx.chat?.id === SOURCE_CHAT_ID && ctx.from?.id === botId) {
@@ -460,9 +546,21 @@ bot.on("message", async (ctx) => {
 // ================= STARTUP =================
 async function main() {
   console.log(
-    "[STARTUP] PORT=" + PORT +
-    ", BOT_TOKEN=" + (BOT_TOKEN ? "***ada***" : "KOSONG!")
+    "[STARTUP] PORT=" +
+      PORT +
+      ", BOT_TOKEN=" +
+      (BOT_TOKEN ? "***ada***" : "KOSONG!") +
+      ", MONGODB_URI=" +
+      (MONGODB_URI ? "***ada***" : "KOSONG")
   );
+
+  const mongoOk = await connectMongo();
+  if (!mongoOk) {
+    console.error(
+      "[STARTUP] ❌ Bot memerlukan MongoDB. Isi MONGODB_URI dalam .env dan pastikan Atlas Network Access dibenarkan."
+    );
+    process.exit(1);
+  }
 
   const server = app.listen(PORT, "0.0.0.0", () => {
     console.log("[STARTUP] ✅ Server sedang mendengar pada port " + PORT);
@@ -473,7 +571,6 @@ async function main() {
     process.exit(1);
   });
 
-  // Semak sambungan bot ke Telegram
   try {
     const me = await bot.telegram.getMe();
     console.log(
@@ -494,8 +591,15 @@ async function main() {
     console.error("[STARTUP] ❌ Gagal mula bot:", err.message);
   }
 
-  const stop = () => {
-    try { bot.stop("SIGTERM"); } catch {}
+  const stop = async () => {
+    try {
+      bot.stop("SIGTERM");
+    } catch {}
+    if (mongoClient) {
+      try {
+        await mongoClient.close();
+      } catch {}
+    }
     server.close(() => process.exit(0));
   };
   process.once("SIGINT", stop);
