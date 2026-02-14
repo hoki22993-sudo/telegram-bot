@@ -214,9 +214,7 @@ async function sendStart(ctx) {
   const replyKeyboard = Markup.keyboard([
     ["🌟 NEW REGISTER FREE 🌟", "📘 SHARE FACEBOOK 📘"],
     ["🔥 DAILY APPS FREE 🔥", "🌞 SOCIAL MEDIA 🌞"],
-    ["🎉 TELEGRAM BONUS 🎉"],
-    ["1️⃣ STEP CUCI FREE AMBIK SINI", "2️⃣ CONTOH STEP BETUL"],
-    ["3️⃣ AYAT DAN GAMBAR POST AMBIK SINI", "4️⃣ DONE STEP HANTAR BUKTI ADMIN"]
+    ["🎉 TELEGRAM BONUS 🎉"]
   ]).resize();
 
   await ctx.replyWithAnimation(
@@ -224,14 +222,7 @@ async function sendStart(ctx) {
     {
       caption: `👋 Hi ${username} Bossku 😘
 
-Kalau sudah join semua channel & group, amoi akan cuba bagi info paling untung untuk anda ❤️
-
-━━━━━━━━━━━━━━━━━━
-📌 PILIH BUTANG DI BAWAH:
-━━━━━━━━━━━━━━━━━━
-
-🔗 Link: Channel, Group, Register
-📋 Step: Cuci free, contoh, ayat & gambar, hantar bukti`,
+Kalau sudah join semua channel & group, amoi akan cuba bagi info paling untung untuk anda ❤️`,
       ...inlineButtons
     }
   );
@@ -261,7 +252,7 @@ const menuData = {
 ⚠️ 1 nama 1 ID sahaja
 ⚠️ Nama daftar mesti sama dengan nama akaun bank
 
-➤ Tekan /start untuk kembali ke menu`
+➤ CLICK /start BACK TO MENU`
   },
   "📘 SHARE FACEBOOK 📘": {
     url: "https://afb88my1.com/promotion",
@@ -275,7 +266,7 @@ Syarat:
 ➡️ Share ke 5 group casino
 ➡️ Daily claim 1x sehari
 
-➤ Tekan /start untuk kembali ke menu`
+➤ CLICK /start BACK TO MENU`
   },
   "🔥 DAILY APPS FREE 🔥": {
     url: "https://afb88my1.com/promotion",
@@ -285,7 +276,7 @@ Syarat:
 📌 Daily claim 1x
 💰 Min WD RM600
 
-➤ Tekan /start untuk kembali ke menu`
+➤ CLICK /start BACK TO MENU`
   },
   "🌞 SOCIAL MEDIA 🌞": {
     url: "https://afb88my1.com/promotion",
@@ -295,7 +286,7 @@ Syarat:
 📸 Instagram
 🎥 WhatsApp Group
 
-➤ Tekan /start untuk kembali ke menu`
+➤ CLICK /start BACK TO MENU`
   },
   "🎉 TELEGRAM BONUS 🎉": {
     url: "https://afb88my1.com/promotion",
@@ -304,43 +295,62 @@ Syarat:
 🎁 Free Credit RM30
 ✅ Claim 1x
 
-➤ Tekan /start untuk kembali ke menu`
+➤ CLICK /start BACK TO MENU`
   },
   "1️⃣ STEP CUCI FREE AMBIK SINI": {
-    url: "https://afb88my1.com/promotion",
-    media: "https://ibb.co/BK2LVQ6t",
-    caption: `1️⃣ STEP CUCI FREE AMBIK SINI
+    url: "https://heylink.me/AFB88GAMING",
+    media: "https://ibb.co/gZH1fkZC",
+    caption: `1️⃣ Hallo bossku 💎✨
+Ini langkah-langkah STEP UNTUK “CUCI BONUS” ‼️
+Sila baca dengan teliti ya 😊🙏
 
-Sila ikut langkah-langkah untuk ambil step cuci free. Tekan butang di bawah untuk mula.
+1️⃣ ➡️ JOIN TELEGRAM CHANNEL ⬇️
+https://t.me/+NQBQYnGkNUU5YmNl
 
-➤ Tekan /start untuk kembali ke menu`
+2️⃣ ➡️ JOIN FACEBOOK GROUP ⬇️
+https://www.facebook.com/profile.php?id=61579884569151
+
+3️⃣ ➡️ SHARE POST KE 5 CASINO GROUP ⬇️
+https://web.facebook.com/share/p/17r4JJ5JJV/
+
+4️⃣ ➡️ JOIN FACEBOOK GROUP ⬇️
+https://web.facebook.com/groups/772875495480578
+
+🔥 SELEPAS SELESAI SEMUA STEP, SILA SEND BUKTI KEPADA ADMIN TELEGRAM / LIVECHAT YA BOSS! 🔥
+
+➤ CLICK /start BACK TO MENU`
   },
   "2️⃣ CONTOH STEP BETUL": {
-    url: "https://afb88my1.com/promotion",
-    media: "https://ibb.co/BK2LVQ6t",
+    url: "https://heylink.me/AFB88GAMING",
+    media: "https://ibb.co/bjCkPBkZ",
     caption: `2️⃣ CONTOH STEP BETUL
 
 Ini contoh step yang betul. Sila rujuk untuk pastikan anda ikut dengan tepat.
 
-➤ Tekan /start untuk kembali ke menu`
+➤ CLICK /start BACK TO MENU`
   },
   "3️⃣ AYAT DAN GAMBAR POST AMBIK SINI": {
-    url: "https://afb88my1.com/promotion",
-    media: "https://ibb.co/Z6B55VcX",
-    caption: `3️⃣ AYAT DAN GAMBAR UNTUK POST AMBIK SINI
+    url: "https://heylink.me/AFB88GAMING",
+    media: "https://ibb.co/gZH1fkZC",
+    caption: `3️⃣ AYAT DAN GAMBAR UNTUK POST AMBIK SINI COPY JE BAWAH
 
-Ambil ayat dan gambar untuk post di sini. Sila download dan guna untuk share.
+Ambil ayat dan gambar untuk post di sini AMBIK GAMBAR KAT ATAS COPY AYAT BAWAH NIE.
 
-➤ Tekan /start untuk kembali ke menu`
+👉 https://heylink.me/AFB88GAMING
+🎁 PERCUMA RM188 UNTUK PENGGUNA BARU
+⏰ BONUS RM66 SETIAP JAM
+💎 Peluang menang disediakan setiap hari
+
+➤ CLICK /start BACK TO MENU`
   },
   "4️⃣ DONE STEP HANTAR BUKTI ADMIN": {
-    url: "https://t.me/afb88my",
+    url: "https://heylink.me/AFB88GAMING",
     media: "https://ibb.co/HfyD6DWw",
     caption: `4️⃣ LEPAS DONE STEP HANTAR BUKTI KAT ADMIN
 
-Lepas siap semua step, sila hantar bukti kepada admin. Tekan butang di bawah untuk hantar.
+Lepas siap semua step, sila hantar bukti kepada admin. Tekan LINKL : "https://heylink.me/AFB88GAMING".
 
-➤ Tekan /start untuk kembali ke menu`
+➤ CLICK /start BACK TO MENU`
   }
 };
 
@@ -361,11 +371,11 @@ bot.action(Object.keys(callbackToMenuKey), async (ctx) => {
   try {
     await ctx.replyWithPhoto(data.media, {
       caption: data.caption,
-      ...Markup.inlineKeyboard([[Markup.button.url("AMBIL / BUKA", data.url)]])
+      ...Markup.inlineKeyboard([[Markup.button.url("ADMIN STEP CUCI", data.url)]])
     });
   } catch (err) {
     await ctx.reply(data.caption + `\n\n🔗 ${data.url}`, {
-      ...Markup.inlineKeyboard([[Markup.button.url("AMBIL / BUKA", data.url)]])
+      ...Markup.inlineKeyboard([[Markup.button.url("ADMIN STEP CUCI", data.url)]])
     });
   }
 });
@@ -541,6 +551,9 @@ async function handleModeration(ctx) {
   const hasBannedWord = BANNED_WORDS.some(w => w && textLower.includes(w));
 
   if (!hasLink && !hasBannedWord) return;
+
+  // Pengecualian: pemilik bot (ADMIN_USER_ID) sentiasa dibenarkan
+  if (ctx.from.id === ADMIN_USER_ID) return;
 
   let isAdmin = false;
   try {
