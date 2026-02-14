@@ -117,15 +117,16 @@ async function connectMongo() {
   return false;
 }
 
+// Return true hanya bila subscriber BENAR-BENAR BARU (belum ada dalam DB)
 async function addSubscriber(userId) {
   if (!subscribersCollection) return false;
   try {
-    await subscribersCollection.updateOne(
+    const result = await subscribersCollection.updateOne(
       { userId },
       { $set: { userId, updatedAt: new Date() } },
       { upsert: true }
     );
-    return true;
+    return result.upsertedCount === 1;
   } catch (err) {
     console.error("[MONGODB] addSubscriber ralat:", err.message);
     return false;
@@ -204,16 +205,14 @@ async function sendStart(ctx) {
     [
       Markup.button.url("🌐 Register & Login", "https://afb88my1.com/"),
       Markup.button.url("🎁 Group Hadiah", "https://t.me/Xamoi2688")
-    ],
-    [Markup.button.callback("1️⃣ Step Cuci Free - Ambil Sini", "menu_stepcuci")],
-    [Markup.button.callback("2️⃣ Contoh Step Betul", "menu_contohstep")],
-    [Markup.button.callback("3️⃣ Ayat & Gambar Post - Ambil Sini", "menu_ayatgambar")],
-    [Markup.button.callback("4️⃣ Done? Hantar Bukti ke Admin", "menu_hantarbukti")]
+    ]
   ]);
 
   const replyKeyboard = Markup.keyboard([
-    ["🌟 NEW REGISTER FREE 🌟", "📘 SHARE FACEBOOK 📘"],
-    ["🔥 DAILY APPS FREE 🔥", "🌞 SOCIAL MEDIA 🌞"],
+    ["🌟 NEW REGISTER FREE 🌟"],
+    ["📘 SHARE FACEBOOK 📘"],
+    ["🔥 DAILY APPS FREE 🔥"],
+    ["🌞 SOCIAL MEDIA 🌞"],
     ["🎉 TELEGRAM BONUS 🎉"]
   ]).resize();
 
@@ -296,91 +295,10 @@ Syarat:
 ✅ Claim 1x
 
 ➤ CLICK /start BACK TO MENU`
-  },
-  "1️⃣ STEP CUCI FREE AMBIK SINI": {
-    url: "https://heylink.me/AFB88GAMING",
-    media: "https://ibb.co/gZH1fkZC",
-    caption: `1️⃣ Hallo bossku 💎✨
-Ini langkah-langkah STEP UNTUK “CUCI BONUS” ‼️
-Sila baca dengan teliti ya 😊🙏
-
-1️⃣ ➡️ JOIN TELEGRAM CHANNEL ⬇️
-https://t.me/+NQBQYnGkNUU5YmNl
-
-2️⃣ ➡️ JOIN FACEBOOK GROUP ⬇️
-https://www.facebook.com/profile.php?id=61579884569151
-
-3️⃣ ➡️ SHARE POST KE 5 CASINO GROUP ⬇️
-https://web.facebook.com/share/p/17r4JJ5JJV/
-
-4️⃣ ➡️ JOIN FACEBOOK GROUP ⬇️
-https://web.facebook.com/groups/772875495480578
-
-🔥 SELEPAS SELESAI SEMUA STEP, SILA SEND BUKTI KEPADA ADMIN TELEGRAM / LIVECHAT YA BOSS! 🔥
-
-➤ CLICK /start BACK TO MENU`
-  },
-  "2️⃣ CONTOH STEP BETUL": {
-    url: "https://heylink.me/AFB88GAMING",
-    media: "https://ibb.co/bjCkPBkZ",
-    caption: `2️⃣ CONTOH STEP BETUL
-
-Ini contoh step yang betul. Sila rujuk untuk pastikan anda ikut dengan tepat.
-
-➤ CLICK /start BACK TO MENU`
-  },
-  "3️⃣ AYAT DAN GAMBAR POST AMBIK SINI": {
-    url: "https://heylink.me/AFB88GAMING",
-    media: "https://ibb.co/gZH1fkZC",
-    caption: `3️⃣ AYAT DAN GAMBAR UNTUK POST AMBIK SINI COPY JE BAWAH
-
-Ambil ayat dan gambar untuk post di sini AMBIK GAMBAR KAT ATAS COPY AYAT BAWAH NIE.
-
-👉 https://heylink.me/AFB88GAMING
-🎁 PERCUMA RM188 UNTUK PENGGUNA BARU
-⏰ BONUS RM66 SETIAP JAM
-💎 Peluang menang disediakan setiap hari
-
-➤ CLICK /start BACK TO MENU`
-  },
-  "4️⃣ DONE STEP HANTAR BUKTI ADMIN": {
-    url: "https://heylink.me/AFB88GAMING",
-    media: "https://ibb.co/HfyD6DWw",
-    caption: `4️⃣ LEPAS DONE STEP HANTAR BUKTI KAT ADMIN
-
-Lepas siap semua step, sila hantar bukti kepada admin. Tekan LINKL : "https://heylink.me/AFB88GAMING".
-
-➤ CLICK /start BACK TO MENU`
   }
 };
 
-// Pemetaan callback inline -> key menuData (untuk 4 item baru)
-const callbackToMenuKey = {
-  menu_stepcuci: "1️⃣ STEP CUCI FREE AMBIK SINI",
-  menu_contohstep: "2️⃣ CONTOH STEP BETUL",
-  menu_ayatgambar: "3️⃣ AYAT DAN GAMBAR POST AMBIK SINI",
-  menu_hantarbukti: "4️⃣ DONE STEP HANTAR BUKTI ADMIN"
-};
-
-// Handler untuk inline button (4 item baru)
-bot.action(Object.keys(callbackToMenuKey), async (ctx) => {
-  const menuKey = callbackToMenuKey[ctx.callbackQuery.data];
-  const data = menuData[menuKey];
-  if (!data) return;
-  await ctx.answerCbQuery();
-  try {
-    await ctx.replyWithPhoto(data.media, {
-      caption: data.caption,
-      ...Markup.inlineKeyboard([[Markup.button.url("ADMIN STEP CUCI", data.url)]])
-    });
-  } catch (err) {
-    await ctx.reply(data.caption + `\n\n🔗 ${data.url}`, {
-      ...Markup.inlineKeyboard([[Markup.button.url("ADMIN STEP CUCI", data.url)]])
-    });
-  }
-});
-
-// Data untuk 4 butang link (reply keyboard)
+// Data untuk butang link (reply keyboard)
 const linkMenuData = {
   "📢 CHANNEL UTAMA": { url: "https://t.me/afb88my", label: "📢 BUKA CHANNEL" },
   "💬 GROUP CUCI & TIPS": { url: "https://t.me/+b685QE242dMxOWE9", label: "💬 BUKA GROUP" },
