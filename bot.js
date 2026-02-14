@@ -1,4 +1,4 @@
-// bot.js (versi lengkap, anti-link + MongoDB subscriber)
+// bot.js (versi lengkap, bahasa Malaysia, anti-link semua group + MongoDB subscriber)
 import { Telegraf, Markup } from "telegraf";
 import dotenv from "dotenv";
 import { MongoClient } from "mongodb";
@@ -49,18 +49,18 @@ const ENABLE_LINK_ANTISPAM = true; // true = blok link dari bukan admin di semua
 
 // Senarai kata/frasa yang di-ban (semua dalam huruf kecil)
 const BANNED_WORDS = [
-  "promo luar",
+  "new register",
   "free kredit luar",
   "bonus 100%",
   "kencing",
   "anjing"
-].map((w) => w.toLowerCase());
+].map(w => w.toLowerCase());
 
 // ===== SEMAK BOT_TOKEN =====
 if (!BOT_TOKEN || BOT_TOKEN === "ISI_TOKEN_DI_SINI") {
   console.error(
     "[STARTUP] ❌ BOT_TOKEN kosong / masih 'ISI_TOKEN_DI_SINI'. " +
-      "Sila isi env BOT_TOKEN dahulu."
+    "Sila isi env BOT_TOKEN dahulu."
   );
   process.exit(1);
 }
@@ -82,7 +82,7 @@ async function connectMongo() {
   if (!MONGODB_URI) {
     console.error(
       "[MONGODB] ❌ MONGODB_URI kosong. Sila isi dalam .env:\n" +
-        "MONGODB_URI=mongodb+srv://botuser:PASSWORD@cluster0.uxxklgz.mongodb.net/botdb?retryWrites=true&w=majority"
+      "MONGODB_URI=mongodb+srv://botuser:PASSWORD@cluster0.uxxklgz.mongodb.net/botdb?retryWrites=true&w=majority"
     );
     return false;
   }
@@ -101,9 +101,7 @@ async function connectMongo() {
     } catch (err) {
       console.error("[MONGODB] Percubaan", attempt, "gagal:", err.message);
       if (mongoClient) {
-        try {
-          await mongoClient.close();
-        } catch {}
+        try { await mongoClient.close(); } catch {}
         mongoClient = null;
         subscribersCollection = null;
       }
@@ -111,11 +109,7 @@ async function connectMongo() {
         console.log("[MONGODB] Cuba lagi dalam", retryDelayMs / 1000, "saat...");
         await new Promise((r) => setTimeout(r, retryDelayMs));
       } else {
-        console.error(
-          "[MONGODB] ❌ Gagal selepas",
-          maxRetries,
-          "percubaan. Sila semak MONGODB_URI dan Network Access di Atlas."
-        );
+        console.error("[MONGODB] ❌ Gagal selepas", maxRetries, "percubaan. Sila semak MONGODB_URI dan Network Access di Atlas.");
         return false;
       }
     }
@@ -203,17 +197,31 @@ async function sendStart(ctx) {
   }
 
   const inlineButtons = Markup.inlineKeyboard([
-    [Markup.button.url("📢 CHANNEL UTAMA", "https://t.me/afb88my")],
-    [Markup.button.url("💬 GROUP CUCI & TIPS GAME", "https://t.me/+b685QE242dMxOWE9")],
-    [Markup.button.url("🌐 REGISTER & LOGIN", "https://afb88my1.com/")],
-    [Markup.button.url("🎁 GROUP HADIAH AFB88", "https://t.me/Xamoi2688")]
+    [
+      Markup.button.url("📢 CHANNEL UTAMA", "https://t.me/afb88my"),
+      Markup.button.url("💬 GROUP CUCI & TIPS GAME", "https://t.me/+b685QE242dMxOWE9")
+    ],
+    [
+      Markup.button.url("🌐 REGISTER & LOGIN", "https://afb88my1.com/"),
+      Markup.button.url("🎁 GROUP HADIAH AFB88", "https://t.me/Xamoi2688")
+    ],
+    [
+      Markup.button.callback("1️⃣ STEP CUCI FREE AMBIK SINI", "menu_stepcuci"),
+      Markup.button.callback("2️⃣ CONTOH STEP BETUL", "menu_contohstep")
+    ],
+    [
+      Markup.button.callback("3️⃣ AYAT DAN GAMBAR POST AMBIK SINI", "menu_ayatgambar"),
+      Markup.button.callback("4️⃣ DONE STEP HANTAR BUKTI ADMIN", "menu_hantarbukti")
+    ]
   ]);
 
   const replyKeyboard = Markup.keyboard([
-    ["🌟 STEP CUCI FREE TEKAN SINI 🌟"],
+    ["🌟 NEW REGISTER FREE 🌟"],
     ["📘 SHARE FACEBOOK 📘"],
     ["🔥 DAILY APPS FREE 🔥", "🌞 SOCIAL MEDIA 🌞"],
-    ["🎉 TELEGRAM BONUS 🎉"]
+    ["🎉 TELEGRAM BONUS 🎉"],
+    ["1️⃣ STEP CUCI FREE AMBIK SINI", "2️⃣ CONTOH STEP BETUL"],
+    ["3️⃣ AYAT DAN GAMBAR POST AMBIK SINI", "4️⃣ DONE STEP HANTAR BUKTI ADMIN"]
   ]).resize();
 
   await ctx.replyWithAnimation(
@@ -235,24 +243,24 @@ bot.command(["menu", "help", "about", "profile", "contact"], sendStart);
 
 // ================= DATA MENU PRIVATE =================
 const menuData = {
-  "🌟 STEP CUCI FREE TEKAN SINI 🌟": {
+  "🌟 NEW REGISTER FREE 🌟": {
     url: "https://afb88my1.com/promotion",
     media: "https://ibb.co/BK2LVQ6t",
     caption: `🌟 NEW REGISTER BONUS AFB88 🌟
-Hallo bossku, Ini langkah- langkah step Untuk "CUCI BONUS" Sila baca dengan teliti ya 😊🙏
-✅ 1️⃣. ➡️ Join our Telegram channel ⬇️
-https://t.me/+NQBQYnGkNUU5YmNl
-✅ 2️⃣.  ➡️Join our Facebook group ⬇️
- https://www.facebook.com/profile.php?id=61579884569151
-✅ 3️⃣. ➡️Share post ke 5 Casino Group ⬇️
-https://web.facebook.com/share/p/17r4JJ5JJV/
-✅ 3️⃣. ➡️Share post ke 5 Casino Group ⬇️
-https://web.facebook.com/share/p/17r4JJ5JJV/
-✅ 4️⃣. ➡️Join Facebook group Group ⬇️
-https://web.facebook.com/groups/772875495480578
-✅ Lepastu send kat livechat atau telegram 1 by 1 ya boss thankyou 🤗
-➤ Tekan /start untuk kembali ke menu`
+⚠️ Langgar syarat, semua point akan FORFEIT ⚠️
+✅ Keperluan SLOT SAHAJA
+✅ Free Credit R188
+✅ Min WD/Cuci RM 6600
+✅ Max Payment/WD RM20
+✅ Dibenarkan main AFB GAMING (EVENT GAME SAHAJA)
+✅ Dibenarkan main MEGAH5 | EPICWIN | PXPLAY2 | ACEWIN2 | RICH GAMING (EVENT GAME SAHAJA)
+✅ Sila download apps untuk claim
+📎 LINK: https://afb88.hfcapital.top/
 
+⚠️ 1 nama 1 ID sahaja
+⚠️ Nama daftar mesti sama dengan nama akaun bank
+
+➤ Tekan /start untuk kembali ke menu`
   },
   "📘 SHARE FACEBOOK 📘": {
     url: "https://afb88my1.com/promotion",
@@ -296,8 +304,87 @@ Syarat:
 ✅ Claim 1x
 
 ➤ Tekan /start untuk kembali ke menu`
+  },
+  "1️⃣ STEP CUCI FREE AMBIK SINI": {
+    url: "https://afb88my1.com/promotion",
+    media: "https://ibb.co/BK2LVQ6t",
+    caption: `1️⃣ STEP CUCI FREE AMBIK SINI
+
+Sila ikut langkah-langkah untuk ambil step cuci free. Tekan butang di bawah untuk mula.
+
+➤ Tekan /start untuk kembali ke menu`
+  },
+  "2️⃣ CONTOH STEP BETUL": {
+    url: "https://afb88my1.com/promotion",
+    media: "https://ibb.co/BK2LVQ6t",
+    caption: `2️⃣ CONTOH STEP BETUL
+
+Ini contoh step yang betul. Sila rujuk untuk pastikan anda ikut dengan tepat.
+
+➤ Tekan /start untuk kembali ke menu`
+  },
+  "3️⃣ AYAT DAN GAMBAR POST AMBIK SINI": {
+    url: "https://afb88my1.com/promotion",
+    media: "https://ibb.co/Z6B55VcX",
+    caption: `3️⃣ AYAT DAN GAMBAR UNTUK POST AMBIK SINI
+
+Ambil ayat dan gambar untuk post di sini. Sila download dan guna untuk share.
+
+➤ Tekan /start untuk kembali ke menu`
+  },
+  "4️⃣ DONE STEP HANTAR BUKTI ADMIN": {
+    url: "https://t.me/afb88my",
+    media: "https://ibb.co/HfyD6DWw",
+    caption: `4️⃣ LEPAS DONE STEP HANTAR BUKTI KAT ADMIN
+
+Lepas siap semua step, sila hantar bukti kepada admin. Tekan butang di bawah untuk hantar.
+
+➤ Tekan /start untuk kembali ke menu`
   }
 };
+
+// Pemetaan callback inline -> key menuData (untuk 4 item baru)
+const callbackToMenuKey = {
+  menu_stepcuci: "1️⃣ STEP CUCI FREE AMBIK SINI",
+  menu_contohstep: "2️⃣ CONTOH STEP BETUL",
+  menu_ayatgambar: "3️⃣ AYAT DAN GAMBAR POST AMBIK SINI",
+  menu_hantarbukti: "4️⃣ LEPAS DONE HANTAR BUKTI KAT ADMIN"
+};
+
+// Handler untuk inline button (4 item baru)
+bot.action(Object.keys(callbackToMenuKey), async (ctx) => {
+  const menuKey = callbackToMenuKey[ctx.callbackQuery.data];
+  const data = menuData[menuKey];
+  if (!data) return;
+  await ctx.answerCbQuery();
+  try {
+    await ctx.replyWithPhoto(data.media, {
+      caption: data.caption,
+      ...Markup.inlineKeyboard([[Markup.button.url("AMBIL / BUKA", data.url)]])
+    });
+  } catch (err) {
+    await ctx.reply(data.caption + `\n\n🔗 ${data.url}`, {
+      ...Markup.inlineKeyboard([[Markup.button.url("AMBIL / BUKA", data.url)]])
+    });
+  }
+});
+
+// Data untuk 4 butang link (reply keyboard)
+const linkMenuData = {
+  "📢 CHANNEL UTAMA": { url: "https://t.me/afb88my", label: "📢 BUKA CHANNEL" },
+  "💬 GROUP CUCI & TIPS": { url: "https://t.me/+b685QE242dMxOWE9", label: "💬 BUKA GROUP" },
+  "🌐 REGISTER & LOGIN": { url: "https://afb88my1.com/", label: "🌐 BUKA LAMAN" },
+  "🎁 GROUP HADIAH AFB88": { url: "https://t.me/Xamoi2688", label: "🎁 BUKA GROUP" }
+};
+
+bot.hears(Object.keys(linkMenuData), async (ctx) => {
+  if (ctx.chat?.type !== "private") return;
+  const data = linkMenuData[ctx.message?.text];
+  if (!data) return;
+  await ctx.reply("Tekan butang di bawah untuk buka:", {
+    ...Markup.inlineKeyboard([[Markup.button.url(data.label, data.url)]])
+  });
+});
 
 bot.hears(Object.keys(menuData), async (ctx) => {
   if (ctx.chat?.type !== "private") return;
@@ -342,9 +429,6 @@ async function broadcastToTargets(replyTo) {
       );
     } catch (err) {
       console.error("Ralat forward ke target", targetId, ":", err.message);
-      try {
-        await bot.telegram.sendMessage(ADMIN_USER_ID, `❌ Ralat forward ke ${targetId}`);
-      } catch {}
     }
   }
 }
@@ -358,7 +442,7 @@ async function broadcastToSubscribers(replyTo) {
 
   console.log(
     `[BROADCAST] Mula hantar ke ${subscribers.length} subscriber ` +
-      `(batch=${SUB_BATCH_SIZE}, delay=${SUB_DELAY_BETWEEN_BATCH}ms)`
+    `(batch=${SUB_BATCH_SIZE}, delay=${SUB_DELAY_BETWEEN_BATCH}ms)`
   );
 
   for (let i = 0; i < subscribers.length; i += SUB_BATCH_SIZE) {
@@ -402,49 +486,30 @@ async function broadcastToSubscribers(replyTo) {
   console.log("[BROADCAST] Selesai hantar ke semua subscriber");
 }
 
-// ================= /forward (untuk admin di group utama) =================
+// ================= /forward (untuk admin di group utama) – tiada pesan, senyap =================
 bot.command("forward", async (ctx) => {
   if (!ctx.from || ctx.from.id !== ADMIN_USER_ID) return;
   if (ctx.chat?.id !== SOURCE_CHAT_ID) return;
 
   const replyTo = ctx.message?.reply_to_message;
-  if (!replyTo) {
-    await ctx.reply(
-      "❗ Sila guna /forward sebagai *reply* kepada mesej yang ingin dihantar.",
-      { parse_mode: "Markdown" }
-    );
-    return;
-  }
+  if (!replyTo) return;
 
-  if (isBroadcastRunning) {
-    await ctx.reply("⏳ Siaran sebelum ini masih berjalan, sila tunggu sehingga selesai.");
-    return;
-  }
+  if (isBroadcastRunning) return;
 
   isBroadcastRunning = true;
-  const totalSubs = (await getAllSubscribers()).length;
 
   try {
-    await ctx.reply(`🚀 Mula forward ke group/channel sasaran & ${totalSubs} subscriber...`);
-
     await broadcastToTargets(replyTo);
     await broadcastToSubscribers(replyTo);
-
-    await ctx.reply("✅ Forward selesai, semua sasaran telah diproses.");
   } catch (err) {
     console.error("[BROADCAST] Ralat umum:", err);
-    try {
-      await ctx.reply("❌ Berlaku ralat ketika forward, sila semak log.");
-    } catch {}
   } finally {
     isBroadcastRunning = false;
-    try {
-      await ctx.deleteMessage();
-    } catch {}
+    try { await ctx.deleteMessage(); } catch {}
   }
 });
 
-// ================= MODERASI: LINK & KATA TERLARANG DI SEMUA GROUP =================
+// ================= MODERASI: LINK & KATA TERLARANG – pesan amaran hanya bila melanggar =================
 async function handleModeration(ctx) {
   if (!ENABLE_LINK_ANTISPAM) return;
   if (!ctx.chat) return;
@@ -461,21 +526,10 @@ async function handleModeration(ctx) {
   const textLower = text.toLowerCase();
   const entities = msg.entities || msg.caption_entities || [];
 
-  console.log(
-    "[MOD] Dapat pesan di chat",
-    ctx.chat.id,
-    "dari",
-    ctx.from.id,
-    "type",
-    chatType,
-    "text:",
-    text
-  );
-
   let hasLink = false;
 
   if (entities && entities.length) {
-    if (entities.some((e) => e.type === "url" || e.type === "text_link")) {
+    if (entities.some(e => e.type === "url" || e.type === "text_link")) {
       hasLink = true;
     }
   }
@@ -483,16 +537,13 @@ async function handleModeration(ctx) {
     hasLink = true;
   }
 
-  const hasBannedWord = BANNED_WORDS.some((w) => w && textLower.includes(w));
-
-  console.log("[MOD] hasLink =", hasLink, "hasBannedWord =", hasBannedWord);
+  const hasBannedWord = BANNED_WORDS.some(w => w && textLower.includes(w));
 
   if (!hasLink && !hasBannedWord) return;
 
   let isAdmin = false;
   try {
     const member = await ctx.getChatMember(ctx.from.id);
-    console.log("[MOD] Status member:", member.status);
     if (member.status === "administrator" || member.status === "creator") {
       isAdmin = true;
     }
@@ -500,14 +551,10 @@ async function handleModeration(ctx) {
     console.error("Gagal semak status ahli:", err.message);
   }
 
-  if (isAdmin) {
-    console.log("[MOD] Pesan ada link/kata ban tapi dari admin, dibiarkan.");
-    return;
-  }
+  if (isAdmin) return;
 
   try {
     await ctx.deleteMessage();
-    console.log("[MOD] Berjaya padam pesan spam.");
   } catch (err) {
     console.error("Gagal padam mesej melanggar peraturan:", err.message);
   }
@@ -515,7 +562,7 @@ async function handleModeration(ctx) {
   try {
     const warn = await ctx.reply(
       "⚠️ Mesej anda melanggar peraturan group (link luar / kata yang tidak dibenarkan). " +
-        "Hanya admin dibenarkan kongsi link atau promo luar."
+      "Hanya admin dibenarkan kongsi link atau promo luar."
     );
     setTimeout(() => {
       bot.telegram.deleteMessage(warn.chat.id, warn.message_id).catch(() => {});
@@ -546,19 +593,14 @@ bot.on("message", async (ctx) => {
 // ================= STARTUP =================
 async function main() {
   console.log(
-    "[STARTUP] PORT=" +
-      PORT +
-      ", BOT_TOKEN=" +
-      (BOT_TOKEN ? "***ada***" : "KOSONG!") +
-      ", MONGODB_URI=" +
-      (MONGODB_URI ? "***ada***" : "KOSONG")
+    "[STARTUP] PORT=" + PORT +
+    ", BOT_TOKEN=" + (BOT_TOKEN ? "***ada***" : "KOSONG!") +
+    ", MONGODB_URI=" + (MONGODB_URI ? "***ada***" : "KOSONG")
   );
 
   const mongoOk = await connectMongo();
   if (!mongoOk) {
-    console.error(
-      "[STARTUP] ❌ Bot memerlukan MongoDB. Isi MONGODB_URI dalam .env dan pastikan Atlas Network Access dibenarkan."
-    );
+    console.error("[STARTUP] ❌ Bot memerlukan MongoDB. Isi MONGODB_URI dalam .env dan pastikan Atlas Network Access dibenarkan.");
     process.exit(1);
   }
 
@@ -592,13 +634,9 @@ async function main() {
   }
 
   const stop = async () => {
-    try {
-      bot.stop("SIGTERM");
-    } catch {}
+    try { bot.stop("SIGTERM"); } catch {}
     if (mongoClient) {
-      try {
-        await mongoClient.close();
-      } catch {}
+      try { await mongoClient.close(); } catch {}
     }
     server.close(() => process.exit(0));
   };
