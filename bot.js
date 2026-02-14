@@ -198,26 +198,21 @@ async function sendStart(ctx) {
 
   const inlineButtons = Markup.inlineKeyboard([
     [
-      Markup.button.url("📢 CHANNEL UTAMA", "https://t.me/afb88my"),
-      Markup.button.url("💬 GROUP CUCI & TIPS GAME", "https://t.me/+b685QE242dMxOWE9")
+      Markup.button.url("📢 Channel Utama", "https://t.me/afb88my"),
+      Markup.button.url("💬 Group Cuci & Tips", "https://t.me/+b685QE242dMxOWE9")
     ],
     [
-      Markup.button.url("🌐 REGISTER & LOGIN", "https://afb88my1.com/"),
-      Markup.button.url("🎁 GROUP HADIAH AFB88", "https://t.me/Xamoi2688")
+      Markup.button.url("🌐 Register & Login", "https://afb88my1.com/"),
+      Markup.button.url("🎁 Group Hadiah", "https://t.me/Xamoi2688")
     ],
-    [
-      Markup.button.callback("1️⃣ STEP CUCI FREE AMBIK SINI", "menu_stepcuci"),
-      Markup.button.callback("2️⃣ CONTOH STEP BETUL", "menu_contohstep")
-    ],
-    [
-      Markup.button.callback("3️⃣ AYAT DAN GAMBAR POST AMBIK SINI", "menu_ayatgambar"),
-      Markup.button.callback("4️⃣ DONE STEP HANTAR BUKTI ADMIN", "menu_hantarbukti")
-    ]
+    [Markup.button.callback("1️⃣ Step Cuci Free - Ambil Sini", "menu_stepcuci")],
+    [Markup.button.callback("2️⃣ Contoh Step Betul", "menu_contohstep")],
+    [Markup.button.callback("3️⃣ Ayat & Gambar Post - Ambil Sini", "menu_ayatgambar")],
+    [Markup.button.callback("4️⃣ Done? Hantar Bukti ke Admin", "menu_hantarbukti")]
   ]);
 
   const replyKeyboard = Markup.keyboard([
-    ["🌟 NEW REGISTER FREE 🌟"],
-    ["📘 SHARE FACEBOOK 📘"],
+    ["🌟 NEW REGISTER FREE 🌟", "📘 SHARE FACEBOOK 📘"],
     ["🔥 DAILY APPS FREE 🔥", "🌞 SOCIAL MEDIA 🌞"],
     ["🎉 TELEGRAM BONUS 🎉"],
     ["1️⃣ STEP CUCI FREE AMBIK SINI", "2️⃣ CONTOH STEP BETUL"],
@@ -228,9 +223,15 @@ async function sendStart(ctx) {
     "https://media3.giphy.com/media/tXSLbuTIf37SjvE6QY/giphy.gif",
     {
       caption: `👋 Hi ${username} Bossku 😘
+
 Kalau sudah join semua channel & group, amoi akan cuba bagi info paling untung untuk anda ❤️
 
-📌 Sila tekan butang di bawah untuk lihat promo-promo yang ada.`,
+━━━━━━━━━━━━━━━━━━
+📌 PILIH BUTANG DI BAWAH:
+━━━━━━━━━━━━━━━━━━
+
+🔗 Link: Channel, Group, Register
+📋 Step: Cuci free, contoh, ayat & gambar, hantar bukti`,
       ...inlineButtons
     }
   );
@@ -348,7 +349,7 @@ const callbackToMenuKey = {
   menu_stepcuci: "1️⃣ STEP CUCI FREE AMBIK SINI",
   menu_contohstep: "2️⃣ CONTOH STEP BETUL",
   menu_ayatgambar: "3️⃣ AYAT DAN GAMBAR POST AMBIK SINI",
-  menu_hantarbukti: "4️⃣ LEPAS DONE HANTAR BUKTI KAT ADMIN"
+  menu_hantarbukti: "4️⃣ DONE STEP HANTAR BUKTI ADMIN"
 };
 
 // Handler untuk inline button (4 item baru)
