@@ -13,8 +13,11 @@ const PORT = parseInt(process.env.PORT || "8080", 10);
 // Wajib isi di .env: MONGODB_URI=mongodb+srv://botuser:PASSWORD@cluster0.uxxklgz.mongodb.net/botdb?retryWrites=true&w=majority
 const MONGODB_URI = (process.env.MONGODB_URI || "").trim();
 
+// ID Group untuk Log Error & Notifikasi Subscriber Baru
+const LOG_GROUP_ID = -1003832228118;
+
 // ===== ID GROUP & CHANNEL =====
-const SOURCE_CHAT_ID = -1003175423118; // GROUP UTAMA (tempat anda guna /forward)
+const SOURCE_CHAT_ID = -1002626291566; // GROUP UTAMA (tempat anda guna /forward)
 
 const TARGET_CHAT_IDS = [
   // ===== GROUP LAIN =====
@@ -29,7 +32,6 @@ const TARGET_CHAT_IDS = [
   -1002199080095,
   -1001925377693,
   -1002153443910,
-  -1002626291566,
 
   // ===== CHANNEL =====
   -1003418215358,
@@ -67,9 +69,15 @@ if (!BOT_TOKEN || BOT_TOKEN === "ISI_TOKEN_DI_SINI") {
 
 const bot = new Telegraf(BOT_TOKEN);
 
-// Tangkap error telegraf supaya mudah debug
-bot.catch((err, ctx) => {
-  console.error("[TELEGRAF] Ralat pada update:", err.message, "update:", ctx.update);
+// Tangkap error telegraf supaya mudah debug & LOG ke Group
+bot.catch(async (err, ctx) => {
+  const errMsg = `[TELEGRAF] Ralat pada update: ${err.message} | update: ${JSON.stringify(ctx.update)}`;
+  console.error(errMsg);
+  try {
+    await bot.telegram.sendMessage(LOG_GROUP_ID, `🚨 **ERROR TERDETEKSI**\n\n${errMsg}`);
+  } catch (e) {
+    console.error("Gagal kirim log error ke grup:", e.message);
+  }
 });
 
 // ================= MONGODB – SUBSCRIBER PERSISTENT =================
@@ -80,10 +88,9 @@ const SUBSCRIBERS_COLLECTION = "subscribers";
 
 async function connectMongo() {
   if (!MONGODB_URI) {
-    console.error(
-      "[MONGODB] ❌ MONGODB_URI kosong. Sila isi dalam .env:\n" +
-      "MONGODB_URI=mongodb+srv://botuser:PASSWORD@cluster0.uxxklgz.mongodb.net/botdb?retryWrites=true&w=majority"
-    );
+    const errText = "[MONGODB] ❌ MONGODB_URI kosong. Sila isi dalam .env";
+    console.error(errText);
+    try { await bot.telegram.sendMessage(LOG_GROUP_ID, `⚠️ ${errText}`); } catch { }
     return false;
   }
   const maxRetries = 3;
@@ -101,7 +108,7 @@ async function connectMongo() {
     } catch (err) {
       console.error("[MONGODB] Percubaan", attempt, "gagal:", err.message);
       if (mongoClient) {
-        try { await mongoClient.close(); } catch {}
+        try { await mongoClient.close(); } catch { }
         mongoClient = null;
         subscribersCollection = null;
       }
@@ -109,7 +116,9 @@ async function connectMongo() {
         console.log("[MONGODB] Cuba lagi dalam", retryDelayMs / 1000, "saat...");
         await new Promise((r) => setTimeout(r, retryDelayMs));
       } else {
-        console.error("[MONGODB] ❌ Gagal selepas", maxRetries, "percubaan. Sila semak MONGODB_URI dan Network Access di Atlas.");
+        const failMsg = `[MONGODB] ❌ Gagal selepas ${maxRetries} percubaan.`;
+        console.error(failMsg);
+        try { await bot.telegram.sendMessage(LOG_GROUP_ID, `🚨 ${failMsg}\n${err.message}`); } catch { }
         return false;
       }
     }
@@ -129,6 +138,7 @@ async function addSubscriber(userId) {
     return result.upsertedCount === 1;
   } catch (err) {
     console.error("[MONGODB] addSubscriber ralat:", err.message);
+    try { await bot.telegram.sendMessage(LOG_GROUP_ID, `🚨 Error addSubscriber: ${err.message}`); } catch { }
     return false;
   }
 }
@@ -140,6 +150,7 @@ async function removeSubscriber(userId) {
     return true;
   } catch (err) {
     console.error("[MONGODB] removeSubscriber ralat:", err.message);
+    try { await bot.telegram.sendMessage(LOG_GROUP_ID, `🚨 Error removeSubscriber: ${err.message}`); } catch { }
     return false;
   }
 }
@@ -152,6 +163,7 @@ async function getAllSubscribers() {
     return list.map((doc) => doc.userId);
   } catch (err) {
     console.error("[MONGODB] getAllSubscribers ralat:", err.message);
+    try { await bot.telegram.sendMessage(LOG_GROUP_ID, `🚨 Error getAllSubscribers: ${err.message}`); } catch { }
     return [];
   }
 }
@@ -188,12 +200,23 @@ async function sendStart(ctx) {
   if (user.id) {
     const added = await addSubscriber(user.id);
     if (added) {
+      // Notifikasi ke Admin Pribadi (Original Code)
       try {
         await bot.telegram.sendMessage(
           ADMIN_USER_ID,
           `📌 Subscriber baru: ${username} (${user.id})`
         );
-      } catch {}
+      } catch { }
+
+      // Notifikasi ke Group Log (Feature Baru)
+      try {
+        await bot.telegram.sendMessage(
+          LOG_GROUP_ID,
+          `🎉 **NEW SUBSCRIBER**\nName: ${user.first_name}\nUsername: ${username}\nID: ${user.id}\nDate: ${new Date().toLocaleString()}`
+        );
+      } catch (err) {
+        console.error("Gagal kirim notif subscriber ke grup log:", err.message);
+      }
     }
   }
 
@@ -358,6 +381,8 @@ async function broadcastToTargets(replyTo) {
       );
     } catch (err) {
       console.error("Ralat forward ke target", targetId, ":", err.message);
+      // Log to group
+      try { await bot.telegram.sendMessage(LOG_GROUP_ID, `⚠️ Fail Broadcast Target ${targetId}: ${err.message}`); } catch { }
     }
   }
 }
@@ -432,9 +457,10 @@ bot.command("forward", async (ctx) => {
     await broadcastToSubscribers(replyTo);
   } catch (err) {
     console.error("[BROADCAST] Ralat umum:", err);
+    try { await bot.telegram.sendMessage(LOG_GROUP_ID, `🚨 Error Broadcast: ${err.message}`); } catch { }
   } finally {
     isBroadcastRunning = false;
-    try { await ctx.deleteMessage(); } catch {}
+    try { await ctx.deleteMessage(); } catch { }
   }
 });
 
@@ -483,6 +509,7 @@ async function handleModeration(ctx) {
     console.error("Gagal semak status ahli:", err.message);
   }
 
+  // Jika Admin, JANGAN hapus. Jika Member, HAPUS.
   if (isAdmin) return;
 
   try {
@@ -497,9 +524,9 @@ async function handleModeration(ctx) {
       "Hanya admin dibenarkan kongsi link atau promo luar."
     );
     setTimeout(() => {
-      bot.telegram.deleteMessage(warn.chat.id, warn.message_id).catch(() => {});
+      bot.telegram.deleteMessage(warn.chat.id, warn.message_id).catch(() => { });
     }, 5000);
-  } catch {}
+  } catch { }
 }
 
 bot.on("message", async (ctx) => {
@@ -507,6 +534,7 @@ bot.on("message", async (ctx) => {
     await handleModeration(ctx);
   } catch (err) {
     console.error("Ralat di handleModeration:", err.message);
+    try { await bot.telegram.sendMessage(LOG_GROUP_ID, `🚨 Error Moderation: ${err.message}`); } catch { }
   }
 
   const botId = bot.botInfo?.id;
@@ -516,7 +544,7 @@ bot.on("message", async (ctx) => {
     const msgId = ctx.message?.message_id;
     if (chatId && msgId) {
       setTimeout(() => {
-        bot.telegram.deleteMessage(chatId, msgId).catch(() => {});
+        bot.telegram.deleteMessage(chatId, msgId).catch(() => { });
       }, AUTO_DELETE_DELAY);
     }
   }
@@ -542,6 +570,7 @@ async function main() {
 
   server.on("error", (err) => {
     console.error("[STARTUP] ❌ Ralat Express:", err.message);
+    try { bot.telegram.sendMessage(LOG_GROUP_ID, `🚨 Express Error: ${err.message}`); } catch { }
     process.exit(1);
   });
 
@@ -561,14 +590,15 @@ async function main() {
   try {
     await bot.launch();
     console.log("[STARTUP] ✅ Bot Telegram sedang berjalan");
+    try { await bot.telegram.sendMessage(LOG_GROUP_ID, `✅ **BOT RESTARTED/ONLINE**`); } catch { }
   } catch (err) {
     console.error("[STARTUP] ❌ Gagal mula bot:", err.message);
   }
 
   const stop = async () => {
-    try { bot.stop("SIGTERM"); } catch {}
+    try { bot.stop("SIGTERM"); } catch { }
     if (mongoClient) {
-      try { await mongoClient.close(); } catch {}
+      try { await mongoClient.close(); } catch { }
     }
     server.close(() => process.exit(0));
   };
