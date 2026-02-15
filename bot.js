@@ -17,7 +17,9 @@ const MONGODB_URI = (process.env.MONGODB_URI || "").trim();
 const LOG_GROUP_ID = -1003832228118;
 
 // ===== ID GROUP & CHANNEL =====
-const SOURCE_CHAT_ID = -1002626291566; // GROUP UTAMA (tempat anda guna /forward)
+// ===== ID GROUP & CHANNEL =====
+const SOURCE_CHAT_ID = -1002626291566; // GROUP UTAMA (tempat admin guna /forward)
+const CHANNEL_ID = -1003175423118;     // CHANNEL UTAMA
 
 const TARGET_CHAT_IDS = [
   // ===== GROUP LAIN =====
@@ -474,6 +476,10 @@ async function handleModeration(ctx) {
 
   if (!ctx.from) return;
 
+  // 0. JANGAN GANGGU SESAMA BOT & ADMIN UTAMA (Anti-Suicide)
+  if (ctx.from.is_bot) return;
+  if (ctx.from.id === ADMIN_USER_ID) return;
+
   const msg = ctx.message;
   if (!msg) return;
 
@@ -496,7 +502,7 @@ async function handleModeration(ctx) {
 
   if (!hasLink && !hasBannedWord) return;
 
-  // Pengecualian: pemilik bot (ADMIN_USER_ID) sentiasa dibenarkan
+  // 1. Cek jika pengirim adalah Admin (Bypass Full)
   if (ctx.from.id === ADMIN_USER_ID) return;
 
   let isAdmin = false;
@@ -509,9 +515,13 @@ async function handleModeration(ctx) {
     console.error("Gagal semak status ahli:", err.message);
   }
 
-  // Jika Admin, JANGAN hapus. Jika Member, HAPUS.
   if (isAdmin) return;
 
+  // 2. Cek jika pesan adalah FORWARD dari Channel Utama / Admin / Group Utama (Bypass)
+  if (msg.forward_from_chat && (msg.forward_from_chat.id === CHANNEL_ID || msg.forward_from_chat.id === SOURCE_CHAT_ID)) return;
+  if (msg.forward_from && msg.forward_from.id === ADMIN_USER_ID) return;
+
+  // 3. Cek Link / Kata Terlarang
   try {
     await ctx.deleteMessage();
   } catch (err) {
