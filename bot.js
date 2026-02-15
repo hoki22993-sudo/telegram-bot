@@ -14,7 +14,7 @@ const PORT = parseInt(process.env.PORT || "8080", 10);
 const MONGODB_URI = (process.env.MONGODB_URI || "").trim();
 
 // ===== ID GROUP & CHANNEL =====
-const SOURCE_CHAT_ID = -1002626291566; // GROUP UTAMA (tempat anda guna /forward)
+const SOURCE_CHAT_ID = -1003175423118; // GROUP UTAMA (tempat anda guna /forward)
 
 const TARGET_CHAT_IDS = [
   // ===== GROUP LAIN =====
@@ -29,9 +29,9 @@ const TARGET_CHAT_IDS = [
   -1002199080095,
   -1001925377693,
   -1002153443910,
+  -1002626291566,
 
   // ===== CHANNEL =====
-  -1003175423118,
   -1003418215358,
   -1003410432304,
   -1003390131591,
