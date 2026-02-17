@@ -1,19 +1,20 @@
 {
-  "name": "bot-afb88-v2",
-  "version": "2.0.0",
-  "description": "Telegram Bot V2 for AFB88 Community Management",
-  "main": "bot_v2.js",
-  "scripts": {
-    "start": "node bot_v2.js",
-    "dev": "nodemon bot_v2.js"
-  },
-  "dependencies": {
-    "telegraf": "^4.16.3",
-    "dotenv": "^16.4.5",
-    "mongodb": "^6.5.0",
-    "express": "^4.19.2"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  }
+    "name": "bot-afb88-v2",
+    "version": "2.0.0",
+    "description": "Telegram Bot V2 for AFB88 Community Management",
+    "type": "module",
+    "main": "bot_v2.js",
+    "scripts": {
+        "start": "node bot_v2.js",
+        "dev": "nodemon bot_v2.js"
+    },
+    "dependencies": {
+        "telegraf": "^4.16.3",
+        "dotenv": "^16.4.5",
+        "mongodb": "^6.5.0",
+        "express": "^4.19.2"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    }
 }
