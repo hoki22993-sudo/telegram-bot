@@ -41,7 +41,8 @@ const CASH = {
     admins: [SUPER_ADMIN_ID], // Minimal ada super admin
     whitelistGroups: [SOURCE_CHAT_ID, LOG_GROUP_ID], // Grup yang bot tidak akan hapus pesan
     menuData: {}, // Dynamic Main Menu
-    linkMenuData: {} // Dynamic Link Menu
+    linkMenuData: {}, // Dynamic Link Menu
+    startMessage: {} // Dynamic Start Message
 };
 
 // ================= MONGODB SETUP =================
@@ -169,12 +170,25 @@ async function loadConfig() {
             CASH.linkMenuData = defaults;
         }
 
+        // 6. Start Message Data (NEW - FULL DYNAMIC)
+        const startMsg = await configColl.findOne({ key: "startMessage" });
+        if (startMsg && startMsg.value) CASH.startMessage = startMsg.value;
+        else {
+            const defaults = {
+                media: "https://media3.giphy.com/media/tXSLbuTIf37SjvE6QY/giphy.gif",
+                text: "👋 Hi %USERNAME% Bossku 😘\n\nKalau sudah join semua channel & group, amoi akan cuba bagi info paling untung untuk anda ❤️"
+            };
+            await configColl.updateOne({ key: "startMessage" }, { $set: { value: defaults } }, { upsert: true });
+            CASH.startMessage = defaults;
+        }
+
         console.log("✅ Config Dimuat:",
             `\n- ${CASH.bannedWords.length} Banned Words`,
             `\n- ${CASH.targetGroups.length} Target Groups`,
             `\n- ${CASH.admins.length} Admins`,
             `\n- ${Object.keys(CASH.menuData).length} Menu Items`,
-            `\n- ${Object.keys(CASH.linkMenuData).length} Link Items`
+            `\n- ${Object.keys(CASH.linkMenuData).length} Link Items`,
+            `\n- Start Message Loaded`
         );
     } catch (err) {
         console.error("Gagal load config:", err);
@@ -410,6 +424,24 @@ bot.action("cancel_action", async (ctx) => {
     await ctx.reply("👌 Operasi dibatalkan.");
 });
 
+// 5. Manage Start Message (NEW)
+bot.command("setstart", async (ctx) => {
+    if (!isAdmin(ctx.from.id)) return;
+    const args = ctx.payload.split("|").map(s => s.trim());
+    if (args.length < 2) return ctx.reply("❌ Format Salah!\nGuna: `/setstart LinkMedia | Teks Sambutan`\n\nTips: Guna `%USERNAME%` untuk panggil nama user.", { parse_mode: "Markdown" });
+
+    const [media, text] = args;
+
+    if (!isValidUrl(media)) return ctx.reply("❌ Error: Link Media tak valid.");
+
+    CASH.startMessage = { media, text };
+    await saveConfig("startMessage", CASH.startMessage);
+
+    // Preview
+    await ctx.replyWithAnimation(media, { caption: text.replace("%USERNAME%", "Admin") });
+    await ctx.reply("✅ Pesan /start berjaya diupdate!");
+});
+
 
 // ================= SISTEM MODERASI & WARNING =================
 async function warnUser(ctx, userId, chatId, reason) {
@@ -541,15 +573,26 @@ async function sendStart(ctx) {
         if (row.length > 0) linkButtons.push(row);
     }
 
-    // 2. Menu Buttons (Keyboard)
+    // 2. Menu Buttons (Keyboard) - DESAIN KEREN 2 KOLOM
     const menuKeys = Object.keys(CASH.menuData);
-    // Split menu keys into rows (e.g., 2 per row if many, or 1 per row)
-    // Here logic: just stack them or 1 per row for clarity? Original had 1 per row usually.
-    const uniqueMenuKeys = [...new Set([...menuKeys, ...Object.keys(CASH.linkMenuData)])];
-    const replyKeyboard = uniqueMenuKeys.map(k => [k]);
+    const uniqueMenuKeys = [...new Set([...menuKeys])]; // Link buttons dipisah aja biar rapi
 
-    await ctx.replyWithAnimation("https://media3.giphy.com/media/tXSLbuTIf37SjvE6QY/giphy.gif", {
-        caption: `👋 Hi ${username} Bossku 😘\n\nKalau sudah join semua channel & group, amoi akan cuba bagi info paling untung untuk anda ❤️`,
+    // Susun jadi 2 kolom baris demi baris
+    const replyKeyboard = [];
+    for (let i = 0; i < uniqueMenuKeys.length; i += 2) {
+        const row = [];
+        if (uniqueMenuKeys[i]) row.push(uniqueMenuKeys[i]);
+        if (uniqueMenuKeys[i + 1]) row.push(uniqueMenuKeys[i + 1]);
+        replyKeyboard.push(row);
+    }
+
+    // Ambil Data Start Message dari Config
+    const media = CASH.startMessage?.media || "https://media3.giphy.com/media/tXSLbuTIf37SjvE6QY/giphy.gif";
+    const rawText = CASH.startMessage?.text || "👋 Hi %USERNAME% Bossku 😘";
+    const finalCaption = rawText.replace("%USERNAME%", username);
+
+    await ctx.replyWithAnimation(media, {
+        caption: finalCaption,
         ...Markup.inlineKeyboard(linkButtons)
     });
 
