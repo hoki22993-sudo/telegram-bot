@@ -571,9 +571,11 @@ bot.command("forward", async (ctx) => {
     if (ctx.chat.id !== SOURCE_CHAT_ID) return;
     if (!ctx.message.reply_to_message) return ctx.reply("⚠️ Reply pesan yang mau dibroadcast.");
 
-    if (isBroadcastRunning) return ctx.reply("⚠️ Sedang broadcast...");
+    if (isBroadcastRunning) return ctx.deleteMessage().catch(() => { }); // Silent ignore
     isBroadcastRunning = true;
-    ctx.reply("🚀 Broadcast dimulai...");
+
+    // Auto delete command user
+    ctx.deleteMessage().catch(() => { });
 
     const replyTo = ctx.message.reply_to_message;
 
@@ -594,8 +596,7 @@ bot.command("forward", async (ctx) => {
     let sentSubs = 0;
 
     if (subscribers.length > 0) {
-        ctx.reply(`📨 Mengirim ke ${subscribers.length} subscribers...`);
-
+        // Silent process
         for (let i = 0; i < subscribers.length; i += SUB_BATCH_SIZE) {
             const batch = subscribers.slice(i, i + SUB_BATCH_SIZE);
             await Promise.all(batch.map(async (sub) => {
@@ -615,7 +616,8 @@ bot.command("forward", async (ctx) => {
     }
 
     isBroadcastRunning = false;
-    ctx.reply(`✅ Broadcast Selesai.\nGroups: ${sentGroups}\nSubscribers: ${sentSubs}`);
+    // Selesai tanpa notif chat, cukup di console log admin
+    console.log(`✅ Broadcast Selesai. Groups: ${sentGroups}, Subs: ${sentSubs}`);
 });
 
 
