@@ -10,7 +10,13 @@ dotenv.config();
 const BOT_TOKEN = process.env.BOT_TOKEN || "ISI_TOKEN_DI_SINI";
 // Admin Utama (Super Admin) - Tidak bisa dihapus lewat command
 const SUPER_ADMIN_ID = 8146896736;
-const PORT = parseInt(process.env.PORT || "8080", 10);
+// Validasi PORT lebih ketat untuk cegah crash di hosting
+const PORT_ENV = process.env.PORT || "8080";
+let PORT = parseInt(PORT_ENV, 10);
+if (isNaN(PORT)) {
+    console.warn(`⚠️ PORT '${PORT_ENV}' tidak valid! Menggunakan default 8080.`);
+    PORT = 8080;
+}
 const MONGODB_URI = (process.env.MONGODB_URI || "").trim();
 
 // Helper: Validasi URL
