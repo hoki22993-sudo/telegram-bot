@@ -558,33 +558,20 @@ async function sendStart(ctx) {
 
     // Generate Dynamic Buttons
     // 1. Link Buttons (Inline)
-    const linkButtons = [];
     const linkKeys = Object.keys(CASH.linkMenuData);
-    for (let i = 0; i < linkKeys.length; i += 2) {
-        const row = [];
-        if (linkKeys[i]) {
-            const data = CASH.linkMenuData[linkKeys[i]];
-            row.push(Markup.button.url(data.label, data.url));
-        }
-        if (linkKeys[i + 1]) {
-            const data = CASH.linkMenuData[linkKeys[i + 1]];
-            row.push(Markup.button.url(data.label, data.url));
-        }
-        if (row.length > 0) linkButtons.push(row);
-    }
 
-    // 2. Menu Buttons (Keyboard) - DESAIN KEREN 2 KOLOM
+    // Susun jadi 1 kolom biar rapi & presisi di HP tidak terpoton
+    const linkButtons = linkKeys.map(key => {
+        const data = CASH.linkMenuData[key];
+        return [Markup.button.url(data.label, data.url)]; // 1 row = 1 button
+    });
+
+    // 2. Menu Buttons (Keyboard) - DESAIN KEREN 1 KOLOM (supaya rapi di HP)
     const menuKeys = Object.keys(CASH.menuData);
-    const uniqueMenuKeys = [...new Set([...menuKeys])]; // Link buttons dipisah aja biar rapi
+    const uniqueMenuKeys = [...new Set([...menuKeys])];
 
-    // Susun jadi 2 kolom baris demi baris
-    const replyKeyboard = [];
-    for (let i = 0; i < uniqueMenuKeys.length; i += 2) {
-        const row = [];
-        if (uniqueMenuKeys[i]) row.push(uniqueMenuKeys[i]);
-        if (uniqueMenuKeys[i + 1]) row.push(uniqueMenuKeys[i + 1]);
-        replyKeyboard.push(row);
-    }
+    // Susun jadi 1 kolom (lebih rapi & tidak terpotong)
+    const replyKeyboard = uniqueMenuKeys.map(key => [key]);
 
     // Ambil Data Start Message dari Config
     const media = CASH.startMessage?.media || "https://media3.giphy.com/media/tXSLbuTIf37SjvE6QY/giphy.gif";
