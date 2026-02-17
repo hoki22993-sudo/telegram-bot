@@ -501,74 +501,6 @@ async function handleModeration(ctx) {
 }
 
 
-// ================= FEEDBACK SYSTEM & DYNAMIC HANDLER =================
-bot.on("message", async (ctx) => {
-    const msg = ctx.message;
-    const text = (msg.text || "").toString();
-
-    // 1. Jika di Private Chat (User -> Bot)
-    if (ctx.chat.type === "private") {
-        // Abaikan command
-        if (text.startsWith("/")) return;
-
-        // A. Cek Dynamic Link Menu
-        if (CASH.linkMenuData[text]) {
-            const data = CASH.linkMenuData[text];
-            return await ctx.reply("Tekan butang di bawah untuk buka:", {
-                ...Markup.inlineKeyboard([[Markup.button.url(data.label, data.url)]])
-            });
-        }
-
-        // B. Cek Dynamic Main Menu
-        if (CASH.menuData[text]) {
-            const data = CASH.menuData[text];
-            try {
-                return await ctx.replyWithPhoto(data.media, {
-                    caption: data.caption,
-                    ...Markup.inlineKeyboard([[Markup.button.url("CLAIM 🎁", data.url)]])
-                });
-            } catch (err) {
-                console.error("Ralat hantar foto:", err.message);
-                return await ctx.reply(data.caption + `\n\n🔗 ${data.url}`, {
-                    ...Markup.inlineKeyboard([[Markup.button.url("CLAIM 🎁", data.url)]])
-                });
-            }
-        }
-
-        // C. Default: Forward pesan user ke LOG GROUP (Feedback System)
-        try {
-            const fwd = await ctx.forwardMessage(LOG_GROUP_ID);
-            // Reply ke user bahwa pesan diterima (opsional, biar gak spamming user)
-            // await ctx.reply("📩 Pesan anda telah diteruskan ke admin.");
-        } catch (err) {
-            console.error("Gagal forward feedback:", err);
-        }
-    }
-
-    // 2. Jika di Log Group (Admin Reply -> User)
-    else if (ctx.chat.id === LOG_GROUP_ID) {
-        if (ctx.message.reply_to_message && ctx.message.reply_to_message.forward_origin) {
-            const origin = ctx.message.reply_to_message.forward_origin;
-            if (origin.type === "user") {
-                const targetUserId = origin.sender_user.id;
-                try {
-                    // Copy pesan admin kembali ke user
-                    await ctx.copyMessage(targetUserId);
-                    await ctx.reply("✅ Balasan terkirim.");
-                } catch (e) {
-                    await ctx.reply(`❌ Gagal kirim (User block bot?): ${e.message}`);
-                }
-            }
-        }
-    }
-
-    // 3. Moderasi Grup
-    else {
-        await handleModeration(ctx);
-    }
-});
-
-
 // ================= MENU & LOGIC LAMA (DIPERTAHANKAN) =================
 // (Bagian ini sama dengan bot lama: /start, menu, broadcast)
 
@@ -684,6 +616,74 @@ bot.command("forward", async (ctx) => {
 
     isBroadcastRunning = false;
     ctx.reply(`✅ Broadcast Selesai.\nGroups: ${sentGroups}\nSubscribers: ${sentSubs}`);
+});
+
+
+// ================= FEEDBACK SYSTEM & DYNAMIC HANDLER =================
+bot.on("message", async (ctx) => {
+    const msg = ctx.message;
+    const text = (msg.text || "").toString();
+
+    // 1. Jika di Private Chat (User -> Bot)
+    if (ctx.chat.type === "private") {
+        // Abaikan command
+        if (text.startsWith("/")) return;
+
+        // A. Cek Dynamic Link Menu
+        if (CASH.linkMenuData[text]) {
+            const data = CASH.linkMenuData[text];
+            return await ctx.reply("Tekan butang di bawah untuk buka:", {
+                ...Markup.inlineKeyboard([[Markup.button.url(data.label, data.url)]])
+            });
+        }
+
+        // B. Cek Dynamic Main Menu
+        if (CASH.menuData[text]) {
+            const data = CASH.menuData[text];
+            try {
+                return await ctx.replyWithPhoto(data.media, {
+                    caption: data.caption,
+                    ...Markup.inlineKeyboard([[Markup.button.url("CLAIM 🎁", data.url)]])
+                });
+            } catch (err) {
+                console.error("Ralat hantar foto:", err.message);
+                return await ctx.reply(data.caption + `\n\n🔗 ${data.url}`, {
+                    ...Markup.inlineKeyboard([[Markup.button.url("CLAIM 🎁", data.url)]])
+                });
+            }
+        }
+
+        // C. Default: Forward pesan user ke LOG GROUP (Feedback System)
+        try {
+            const fwd = await ctx.forwardMessage(LOG_GROUP_ID);
+            // Reply ke user bahwa pesan diterima (opsional, biar gak spamming user)
+            // await ctx.reply("📩 Pesan anda telah diteruskan ke admin.");
+        } catch (err) {
+            console.error("Gagal forward feedback:", err);
+        }
+    }
+
+    // 2. Jika di Log Group (Admin Reply -> User)
+    else if (ctx.chat.id === LOG_GROUP_ID) {
+        if (ctx.message.reply_to_message && ctx.message.reply_to_message.forward_origin) {
+            const origin = ctx.message.reply_to_message.forward_origin;
+            if (origin.type === "user") {
+                const targetUserId = origin.sender_user.id;
+                try {
+                    // Copy pesan admin kembali ke user
+                    await ctx.copyMessage(targetUserId);
+                    await ctx.reply("✅ Balasan terkirim.");
+                } catch (e) {
+                    await ctx.reply(`❌ Gagal kirim (User block bot?): ${e.message}`);
+                }
+            }
+        }
+    }
+
+    // 3. Moderasi Grup
+    else {
+        await handleModeration(ctx);
+    }
 });
 
 
