@@ -1,5 +1,5 @@
 // bot_v2_wizard.js - Versi Upgrade (Interactive Panel & Wizard Mode + Moderation) - EDISI MALAYSIA
-// 100% HEALTH CHECK COMPLIANT + DEBUGGER ✅
+// 100% HEALTH CHECK COMPLIANT + SUPER DEBUGGER ✅
 
 import { Telegraf, Markup } from "telegraf";
 import dotenv from "dotenv";
@@ -74,8 +74,9 @@ async function loadConfig() {
             }
         });
         await load("linkMenuData", {});
+
         await load("startMessage", {
-            media: "https://media3.giphy.com/media/tXSLbuTIf37SjvE6QY/giphy.gif",
+            media: "https://media.giphy.com/media/tXSLbuTIf37SjvE6QY/giphy.gif", // GIF default
             text: "👋 Hi %USERNAME% Bossku 😘"
         });
 
@@ -102,15 +103,45 @@ bot.use(async (ctx, next) => {
     if (ctx.updateType === 'message') {
         const user = ctx.from.username || ctx.from.first_name || "Unknown";
         console.log(`📩 INCOMING MSG [${user}]: ${ctx.message.text || ctx.message.caption || "Media"}`);
+        // Log Error Reply
     } else if (ctx.updateType === 'callback_query') {
         console.log(`🖱 CLICK BUTTON: ${ctx.callbackQuery.data}`);
     }
-    await next(); // Lanjut ke logic berikutnya
+    await next();
 });
 
 // Catch Errors
 bot.catch((err, ctx) => {
     console.error(`❌ Telegraf Error for ${ctx.updateType}:`, err);
+});
+
+// =================== CRITICAL FIX: START COMMAND MUST BE FIRST! ===================
+bot.start(async (ctx) => {
+    // 1. Log Start
+    console.log("⚡ PROCESSING /START...");
+    try { await subscribersColl.updateOne({ userId: ctx.from.id }, { $set: { userId: ctx.from.id } }, { upsert: true }); } catch { }
+
+    // 2. Load Config
+    let { media, text } = CASH.startMessage;
+    // Fallback if media broken
+    if (!media) media = "https://media.giphy.com/media/tXSLbuTIf37SjvE6QY/giphy.gif";
+
+    const caption = text.replace("%USERNAME%", ctx.from.first_name || "Bossku");
+    const kfc = Object.keys(CASH.menuData).map(k => [k]);
+    const opts = { caption, reply_markup: { keyboard: kfc, resize_keyboard: true } };
+
+    // 3. TRY TO REPLY
+    try {
+        if (media.match(/\.(jpg|png|jpeg)/i) || !media.startsWith("http")) await ctx.replyWithPhoto(media, opts);
+        else await ctx.replyWithAnimation(media, opts);
+        console.log("✅ START REPLIED SUCESSFULLY");
+    } catch (e) {
+        console.error("❌ START REPLY ERROR (MEDIA):", e.message);
+        // 4. FALLBACK TEXT ONLY
+        await ctx.reply(`👋 Hi ${ctx.from.first_name || "Bossku"}!\n(Gambar gagal loading, tapi menu di bawah tetap aktif 👇)`, {
+            reply_markup: { keyboard: kfc, resize_keyboard: true }
+        });
+    }
 });
 
 // --- 1. PANEL PERINTAH ---
@@ -309,16 +340,6 @@ bot.on("message", async (ctx) => {
         if (!text.startsWith("/")) await ctx.forwardMessage(LOG_GROUP_ID).catch(() => { });
     }
     if (!isPrivate) await handleModeration(ctx);
-});
-
-bot.start(async (ctx) => {
-    try { await subscribersColl.updateOne({ userId: ctx.from.id }, { $set: { userId: ctx.from.id } }, { upsert: true }); } catch { }
-    const { media, text } = CASH.startMessage;
-    const caption = text.replace("%USERNAME%", ctx.from.first_name || "Bossku");
-    const kfc = Object.keys(CASH.menuData).map(k => [k]);
-    const opts = { caption, reply_markup: { keyboard: kfc, resize_keyboard: true } };
-    if (media.match(/\.(jpg|png|jpeg)/i) || !media.startsWith("http")) await ctx.replyWithPhoto(media, opts);
-    else await ctx.replyWithAnimation(media, opts);
 });
 
 // ================= 5. EXPRESS SERVER & LAUNCHER =================
