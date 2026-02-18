@@ -29,6 +29,9 @@ const CASH = {
     startMessage: {}
 };
 
+// Undo/Rollback Storage (Temporary Memory)
+let LAST_BROADCAST = [];
+
 // ================= MONGODB CONNECT =================
 let mongoClient = null;
 let db = null;
@@ -203,7 +206,7 @@ bot.action(/^do_rm_link_(.+)$/, async (ctx) => {
 // Start & Broadcast
 bot.action("manage_start", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_START_MEDIA", data: {} }; ctx.editMessageText("1️⃣ **LANGKAH 1/2**\nSila hantar **GAMBAR/LINK** baru:", { parse_mode: "Markdown" }); });
 bot.action("manage_broadcast", (ctx) => {
-    ctx.editMessageText(`📢 **SISTEM BROADCAST**\n1️⃣ Hantar promo ke **Group Asal (Source)**\n2️⃣ **Reply** mesej tersebut\n3️⃣ Taip command: \`/forward\``, { parse_mode: "Markdown", ...Markup.inlineKeyboard([[Markup.button.callback("🔙 Kembali", "back_home")]]) });
+    ctx.editMessageText(`📢 **SISTEM BROADCAST**\n1️⃣ Hantar promo ke **Group Asal (Source)**\n2️⃣ **Reply** mesej tersebut\n3️⃣ Taip command: \`/forward\`\n\n(❗️ Taip \`/undo\` jika tersalah hantar)`, { parse_mode: "Markdown", ...Markup.inlineKeyboard([[Markup.button.callback("🔙 Kembali", "back_home")]]) });
 });
 
 // Admin & Ban Logic
@@ -310,30 +313,46 @@ bot.on("message", async (ctx) => {
         }
     }
 
+    // Undo Logic (New)
+    if (text === "/undo" && isAdmin(userId)) {
+        await ctx.deleteMessage().catch(() => { }); // Delete command
+        if (LAST_BROADCAST.length === 0) {
+            const m = await ctx.reply("⚠️ Tiada broadcast terakhir untuk dibatalkan.");
+            setTimeout(() => ctx.telegram.deleteMessage(ctx.chat.id, m.message_id).catch(() => { }), 3000);
+            return;
+        }
+
+        const mStats = await ctx.reply(`⏳ Membatalkan ${LAST_BROADCAST.length} mesej...`);
+        let successCount = 0;
+        for (const item of LAST_BROADCAST) {
+            try {
+                await bot.telegram.deleteMessage(item.chat_id, item.message_id);
+                successCount++;
+            } catch (e) { }
+        }
+        LAST_BROADCAST = []; // Clear log
+        await bot.telegram.editMessageText(ctx.chat.id, mStats.message_id, null, `✅ Berjaya membatalkan ${successCount} mesej.`);
+        setTimeout(() => ctx.telegram.deleteMessage(ctx.chat.id, mStats.message_id).catch(() => { }), 3000);
+        return;
+    }
+
     // Broadcast logic
     if (ctx.chat.id === SOURCE_CHAT_ID && text === "/forward" && ctx.message.reply_to_message && isAdmin(userId)) {
         await ctx.deleteMessage().catch(() => { });
         const r = ctx.message.reply_to_message;
-        const statusMsg = await ctx.reply("🚀 Sedang Menghantar...");
         const subs = await subscribersColl.find({}).toArray();
         const targets = [...subs.map(s => s.userId), ...CASH.targetGroups.filter(g => g !== SOURCE_CHAT_ID)];
 
-        // ** LOGIC BROADCAST STRICT: FORWARD ONLY **
-        // User request: "Jangan Copy/Clone" & "Mau muncul forward from saja"
-        // Ini berarti kita harus SELALU memakai `forwardMessage`.
-        // Jika pesan berasal dari Channel, akan muncul "Forwarded from Channel".
-        // Jika pesan berasal dari Admin, akan muncul "Forwarded from Admin".
+        // Reset Last Tracking
+        LAST_BROADCAST = [];
 
         for (const t of targets) {
             try {
-                // Selalu Forward (Sesuai Permintaan)
-                await bot.telegram.forwardMessage(t, r.chat.id, r.message_id);
-            } catch (e) {
-                // Jika gagal (contoh: user block bot), lanjut ke user berikutnya
-            }
+                const s = await bot.telegram.forwardMessage(t, r.chat.id, r.message_id);
+                LAST_BROADCAST.push({ chat_id: t, message_id: s.message_id });
+            } catch (e) { }
         }
 
-        setTimeout(() => { bot.telegram.deleteMessage(ctx.chat.id, statusMsg.message_id).catch(() => { }); }, 2000);
         return;
     }
 
