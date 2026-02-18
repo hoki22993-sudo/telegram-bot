@@ -242,6 +242,9 @@ bot.on("message", async (ctx) => {
     const text = ctx.message.text || "";
     const isPrivate = ctx.chat.type === "private";
 
+    // DEBUG (Untuk cek masuk atau tidak)
+    console.log(`📩 Mesej dari ${ctx.from.username} (${userId}): ${text.substring(0, 20)}...`);
+
     // A. WIZARD STATE
     if (isAdmin(userId) && adminState[userId]) {
         const state = adminState[userId];
@@ -418,13 +421,17 @@ async function startServices() {
     try {
         await connectMongo(); // Connect DB
 
+        // --- 🔴 FIXED: FORCE DELETE WEBHOOK ---
+        // Kalau pernah pakai webhook sebelumnya, ini yang bikin stuck.
+        await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+        console.log("✅ Webhook DELETED (Supaya Polling Jalan)");
+
         // Launch Bot with Retry Logic
         await bot.launch();
         console.log("✅ Bot Telegram STARTED Successfully!");
 
     } catch (error) {
         console.error("❌ Service Startup Error:", error);
-        // Don't kill process, let Express keep running so container stays alive
     }
 }
 
