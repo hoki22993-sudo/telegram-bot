@@ -130,19 +130,33 @@ bot.start(async (ctx) => {
     if (!media) media = "https://media.giphy.com/media/tXSLbuTIf37SjvE6QY/giphy.gif";
 
     const caption = text.replace("%USERNAME%", ctx.from.first_name || "Bossku");
+
+    // A. SIAPKAN INLINE BUTTONS (Dari Link Menu)
+    const inlineButtons = Object.values(CASH.linkMenuData).map(d => Markup.button.url(d.label, d.url));
+    const inlineKbd = inlineButtons.length > 0 ? Markup.inlineKeyboard(inlineButtons, { columns: 2 }) : null;
+
+    // B. SIAPKAN REPLY KEYBOARD (Dari Menu Data)
     const kfc = Object.keys(CASH.menuData).map(k => [k]);
-    const opts = { caption, reply_markup: { keyboard: kfc, resize_keyboard: true } };
+    const replyKbd = { keyboard: kfc, resize_keyboard: true };
 
     // 3. TRY TO REPLY
     try {
-        if (media.match(/\.(jpg|png|jpeg)/i) || !media.startsWith("http")) await ctx.replyWithPhoto(media, opts);
-        else await ctx.replyWithAnimation(media, opts);
+        // Kirim Gambar + Inline Buttons (Jika Ada)
+        if (media.match(/\.(jpg|png|jpeg)/i) || !media.startsWith("http")) {
+            await ctx.replyWithPhoto(media, { caption, ...inlineKbd });
+        } else {
+            await ctx.replyWithAnimation(media, { caption, ...inlineKbd });
+        }
+
+        // Kirim Menu Utama (Reply Keyboard) Terpisah (Agar Muncul Dua-Duanya)
+        await ctx.reply("👇 Sila Pilih Menu Utama:", { reply_markup: replyKbd });
+
         console.log("✅ START REPLIED SUCESSFULLY");
     } catch (e) {
         console.error("❌ START REPLY ERROR (MEDIA):", e.message);
         // 4. FALLBACK TEXT ONLY
         await ctx.reply(`👋 Hi ${ctx.from.first_name || "Bossku"}!\n(Gambar gagal loading, tapi menu di bawah tetap aktif 👇)`, {
-            reply_markup: { keyboard: kfc, resize_keyboard: true }
+            reply_markup: replyKbd
         });
     }
 });
