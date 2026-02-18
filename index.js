@@ -17,6 +17,7 @@ const MONGODB_URI = (process.env.MONGODB_URI || "").trim();
 const LOG_GROUP_ID = -1003832228118;
 const SOURCE_CHAT_ID = -1002626291566;
 const CHANNEL_ID = -1003175423118;
+const CHANNEL_USERNAME = "AFB88_OFFICIAL"; // Ganti dengan username channel tanpa @
 
 // ================= STATE MANAGEMENT =================
 const adminState = {};
@@ -26,7 +27,8 @@ const CASH = {
     admins: [SUPER_ADMIN_ID],
     menuData: {},
     linkMenuData: {},
-    startMessage: {}
+    startMessage: {},
+    menuTitle: "👇 Sila Pilih Menu Utama:" // Default Title
 };
 
 // Undo/Rollback Storage (Temporary Memory)
@@ -83,6 +85,8 @@ async function loadConfig() {
             text: "👋 Hi %USERNAME% Bossku 😘"
         });
 
+        await load("menuTitle", "👇 Sila Pilih Menu Utama:");
+
         if (!CASH.admins.includes(SUPER_ADMIN_ID)) CASH.admins.push(SUPER_ADMIN_ID);
 
     } catch (e) {
@@ -100,31 +104,55 @@ async function saveConfig(key, value) {
 const bot = new Telegraf(BOT_TOKEN);
 const isAdmin = (id) => CASH.admins.includes(id);
 
-// --- 0. GLOBAL DEBUGGER (Confirm Update Receipt) ---
+// --- 0. GLOBAL MIDDLEWARE & DEBUGGER ---
 bot.use(async (ctx, next) => {
-    // Log setiap update yang masuk
+    // Log setiap update
     if (ctx.updateType === 'message') {
         const user = ctx.from.username || ctx.from.first_name || "Unknown";
         console.log(`📩 INCOMING MSG [${user}]: ${ctx.message.text || ctx.message.caption || "Media"}`);
-        // Log Error Reply
-    } else if (ctx.updateType === 'callback_query') {
-        console.log(`🖱 CLICK BUTTON: ${ctx.callbackQuery.data}`);
     }
+
+
+
     await next();
 });
+
+// Callback untuk Check Sub (Jika sudah join, user tekan ini)
+
 
 // Catch Errors
 bot.catch((err, ctx) => {
     console.error(`❌ Telegraf Error for ${ctx.updateType}:`, err);
 });
 
-// =================== CRITICAL FIX: START COMMAND MUST BE FIRST! ===================
+// =================== WELCOME MESSAGE (NEW MEMBER) ===================
+bot.on("new_chat_members", async (ctx) => {
+    const newMembers = ctx.message.new_chat_members;
+    for (const member of newMembers) {
+        if (member.is_bot) continue;
+        const name = member.first_name || "Bossku";
+
+        const welcomeText = `
+👋 **SELAMAT DATANG / WELCOME** ${name}!
+
+🇲🇾 Selamat datang ke Group Official kami! Sila baca rules & enjoy.
+🇬🇧 Welcome to our Official Group! Please read the rules & enjoy.
+
+🚀 *Jangan lupa check Pinned Message!*
+`;
+        try {
+            const m = await ctx.reply(welcomeText, { parse_mode: "Markdown" });
+            // Auto Delete after 30 seconds
+            setTimeout(() => ctx.telegram.deleteMessage(ctx.chat.id, m.message_id).catch(() => { }), 30000);
+        } catch (e) { }
+    }
+});
+
+// =================== START COMMAND ===================
 bot.start(async (ctx) => {
-    // 1. Log Start
     console.log("⚡ PROCESSING /START...");
     try { await subscribersColl.updateOne({ userId: ctx.from.id }, { $set: { userId: ctx.from.id } }, { upsert: true }); } catch { }
 
-    // 2. Load Config
     let { media, text } = CASH.startMessage;
     // Fallback if media broken
     if (!media) media = "https://media.giphy.com/media/tXSLbuTIf37SjvE6QY/giphy.gif";
@@ -147,18 +175,14 @@ bot.start(async (ctx) => {
         } else {
             await ctx.replyWithAnimation(media, { caption, ...inlineKbd });
         }
-
-        // Kirim Menu Utama (Reply Keyboard) Terpisah (Agar Muncul Dua-Duanya)
-        await ctx.reply("👇 Sila Pilih Menu Utama:", { reply_markup: replyKbd });
-
-        console.log("✅ START REPLIED SUCESSFULLY");
     } catch (e) {
         console.error("❌ START REPLY ERROR (MEDIA):", e.message);
-        // 4. FALLBACK TEXT ONLY
-        await ctx.reply(`👋 Hi ${ctx.from.first_name || "Bossku"}!\n(Gambar gagal loading, tapi menu di bawah tetap aktif 👇)`, {
-            reply_markup: replyKbd
-        });
+        // Fallback Text Only + Inline
+        await ctx.reply(caption, { ...inlineKbd });
     }
+
+    // Kirim Menu Utama (Reply Keyboard) Terpisah dengan Judul Konfigurable
+    await ctx.reply(CASH.menuTitle || "👇 Sila Pilih Menu Utama:", { reply_markup: replyKbd });
 });
 
 // --- 1. PANEL PERINTAH (BAHASA MALAYSIA) ---
@@ -169,7 +193,7 @@ bot.command("panel", async (ctx) => {
         parse_mode: "Markdown",
         ...Markup.inlineKeyboard([
             [Markup.button.callback("🔘 Menu Utama (Butang)", "manage_menu"), Markup.button.callback("🔗 Link (Inline)", "manage_link")],
-            [Markup.button.callback("🏁 Mesej Start", "manage_start"), Markup.button.callback("📢 Sistem Broadcast", "manage_broadcast")],
+            [Markup.button.callback("🏁 Mesej Start & Title", "manage_start"), Markup.button.callback("📢 Sistem Broadcast", "manage_broadcast")],
             [Markup.button.callback("👮 Urus Admin & Group", "manage_admin"), Markup.button.callback("🛡 Senarai Kata Terlarang", "manage_ban")],
             [Markup.button.callback("❌ Tutup Panel", "close_panel")]
         ])
@@ -218,7 +242,7 @@ bot.action(/^do_rm_link_(.+)$/, async (ctx) => {
 });
 
 // Start & Broadcast
-bot.action("manage_start", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_START_MEDIA", data: {} }; ctx.editMessageText("1️⃣ **LANGKAH 1/2**\nSila hantar **GAMBAR/LINK** baru:", { parse_mode: "Markdown" }); });
+bot.action("manage_start", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_START_MEDIA", data: {} }; ctx.editMessageText("1️⃣ **LANGKAH 1/3**\nSila hantar **GAMBAR/LINK** baru:", { parse_mode: "Markdown" }); });
 bot.action("manage_broadcast", (ctx) => {
     ctx.editMessageText(`📢 **SISTEM BROADCAST**\n1️⃣ Hantar promo ke **Group Asal (Source)**\n2️⃣ **Reply** mesej tersebut\n3️⃣ Taip command: \`/forward\`\n\n(❗️ Taip \`/undo\` jika tersalah hantar)`, { parse_mode: "Markdown", ...Markup.inlineKeyboard([[Markup.button.callback("🔙 Kembali", "back_home")]]) });
 });
@@ -274,6 +298,7 @@ bot.on("message", async (ctx) => {
     const text = ctx.message.text || "";
     const isPrivate = ctx.chat.type === "private";
 
+    // A. ADMIN WIZARD
     if (isAdmin(userId) && adminState[userId]) {
         const state = adminState[userId];
         if (text && ["batal", "/cancel"].includes(text.toLowerCase())) { delete adminState[userId]; return ctx.reply("🚫 Tindakan dibatalkan.", Markup.removeKeyboard()); }
@@ -320,33 +345,55 @@ bot.on("message", async (ctx) => {
         // Start Msg
         if (state.action === "WAIT_START_MEDIA") {
             state.data.media = (text.toLowerCase() === "skip" ? CASH.startMessage.media : (ctx.message.photo ? ctx.message.photo.pop().file_id : text));
-            state.action = "WAIT_START_TEXT"; return ctx.reply("2️⃣ **TEXT**:");
+            state.action = "WAIT_START_TEXT"; return ctx.reply("2️⃣ **TEXT** (Caption / Kata-kata):");
         }
         if (state.action === "WAIT_START_TEXT") {
-            CASH.startMessage = { media: state.data.media, text }; await saveConfig("startMessage", CASH.startMessage); ctx.reply("🎉 Mesej Start berjaya dikemaskini!"); delete adminState[userId]; return;
+            state.data.text = text;
+            state.action = "WAIT_START_TITLE"; return ctx.reply("3️⃣ **MENU TITLE** (Cth: 👇 Sila Pilih Menu):");
+        }
+        if (state.action === "WAIT_START_TITLE") {
+            CASH.startMessage = { media: state.data.media, text: state.data.text };
+            CASH.menuTitle = text;
+            await saveConfig("startMessage", CASH.startMessage);
+            await saveConfig("menuTitle", CASH.menuTitle);
+            ctx.reply("🎉 Mesej & Title Start berjaya dikemaskini!"); delete adminState[userId]; return;
         }
     }
 
-    // Undo Logic (New)
-    if (text === "/undo" && isAdmin(userId)) {
-        await ctx.deleteMessage().catch(() => { }); // Delete command
-        if (LAST_BROADCAST.length === 0) {
-            const m = await ctx.reply("⚠️ Tiada broadcast terakhir untuk dibatalkan.");
-            setTimeout(() => ctx.telegram.deleteMessage(ctx.chat.id, m.message_id).catch(() => { }), 3000);
-            return;
+    // B. REPLY SYSTEM (ADMIN -> USER)
+    // Jika admin reply pesan forward di LOG_GROUP_ID, kirim balik ke user
+    if ((ctx.chat.id === LOG_GROUP_ID || ctx.chat.id === SOURCE_CHAT_ID) && ctx.message.reply_to_message && isAdmin(userId)) {
+        // Cek apakah pesan yg di-reply adalah Forwarded User
+        const targetId = ctx.message.reply_to_message.forward_from ? ctx.message.reply_to_message.forward_from.id : null;
+
+        if (targetId) {
+            try {
+                await bot.telegram.copyMessage(targetId, ctx.chat.id, ctx.message.message_id);
+                await ctx.reply("✅ Pesan terkirim ke User!");
+            } catch (e) {
+                await ctx.reply("❌ Gagal kirim: User mungkin block bot.");
+            }
+        } else {
+            // Jika tidak ada forward_from (Privacy User ON), cannot reply directly
+            // Opsional: Cek caption/text jika ada pattern ID manual (Advanced)
         }
+        // Jangan return, biarkan logic lain jalan jika perlu
+    }
+
+    // C. COMMAND UTILS
+
+    // Undo Logic
+    if (text === "/undo" && isAdmin(userId)) {
+        await ctx.deleteMessage().catch(() => { });
+        if (LAST_BROADCAST.length === 0) return ctx.reply("⚠️ Tiada broadcast terakhir.");
 
         const mStats = await ctx.reply(`⏳ Membatalkan ${LAST_BROADCAST.length} mesej...`);
         let successCount = 0;
         for (const item of LAST_BROADCAST) {
-            try {
-                await bot.telegram.deleteMessage(item.chat_id, item.message_id);
-                successCount++;
-            } catch (e) { }
+            try { await bot.telegram.deleteMessage(item.chat_id, item.message_id); successCount++; } catch (e) { }
         }
-        LAST_BROADCAST = []; // Clear log
-        await bot.telegram.editMessageText(ctx.chat.id, mStats.message_id, null, `✅ Berjaya membatalkan ${successCount} mesej.`);
-        setTimeout(() => ctx.telegram.deleteMessage(ctx.chat.id, mStats.message_id).catch(() => { }), 3000);
+        LAST_BROADCAST = [];
+        await bot.telegram.editMessageText(ctx.chat.id, mStats.message_id, null, `✅ Berjaya undo ${successCount} mesej.`);
         return;
     }
 
@@ -356,9 +403,7 @@ bot.on("message", async (ctx) => {
         const r = ctx.message.reply_to_message;
         const subs = await subscribersColl.find({}).toArray();
         const targets = [...subs.map(s => s.userId), ...CASH.targetGroups.filter(g => g !== SOURCE_CHAT_ID)];
-
-        // Reset Last Tracking
-        LAST_BROADCAST = [];
+        LAST_BROADCAST = []; // Reset
 
         for (const t of targets) {
             try {
@@ -366,10 +411,10 @@ bot.on("message", async (ctx) => {
                 LAST_BROADCAST.push({ chat_id: t, message_id: s.message_id });
             } catch (e) { }
         }
-
         return;
     }
 
+    // D. USER LOGIC
     if (isPrivate) {
         try { await subscribersColl.updateOne({ userId }, { $set: { userId } }, { upsert: true }); } catch { }
     }
@@ -378,17 +423,24 @@ bot.on("message", async (ctx) => {
     }
 
     if (isPrivate) {
-        if (CASH.linkMenuData[text]) return ctx.reply("👇 Sila tekan pautan di bawah:", Markup.inlineKeyboard([[Markup.button.url(CASH.linkMenuData[text].label, CASH.linkMenuData[text].url)]]));
+        if (CASH.linkMenuData[text]) return ctx.reply("👇 Click link:", Markup.inlineKeyboard([[Markup.button.url(CASH.linkMenuData[text].label, CASH.linkMenuData[text].url)]]));
         if (CASH.menuData[text]) {
             const d = CASH.menuData[text];
-            const btn = Markup.inlineKeyboard([[Markup.button.url("TEKAN SINI UNTUK TEBUS 🎁", d.url)]]);
-            const isImg = d.media.match(/\.(jpg|png|jpeg)/i) || !d.media.startsWith("http");
-            if (isImg) await ctx.replyWithPhoto(d.media, { caption: d.caption, ...btn });
-            else await ctx.replyWithAnimation(d.media, { caption: d.caption, ...btn });
+            const btn = Markup.inlineKeyboard([[Markup.button.url("TEKAN SINI / CLICK HERE 🎁", d.url)]]);
+
+            try {
+                if (d.media.match(/\.(jpg|png|jpeg)/i) || !d.media.startsWith("http")) await ctx.replyWithPhoto(d.media, { caption: d.caption, ...btn });
+                else await ctx.replyWithAnimation(d.media, { caption: d.caption, ...btn });
+            } catch (e) {
+                await ctx.reply(d.caption, { ...btn }); // Fallback text only
+            }
             return;
         }
-        // Feedback
-        if (!text.startsWith("/")) await ctx.forwardMessage(LOG_GROUP_ID).catch(() => { });
+        // Feedback Forwarding
+        if (!text.startsWith("/")) {
+            // Forward to Log Group
+            await ctx.forwardMessage(LOG_GROUP_ID).catch(() => { });
+        }
     }
     if (!isPrivate) await handleModeration(ctx);
 });
@@ -406,22 +458,11 @@ async function startServices() {
     console.log("🔄 Starting MongoDB & Bot...");
     try {
         await connectMongo();
-
-        // Hapus webhook lama
         await bot.telegram.deleteWebhook({ drop_pending_updates: true });
-        console.log("✅ Webhook DELETED (Supaya Polling Jalan)");
-
-        // Cek Siapa Saya (GetMe) - Tanda Koneksi OK
         const me = await bot.telegram.getMe();
         console.log(`🤖 Bot Identity Verified: @${me.username} (${me.id})`);
 
-        // Launch (Jangan pakai await di sini karena dia endless loop)
-        bot.launch().then(() => {
-            console.log("⚠️ Bot Stopped (Launch promise resolved)");
-        }).catch((err) => {
-            console.error("❌ Launch Error:", err);
-        });
-
+        bot.launch().then(() => console.log("⚠️ Bot Stopped")).catch((err) => console.error("❌ Launch Error:", err));
         console.log("✅ Bot Telegram POLLING STARTED Successfully! (Background)");
 
     } catch (error) {
