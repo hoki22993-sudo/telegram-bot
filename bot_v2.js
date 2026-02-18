@@ -1,4 +1,4 @@
-// bot_v2_wizard.js - Versi Upgrade (Interactive Panel & Wizard Mode + Moderation)
+// bot_v2_wizard.js - Versi Upgrade (Interactive Panel & Wizard Mode + Moderation) - EDISI MALAYSIA
 
 import { Telegraf, Markup } from "telegraf";
 import dotenv from "dotenv";
@@ -67,7 +67,7 @@ async function loadConfig() {
             }
         };
 
-        await load("bannedWords", ["kencing", "anjing", "scam"]);
+        await load("bannedWords", ["kencing", "anjing", "scam", "bodoh", "babi"]);
         await load("targetGroups", [SOURCE_CHAT_ID, LOG_GROUP_ID]);
         await load("admins", [SUPER_ADMIN_ID]);
 
@@ -107,11 +107,11 @@ bot.command("panel", async (ctx) => {
 });
 
 async function showAdminPanel(ctx) {
-    const txt = `🎛 **ADMIN PANEL BOT V2**\n\nSilakan pilih menu pengaturan di bawah ini:`;
+    const txt = `🎛 **ADMIN PANEL BOT V2**\n\nSila pilih menu tetapan di bawah:`;
     const keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback("🔘 Menu Utama", "manage_menu"), Markup.button.callback("🔗 Menu Link", "manage_link")],
-        [Markup.button.callback("🏁 Pesan Start", "manage_start"), Markup.button.callback("📢 Broadcast", "manage_broadcast")],
-        [Markup.button.callback("👮 Admin & Grup", "manage_admin"), Markup.button.callback("🛡 Banned Words", "manage_ban")],
+        [Markup.button.callback("🔘 Top Menu (Butang)", "manage_menu"), Markup.button.callback("🔗 Link (Inline)", "manage_link")],
+        [Markup.button.callback("🏁 Mesej Start", "manage_start"), Markup.button.callback("📢 Broadcast", "manage_broadcast")],
+        [Markup.button.callback("👮 Admin & Group", "manage_admin"), Markup.button.callback("🛡 Banned Words", "manage_ban")],
         [Markup.button.callback("❌ Tutup Panel", "close_panel")]
     ]);
 
@@ -128,54 +128,54 @@ bot.action("back_home", (ctx) => showAdminPanel(ctx));
 // ================= WIZARD MENUS & LINKS =================
 bot.action("manage_menu", async (ctx) => {
     const list = Object.keys(CASH.menuData).map((k, i) => `${i + 1}. ${k}`).join("\n");
-    await ctx.editMessageText(`🔘 **MENU UTAMA**\n\n${list || "(Kosong)"}`, Markup.inlineKeyboard([
-        [Markup.button.callback("➕ Tambah Tombol", "add_menu_start"), Markup.button.callback("🗑 Hapus Tombol", "del_menu_start")],
+    await ctx.editMessageText(`🔘 **UTAMA/KEYBOARD**\n\n${list || "(Kosong)"}`, Markup.inlineKeyboard([
+        [Markup.button.callback("➕ Tambah Butang", "add_menu_start"), Markup.button.callback("🗑 Padam Butang", "del_menu_start")],
         [Markup.button.callback("🔙 Kembali", "back_home")]
     ]));
 });
 
 // ADD MENU ACTIONS
-bot.action("add_menu_start", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_MENU_NAME", data: {} }; ctx.editMessageText("1️⃣ **LANGKAH 1/4**\nKetik **NAMA TOMBOL** yang akan muncul di keyboard:", { parse_mode: "Markdown" }); });
+bot.action("add_menu_start", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_MENU_NAME", data: {} }; ctx.editMessageText("1️⃣ **LANGKAH 1/4**\nTaip **NAMA BUTANG** yang akan muncul di keyboard user:", { parse_mode: "Markdown" }); });
 bot.action("del_menu_start", async (ctx) => {
     const buttons = Object.keys(CASH.menuData).map(k => [Markup.button.callback(`🗑 ${k}`, `do_rm_menu_${k}`)]);
     buttons.push([Markup.button.callback("🔙 Batal", "manage_menu")]);
-    await ctx.editMessageText("Pilih tombol yang dihapus:", Markup.inlineKeyboard(buttons));
+    await ctx.editMessageText("Pilih butang untuk dipadam:", Markup.inlineKeyboard(buttons));
 });
 bot.action(/^do_rm_menu_(.+)$/, async (ctx) => {
     delete CASH.menuData[ctx.match[1]];
     await saveConfig("menuData", CASH.menuData);
-    await ctx.answerCbQuery("✅ Terhapus!");
+    await ctx.answerCbQuery("✅ Terpadam!");
     return ctx.triggerAction("manage_menu");
 });
 
 // LINK ACTIONS
 bot.action("manage_link", async (ctx) => {
     const list = Object.keys(CASH.linkMenuData).map((k, i) => `${i + 1}. ${k}`).join("\n");
-    await ctx.editMessageText(`🔗 **MENU LINK**\n\n${list || "(Kosong)"}`, Markup.inlineKeyboard([
-        [Markup.button.callback("➕ Tambah Link", "add_link_start"), Markup.button.callback("🗑 Hapus Link", "del_link_start")],
+    await ctx.editMessageText(`🔗 **MENU LINK (INLINE)**\n\n${list || "(Kosong)"}`, Markup.inlineKeyboard([
+        [Markup.button.callback("➕ Tambah Link", "add_link_start"), Markup.button.callback("🗑 Padam Link", "del_link_start")],
         [Markup.button.callback("🔙 Kembali", "back_home")]
     ]));
 });
-bot.action("add_link_start", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_LINK_TRIGGER", data: {} }; ctx.editMessageText("1️⃣ **LANGKAH 1/3**\nKetik kata kunci **TRIGGER**:", { parse_mode: "Markdown" }); });
+bot.action("add_link_start", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_LINK_TRIGGER", data: {} }; ctx.editMessageText("1️⃣ **LANGKAH 1/3**\nTaip kata kunci **TRIGGER** (Pemicu):", { parse_mode: "Markdown" }); });
 bot.action("del_link_start", async (ctx) => {
     const buttons = Object.keys(CASH.linkMenuData).map(k => [Markup.button.callback(`🗑 ${k}`, `do_rm_link_${k}`)]);
     buttons.push([Markup.button.callback("🔙 Batal", "manage_link")]);
-    await ctx.editMessageText("Pilih link yang dihapus:", Markup.inlineKeyboard(buttons));
+    await ctx.editMessageText("Pilih link untuk dipadam:", Markup.inlineKeyboard(buttons));
 });
 bot.action(/^do_rm_link_(.+)$/, async (ctx) => {
     delete CASH.linkMenuData[ctx.match[1]];
     await saveConfig("linkMenuData", CASH.linkMenuData);
-    await ctx.answerCbQuery("✅ Terhapus!");
+    await ctx.answerCbQuery("✅ Terpadam!");
     return ctx.triggerAction("manage_link");
 });
 
 // START MSG ACTIONS
-bot.action("manage_start", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_START_MEDIA", data: {} }; ctx.editMessageText("1️⃣ **LANGKAH 1/2**\nKirim **GAMBAR/LINK** baru (ketik 'skip' jika lewati):", { parse_mode: "Markdown" }); });
+bot.action("manage_start", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_START_MEDIA", data: {} }; ctx.editMessageText("1️⃣ **LANGKAH 1/2**\nBagi **GAMBAR/LINK** baru (taip 'skip' jika tiada perubahan):", { parse_mode: "Markdown" }); });
 
 // BROADCAST MENU (Instruction Only)
 bot.action("manage_broadcast", (ctx) => {
     ctx.editMessageText(
-        `📢 **SISTEM BROADCAST**\n\nUntuk menghindari kesalahan pencet, broadcast dilakukan manual:\n\n1️⃣ Kirim pesan promo ke **Grup Source**.\n2️⃣ **Reply** pesan tersebut.\n3️⃣ Ketik perintah: \`/forward\`\n\nBot akan mengirim pesan tersebut ke semua member & grup.`,
+        `📢 **SISTEM BROADCAST**\n\nUntuk elak tersalah tekan, broadcast dibuat secara manual:\n\n1️⃣ Hantar mesej promo ke **Group Source**.\n2️⃣ **Reply** mesej tersebut.\n3️⃣ Taip command: \`/forward\`\n\nBot akan hantar mesej tu ke semua member & group.`,
         { parse_mode: "Markdown", ...Markup.inlineKeyboard([[Markup.button.callback("🔙 Kembali", "back_home")]]) }
     );
 });
@@ -185,30 +185,30 @@ bot.action("manage_broadcast", (ctx) => {
 bot.action("manage_admin", async (ctx) => {
     const admins = CASH.admins.length;
     const groups = CASH.targetGroups.length;
-    await ctx.editMessageText(`👮 **ADMIN & GRUP**\n\n👤 Total Admin: ${admins}\n📢 Total Grup: ${groups}`, Markup.inlineKeyboard([
+    await ctx.editMessageText(`👮 **ADMIN & GROUP**\n\n👤 Jumlah Admin: ${admins}\n📢 Jumlah Group: ${groups}`, Markup.inlineKeyboard([
         [Markup.button.callback("➕ Add Admin", "do_add_admin"), Markup.button.callback("➖ Del Admin", "do_del_admin")],
         [Markup.button.callback("➕ Add Group", "do_add_group"), Markup.button.callback("➖ Del Group", "do_del_group")],
         [Markup.button.callback("🔙 Kembali", "back_home")]
     ]));
 });
 
-bot.action("do_add_admin", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_ADD_ADMIN" }; ctx.reply("Ketik **ID TELEGRAM** user yang mau dijadikan admin:"); });
-bot.action("do_del_admin", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_DEL_ADMIN" }; ctx.reply("Ketik **ID TELEGRAM** admin yang mau dihapus:"); });
+bot.action("do_add_admin", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_ADD_ADMIN" }; ctx.reply("Taip **ID TELEGRAM** user yang nak dijadikan admin:"); });
+bot.action("do_del_admin", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_DEL_ADMIN" }; ctx.reply("Taip **ID TELEGRAM** admin yang nak dibuang:"); });
 
-bot.action("do_add_group", (ctx) => { ctx.reply("ℹ️ **INFO:**\nUntuk menambahkan grup, cukup undang bot ini ke dalam grup, lalu Admin ketik `/panel` di grup tersebut.\n\nAtau ketik ID Grup secara manual (jika tahu ID-nya, awali minus):"); adminState[ctx.from.id] = { action: "WAIT_ADD_GROUP" }; });
-bot.action("do_del_group", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_DEL_GROUP" }; ctx.reply("Ketik **ID GROUP** yang mau dihapus:"); });
+bot.action("do_add_group", (ctx) => { ctx.reply("ℹ️ **INFO:**\nUntuk tambah group, sila invite bot ini ke dalam group, kemudian Admin taip `/panel` dalam group tu.\n\nAtau taip ID Group secara manual (jika tahu ID, mula dengan minus):"); adminState[ctx.from.id] = { action: "WAIT_ADD_GROUP" }; });
+bot.action("do_del_group", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_DEL_GROUP" }; ctx.reply("Taip **ID GROUP** yang nak dibuang:"); });
 
 // ================= WIZARD BARU: BANNED WORDS =================
 bot.action("manage_ban", async (ctx) => {
     const list = CASH.bannedWords.map(w => `🚫 ${w}`).join("\n");
-    await ctx.editMessageText(`🛡 **BANNED WORDS**\n(Otomatis hapus & warn user)\n\n${list || "(Bersih)"}`, Markup.inlineKeyboard([
-        [Markup.button.callback("➕ Tambah Kata", "do_add_ban"), Markup.button.callback("➖ Hapus Kata", "do_del_ban")],
+    await ctx.editMessageText(`🛡 **BANNED WORDS**\n(Auto padam & warn user)\n\n${list || "(Bersih)"}`, Markup.inlineKeyboard([
+        [Markup.button.callback("➕ Tambah Kata", "do_add_ban"), Markup.button.callback("➖ Buang Kata", "do_del_ban")],
         [Markup.button.callback("🔙 Kembali", "back_home")]
     ]));
 });
 
-bot.action("do_add_ban", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_ADD_BAN" }; ctx.reply("Ketik **KATA KASAR** yang mau diblokir:"); });
-bot.action("do_del_ban", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_DEL_BAN" }; ctx.reply("Ketik **KATA** yang mau dihapus dari blacklist:"); });
+bot.action("do_add_ban", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_ADD_BAN" }; ctx.reply("Taip **KATA KASAR** yang nak diblok:"); });
+bot.action("do_del_ban", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_DEL_BAN" }; ctx.reply("Taip **KATA** yang nak dibuang dari blacklist:"); });
 
 
 // ================= MODERATION SYSTEM =================
@@ -240,7 +240,7 @@ async function handleModeration(ctx) {
 
 async function warnUser(ctx, reason) {
     const chatId = ctx.chat.id;
-    const msg = await ctx.reply(`⚠️ **PERINGATAN!**\nUser: ${ctx.from.first_name}\nAlasan: ${reason}\n\nJangan ulangi!`);
+    const msg = await ctx.reply(`⚠️ **AMARAN!**\nUser: ${ctx.from.first_name}\nSebab: ${reason}\n\nJangan ulang lagi!`);
     setTimeout(() => ctx.telegram.deleteMessage(chatId, msg.message_id).catch(() => { }), 5000);
 }
 
@@ -265,22 +265,22 @@ bot.on("message", async (ctx) => {
             const id = parseInt(text);
             if (id && !CASH.admins.includes(id)) {
                 CASH.admins.push(id); await saveConfig("admins", CASH.admins);
-                ctx.reply(`✅ Admin ${id} ditambahkan.`);
-            } else ctx.reply("⚠️ ID tidak valid / sudah ada.");
+                ctx.reply(`✅ Admin ${id} ditambah.`);
+            } else ctx.reply("⚠️ ID tak valid / sudah ada.");
             delete adminState[userId]; return;
         }
         if (state.action === "WAIT_DEL_ADMIN") {
             const id = parseInt(text);
             if (id === SUPER_ADMIN_ID) return ctx.reply("❌ Super Admin Protected.");
             CASH.admins = CASH.admins.filter(a => a !== id); await saveConfig("admins", CASH.admins);
-            ctx.reply(`✅ Admin ${id} dihapus.`);
+            ctx.reply(`✅ Admin ${id} dipadam.`);
             delete adminState[userId]; return;
         }
         if (state.action === "WAIT_ADD_GROUP") {
             const id = parseInt(text);
             if (id && !CASH.targetGroups.includes(id)) {
                 CASH.targetGroups.push(id); await saveConfig("targetGroups", CASH.targetGroups);
-                ctx.reply("✅ Grup ditambahkan.");
+                ctx.reply("✅ Group ditambah.");
             }
             delete adminState[userId]; return;
         }
@@ -290,14 +290,14 @@ bot.on("message", async (ctx) => {
             const w = text.toLowerCase();
             if (!CASH.bannedWords.includes(w)) {
                 CASH.bannedWords.push(w); await saveConfig("bannedWords", CASH.bannedWords);
-                ctx.reply(`🚫 Kata '${w}' diblokir.`);
+                ctx.reply(`🚫 Kata '${w}' diblok.`);
             }
             delete adminState[userId]; return;
         }
         if (state.action === "WAIT_DEL_BAN") {
             CASH.bannedWords = CASH.bannedWords.filter(w => w !== text.toLowerCase());
             await saveConfig("bannedWords", CASH.bannedWords);
-            ctx.reply(`✅ Kata '${text}' dihapus.`);
+            ctx.reply(`✅ Kata '${text}' dipadam.`);
             delete adminState[userId]; return;
         }
 
@@ -308,22 +308,22 @@ bot.on("message", async (ctx) => {
             let media = "";
             if (ctx.message.photo) media = ctx.message.photo.pop().file_id;
             else if (text.startsWith("http")) media = text;
-            else return ctx.reply("⚠️ Foto/Link wajib ada!");
+            else return ctx.reply("⚠️ Gambar/Link wajib ada!");
             state.data.media = media; state.action = "WAIT_MENU_URL"; return ctx.reply("4️⃣ **LINK WEB**:");
         }
         if (state.action === "WAIT_MENU_URL") {
             CASH.menuData[state.data.name] = { caption: state.data.caption, media: state.data.media, url: text };
             await saveConfig("menuData", CASH.menuData);
-            delete adminState[userId]; return ctx.reply("🎉 Menu tersimpan!");
+            delete adminState[userId]; return ctx.reply("🎉 Menu siap!");
         }
 
         // Link - Start
-        if (state.action === "WAIT_LINK_TRIGGER") { state.data.trigger = text; state.action = "WAIT_LINK_LABEL"; return ctx.reply("2️⃣ **LABEL TOMBOL**:"); }
+        if (state.action === "WAIT_LINK_TRIGGER") { state.data.trigger = text; state.action = "WAIT_LINK_LABEL"; return ctx.reply("2️⃣ **LABEL BUTANG**:"); }
         if (state.action === "WAIT_LINK_LABEL") { state.data.label = text; state.action = "WAIT_LINK_URL"; return ctx.reply("3️⃣ **LINK URL**:"); }
         if (state.action === "WAIT_LINK_URL") {
             CASH.linkMenuData[state.data.trigger] = { label: state.data.label, url: text };
             await saveConfig("linkMenuData", CASH.linkMenuData);
-            delete adminState[userId]; return ctx.reply("🎉 Link tersimpan!");
+            delete adminState[userId]; return ctx.reply("🎉 Link siap!");
         }
         if (state.action === "WAIT_START_MEDIA") {
             let media = CASH.startMessage.media;
@@ -342,7 +342,7 @@ bot.on("message", async (ctx) => {
     if (ctx.chat.id === SOURCE_CHAT_ID && text === "/forward" && ctx.message.reply_to_message) {
         if (!isAdmin(userId)) return;
         const replyTo = ctx.message.reply_to_message;
-        ctx.reply("🚀 Mengirim pesan ke semua member & grup...");
+        ctx.reply("🚀 Menghantar mesej ke semua member & group...");
 
         const subs = await subscribersColl.find({}).toArray();
         for (const s of subs) {
@@ -361,7 +361,7 @@ bot.on("message", async (ctx) => {
         if (!CASH.targetGroups.includes(ctx.chat.id)) {
             CASH.targetGroups.push(ctx.chat.id);
             await saveConfig("targetGroups", CASH.targetGroups);
-            ctx.reply("✅ Grup ini otomatis ditambahkan ke list Broadcast!");
+            ctx.reply("✅ Group ini automatik masuk list Broadcast!");
         }
     }
 
