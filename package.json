@@ -1,16 +1,16 @@
 {
-  "name": "bot-v2-wizard",
-  "version": "1.0.0",
-  "description": "Telegram Bot V2 with Wizard",
-  "main": "bot_v2_wizard.js",
-  "type": "module",
-  "scripts": {
-    "start": "node bot_v2_wizard.js"
-  },
-  "dependencies": {
-    "telegraf": "^4.12.0",
-    "dotenv": "^16.0.0",
-    "mongodb": "^5.0.0",
-    "express": "^4.18.0"
-  }
+    "name": "bot-v2-wizard",
+    "version": "1.0.0",
+    "description": "Telegram Bot V2 with Wizard",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "start": "node index.js"
+    },
+    "dependencies": {
+        "telegraf": "^4.12.0",
+        "dotenv": "^16.0.0",
+        "mongodb": "^5.0.0",
+        "express": "^4.18.0"
+    }
 }
