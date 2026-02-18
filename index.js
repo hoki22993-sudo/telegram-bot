@@ -157,7 +157,13 @@ bot.start(async (ctx) => {
     // Fallback if media broken
     if (!media) media = "https://media.giphy.com/media/tXSLbuTIf37SjvE6QY/giphy.gif";
 
-    const caption = text.replace("%USERNAME%", ctx.from.first_name || "Bossku");
+    let caption = text;
+    if (caption.includes("%USERNAME%")) {
+        caption = caption.replace("%USERNAME%", `*${ctx.from.first_name || "Bossku"}*`);
+    } else {
+        // Jika placeholder tidak ada, paksa tambah nama di awal
+        caption = `👋 Hi *${ctx.from.first_name || "Bossku"}*!\n\n${caption}`;
+    }
 
     // A. SIAPKAN INLINE BUTTONS (Dari Link Menu)
     const inlineButtons = Object.values(CASH.linkMenuData).map(d => Markup.button.url(d.label, d.url));
