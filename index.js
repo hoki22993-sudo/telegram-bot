@@ -157,12 +157,15 @@ bot.start(async (ctx) => {
     // Fallback if media broken
     if (!media) media = "https://media.giphy.com/media/tXSLbuTIf37SjvE6QY/giphy.gif";
 
+    // Buat nama jadi Link (Warna Biru)
+    const nameLink = `[${ctx.from.first_name || "Bossku"}](tg://user?id=${ctx.from.id})`;
+
     let caption = text;
     if (caption.includes("%USERNAME%")) {
-        caption = caption.replace("%USERNAME%", `*${ctx.from.first_name || "Bossku"}*`);
+        caption = caption.replace("%USERNAME%", nameLink);
     } else {
         // Jika placeholder tidak ada, paksa tambah nama di awal
-        caption = `👋 Hi *${ctx.from.first_name || "Bossku"}*!\n\n${caption}`;
+        caption = `👋 Hi ${nameLink}!\n\n${caption}`;
     }
 
     // A. SIAPKAN INLINE BUTTONS (Dari Link Menu)
@@ -177,14 +180,14 @@ bot.start(async (ctx) => {
     try {
         // Kirim Gambar + Inline Buttons (Jika Ada)
         if (media.match(/\.(jpg|png|jpeg)/i) || !media.startsWith("http")) {
-            await ctx.replyWithPhoto(media, { caption, ...inlineKbd });
+            await ctx.replyWithPhoto(media, { caption, parse_mode: "Markdown", ...inlineKbd });
         } else {
-            await ctx.replyWithAnimation(media, { caption, ...inlineKbd });
+            await ctx.replyWithAnimation(media, { caption, parse_mode: "Markdown", ...inlineKbd });
         }
     } catch (e) {
         console.error("❌ START REPLY ERROR (MEDIA):", e.message);
         // Fallback Text Only + Inline
-        await ctx.reply(caption, { ...inlineKbd });
+        await ctx.reply(caption, { parse_mode: "Markdown", ...inlineKbd });
     }
 
     // Kirim Menu Utama (Reply Keyboard) Terpisah dengan Judul Konfigurable
