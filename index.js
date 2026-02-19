@@ -5,6 +5,7 @@ import { Telegraf, Markup } from "telegraf";
 import dotenv from "dotenv";
 import { MongoClient } from "mongodb";
 import express from "express";
+import http from "http";
 
 dotenv.config();
 
@@ -604,10 +605,25 @@ async function startServices() {
         bot.launch().then(() => console.log("⚠️ Bot Stopped")).catch((err) => console.error("❌ Launch Error:", err));
         console.log("✅ Bot Telegram POLLING STARTED Successfully! (Background)");
 
+        // Start Self-Ping
+        startKeepAlive();
+
     } catch (error) {
         console.error("❌ Service Startup Error:", error);
     }
 }
 
+// --- KEEP ALIVE MECHANISM (PREVENT SLEEP) ---
+function startKeepAlive() {
+    setInterval(() => {
+        http.get(`http://localhost:${PORT}`, (res) => {
+            // Ping success (Silent)
+        }).on('error', (err) => {
+            console.error(`❌ Keep-Alive Ping Error: ${err.message}`);
+        });
+    }, 5 * 60 * 1000); // Ping every 5 minutes
+}
+
 process.once('SIGINT', () => { bot.stop('SIGINT'); server.close(); });
 process.once('SIGTERM', () => { bot.stop('SIGTERM'); server.close(); });
+
