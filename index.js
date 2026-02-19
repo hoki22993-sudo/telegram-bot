@@ -87,6 +87,26 @@ async function loadConfig() {
                 btnLabel: "TEKAN SINI / CLICK HERE 🎁"
             }
         });
+
+        // --- FORCE UPDATE/MERGE DEFAULTS (MIGRATION PATCH) --- 
+        let dirty = false;
+
+        // 1. Fix "STEP 1" & "NEW REGISTER" (Ensure position property exists)
+        for (const key in CASH.menuData) {
+            const item = CASH.menuData[key];
+            if (!item.position) {
+                // Default logic: "STEP" -> Inline, Others -> Keyboard
+                item.position = key.toUpperCase().includes("STEP") ? 'inline' : 'keyboard';
+                dirty = true;
+            }
+        }
+
+        if (dirty) {
+            console.log("✅ Auto-Migration: Database Updated with Menu Positions!");
+            await saveConfig("menuData", CASH.menuData);
+        }
+        // -----------------------------------------------------
+
         await load("linkMenuData", {});
 
         await load("startMessage", {
@@ -187,7 +207,6 @@ bot.start(async (ctx) => {
     }
 
     // A. SIAPKAN INLINE BUTTONS (Dari Link Menu)
-    // A. SIAPKAN INLINE BUTTONS (Dari Link Menu)
     const inlineButtons = Object.entries(CASH.linkMenuData).map(([k, d]) => {
         // Support Link (URL) & Post (Message)
         if (d.type === 'post') return Markup.button.callback(d.label, `trig_inline_${k}`);
@@ -195,13 +214,24 @@ bot.start(async (ctx) => {
     });
     const inlineKbd = inlineButtons.length > 0 ? Markup.inlineKeyboard(inlineButtons, { columns: 2 }) : null;
 
-    // B. SIAPKAN REPLY KEYBOARD (Dari Menu Data)
-    const kfc = Object.keys(CASH.menuData).map(k => [k]);
+    // B. SIAPKAN KEYBOARDS (Separated: Inline vs Reply)
+    // - Item "STEP" masuk ke Inline Button (Bawah Title)
+    // - Item Lain (Contoh: NEW REGISTER) kekal di Reply Keyboard (Bawah Skrin)
+    const allMenuKeys = Object.keys(CASH.menuData);
+    const inlineMenuKeys = allMenuKeys.filter(k => CASH.menuData[k].position === 'inline');
+    const replyMenuKeys = allMenuKeys.filter(k => CASH.menuData[k].position !== 'inline'); // Default to keyboard if undefined
+
+    // 1. Inline Keyboard (Untuk Title Message)
+    const menuButtons = inlineMenuKeys.map(k => [Markup.button.callback(k, `trig_menu_${k}`)]);
+    const menuInlineKbd = Markup.inlineKeyboard(menuButtons);
+
+    // 2. Reply Keyboard (Untuk Menu Utama Bawah)
+    const kfc = replyMenuKeys.map(k => [k]);
     const replyKbd = { keyboard: kfc, resize_keyboard: true };
 
-    // 3. TRY TO REPLY
+    // 3. TRY TO REPLY (MESSAGE HEADER - GAMBAR START)
     try {
-        // Kirim Gambar + Inline Buttons (Jika Ada)
+        // Kirim Gambar + Inline Buttons (Link Menu)
         if (media.match(/\.(jpg|png|jpeg)/i) || !media.startsWith("http")) {
             await ctx.replyWithPhoto(media, { caption, parse_mode: "Markdown", ...inlineKbd });
         } else {
@@ -213,8 +243,15 @@ bot.start(async (ctx) => {
         await ctx.reply(caption, { parse_mode: "Markdown", ...inlineKbd });
     }
 
-    // Kirim Menu Utama (Reply Keyboard) Terpisah dengan Judul Konfigurable
-    await ctx.reply(CASH.menuTitle || "👇 Sila Pilih Menu Utama:", { reply_markup: replyKbd });
+    // DISINI PERUBAHANNYA:
+    // 1. Title Message ("Step Free...") dengan Inline Button "STEP 1"
+    // Callback 'trig_menu_' akan handle logic yang SAMA persis seperti keyboard biasa
+    await ctx.reply(CASH.menuTitle || "Step Free Cuci Free Ambik Sini ⬇️", { parse_mode: "Markdown", ...menuInlineKbd });
+
+    // 2. Reply Keyboard ("NEW REGISTER") dikirim terpisah supaya tetap muncul di bawah
+    if (replyMenuKeys.length > 0) {
+        await ctx.reply("👇 Menu Utama:", { reply_markup: replyKbd });
+    }
 });
 
 // --- 1. PANEL PERINTAH (BAHASA MALAYSIA) ---
@@ -285,10 +322,32 @@ bot.action(/^trig_inline_(.+)$/, async (ctx) => {
     const d = CASH.linkMenuData[k];
     if (!d) return ctx.answerCbQuery("❌ Menu tidak dijumpai.");
 
-    const btn = Markup.inlineKeyboard([[Markup.button.url("TEKAN SINI / CLICK HERE 🎁", d.url)]]);
+    const btnLabel = d.btnLabel || "TEKAN SINI / CLICK HERE 🎁";
+    const btn = Markup.inlineKeyboard([[Markup.button.url(btnLabel, d.url)]]);
     try {
         if (d.media.match(/\.(jpg|png|jpeg)/i) || !d.media.startsWith("http")) await ctx.replyWithPhoto(d.media, { caption: d.caption, parse_mode: "Markdown", ...btn });
         else await ctx.replyWithAnimation(d.media, { caption: d.caption, parse_mode: "Markdown", ...btn });
+    } catch (e) {
+        await ctx.reply(d.caption, { parse_mode: "Markdown", ...btn });
+    }
+    await ctx.answerCbQuery();
+});
+
+// Handler untuk Menu Utama (Inline Click) - NEW HANDLER
+bot.action(/^trig_menu_(.+)$/, async (ctx) => {
+    const k = ctx.match[1];
+    const d = CASH.menuData[k];
+    if (!d) return ctx.answerCbQuery("❌ Menu tidak dijumpai/telah dipadam.");
+
+    const btnLabel = d.btnLabel || "TEKAN SINI / CLICK HERE 🎁";
+    const btn = Markup.inlineKeyboard([[Markup.button.url(btnLabel, d.url)]]);
+
+    try {
+        // Send as new message (Reply)
+        if (d.media.match(/\.(jpg|png|jpeg)/i) || !d.media.startsWith("http"))
+            await ctx.replyWithPhoto(d.media, { caption: d.caption, parse_mode: "Markdown", ...btn });
+        else
+            await ctx.replyWithAnimation(d.media, { caption: d.caption, parse_mode: "Markdown", ...btn });
     } catch (e) {
         await ctx.reply(d.caption, { parse_mode: "Markdown", ...btn });
     }
@@ -443,7 +502,23 @@ bot.on("message", async (ctx) => {
             state.data.url = text; state.action = "WAIT_MENU_BTN_LABEL"; return ctx.reply("5️⃣ **LABEL BUTANG** (Teks pada butang link):\n_(Cth: CLAIM SINI, REGISTER NOW)_");
         }
         if (state.action === "WAIT_MENU_BTN_LABEL") {
-            CASH.menuData[state.data.name] = { caption: state.data.caption, media: state.data.media, url: state.data.url, btnLabel: text }; await saveConfig("menuData", CASH.menuData); ctx.reply("🎉 Menyu berjaya disimpan!"); delete adminState[userId]; return;
+            state.data.btnLabel = text;
+            state.action = "WAIT_MENU_POSITION";
+            return ctx.reply("6️⃣ **POSISI BUTANG**:\n\nSila pilih:\n1. **INLINE** (Di bawah Title/Gambar)\n2. **KEYBOARD** (Di bawah skrin)", Markup.keyboard([["1. INLINE"], ["2. KEYBOARD"]]).oneTime().resize());
+        }
+        if (state.action === "WAIT_MENU_POSITION") {
+            const pos = text.toUpperCase().includes("INLINE") ? 'inline' : 'keyboard';
+            CASH.menuData[state.data.name] = {
+                caption: state.data.caption,
+                media: state.data.media,
+                url: state.data.url,
+                btnLabel: state.data.btnLabel,
+                position: pos
+            };
+            await saveConfig("menuData", CASH.menuData);
+            ctx.reply(`🎉 Butang '${state.data.name}' berjaya disimpan di posisi ${pos.toUpperCase()}!`, Markup.removeKeyboard());
+            delete adminState[userId];
+            return;
         }
 
         // Link Logic
@@ -475,12 +550,19 @@ bot.on("message", async (ctx) => {
         if (state.action === "WAIT_LINK_CAPTION") { state.data.caption = text; state.action = "WAIT_LINK_MEDIA"; return ctx.reply("5️⃣ Masukkan **GAMBAR/GIF**:"); }
         if (state.action === "WAIT_LINK_MEDIA") {
             state.data.media = (ctx.message.photo ? ctx.message.photo.pop().file_id : text);
-            state.action = "WAIT_LINK_BTN_URL"; return ctx.reply("6️⃣ Masukkan **LINK** untuk butang (Tekan Sini):");
+            state.action = "WAIT_LINK_BTN_LABEL_CUSTOM";
+            return ctx.reply("6️⃣ Pasang **LABEL TOMBOL**:\n_(Cth: ORDER NOW, LIHAT PROMO)_");
+        }
+        if (state.action === "WAIT_LINK_BTN_LABEL_CUSTOM") {
+            state.data.btnLabel = text;
+            state.action = "WAIT_LINK_BTN_URL";
+            return ctx.reply("7️⃣ Masukkan **LINK TUJUAN** (URL):");
         }
         if (state.action === "WAIT_LINK_BTN_URL") {
             CASH.linkMenuData[state.data.trigger] = {
                 type: 'post', label: state.data.label,
-                caption: state.data.caption, media: state.data.media, url: text
+                caption: state.data.caption, media: state.data.media,
+                url: text, btnLabel: state.data.btnLabel
             };
             await saveConfig("linkMenuData", CASH.linkMenuData);
             delete adminState[userId];
