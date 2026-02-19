@@ -77,7 +77,14 @@ async function loadConfig() {
             "🌟 NEW REGISTER FREE 🌟": {
                 url: "https://afb88.hfcapital.top/",
                 media: "https://ibb.co/BK2LVQ6t",
-                caption: "🌟 NEW REGISTER BONUS AFB88 🌟"
+                caption: "🌟 NEW REGISTER BONUS AFB88 🌟",
+                btnLabel: "TEKAN SINI / CLICK HERE 🎁"
+            },
+            "STEP 1": {
+                url: "https://afb88.hfcapital.top/",
+                media: "https://ibb.co/BK2LVQ6t",
+                caption: "🌟 DETAILS UNTUK STEP 1 🌟",
+                btnLabel: "TEKAN SINI / CLICK HERE 🎁"
             }
         });
         await load("linkMenuData", {});
@@ -87,7 +94,7 @@ async function loadConfig() {
             text: "👋 Hi %USERNAME% Bossku 😘"
         });
 
-        await load("menuTitle", "👇 Sila Pilih Menu Utama:");
+        await load("menuTitle", "Step Free Cuci Free Ambik Sini ⬇️");
 
         if (!CASH.admins.includes(SUPER_ADMIN_ID)) CASH.admins.push(SUPER_ADMIN_ID);
 
@@ -236,7 +243,7 @@ bot.action("manage_menu", async (ctx) => {
     ]));
 });
 // Add/Del Menu Logic
-bot.action("add_menu_start", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_MENU_NAME", data: {} }; ctx.editMessageText("1️⃣ **LANGKAH 1/4**\nSila taip **NAMA BUTANG**:", { parse_mode: "Markdown" }); });
+bot.action("add_menu_start", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_MENU_NAME", data: {} }; ctx.editMessageText("1️⃣ **LANGKAH 1/5**\nSila taip **NAMA BUTANG**:", { parse_mode: "Markdown" }); });
 bot.action("del_menu_start", async (ctx) => {
     const buttons = Object.keys(CASH.menuData).map(k => [Markup.button.callback(`🗑 ${k}`, `do_rm_menu_${k}`)]);
     buttons.push([Markup.button.callback("🔙 Batal", "manage_menu")]);
@@ -433,7 +440,10 @@ bot.on("message", async (ctx) => {
             state.data.media = (ctx.message.photo ? ctx.message.photo.pop().file_id : text); state.action = "WAIT_MENU_URL"; return ctx.reply("4️⃣ **LINK WEB**:");
         }
         if (state.action === "WAIT_MENU_URL") {
-            CASH.menuData[state.data.name] = { caption: state.data.caption, media: state.data.media, url: text }; await saveConfig("menuData", CASH.menuData); ctx.reply("🎉 Menyu berjaya disimpan!"); delete adminState[userId]; return;
+            state.data.url = text; state.action = "WAIT_MENU_BTN_LABEL"; return ctx.reply("5️⃣ **LABEL BUTANG** (Teks pada butang link):\n_(Cth: CLAIM SINI, REGISTER NOW)_");
+        }
+        if (state.action === "WAIT_MENU_BTN_LABEL") {
+            CASH.menuData[state.data.name] = { caption: state.data.caption, media: state.data.media, url: state.data.url, btnLabel: text }; await saveConfig("menuData", CASH.menuData); ctx.reply("🎉 Menyu berjaya disimpan!"); delete adminState[userId]; return;
         }
 
         // Link Logic
@@ -566,7 +576,8 @@ bot.on("message", async (ctx) => {
         if (CASH.linkMenuData[text]) return ctx.reply("👇 Click link:", Markup.inlineKeyboard([[Markup.button.url(CASH.linkMenuData[text].label, CASH.linkMenuData[text].url)]]));
         if (CASH.menuData[text]) {
             const d = CASH.menuData[text];
-            const btn = Markup.inlineKeyboard([[Markup.button.url("TEKAN SINI / CLICK HERE 🎁", d.url)]]);
+            const btnLabel = d.btnLabel || "TEKAN SINI / CLICK HERE 🎁";
+            const btn = Markup.inlineKeyboard([[Markup.button.url(btnLabel, d.url)]]);
 
             try {
                 if (d.media.match(/\.(jpg|png|jpeg)/i) || !d.media.startsWith("http")) await ctx.replyWithPhoto(d.media, { caption: d.caption, ...btn });
@@ -626,4 +637,3 @@ function startKeepAlive() {
 
 process.once('SIGINT', () => { bot.stop('SIGINT'); server.close(); });
 process.once('SIGTERM', () => { bot.stop('SIGTERM'); server.close(); });
-
