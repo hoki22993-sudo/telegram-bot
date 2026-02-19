@@ -14,7 +14,8 @@ const SUPER_ADMIN_ID = 8146896736;
 const PORT = process.env.PORT || 8080;
 const MONGODB_URI = (process.env.MONGODB_URI || "").trim();
 
-const LOG_GROUP_ID = -1003832228118;
+const LOG_GROUP_ID = -1003832228118; // Group Log Chat
+const ADMIN_LOG_GROUP_ID = -1003757875020; // Group Khusus Notif Sub & Error
 const SOURCE_CHAT_ID = -1002626291566;
 const CHANNEL_ID = -1003175423118;
 const CHANNEL_USERNAME = "AFB88_OFFICIAL"; // Ganti dengan username channel tanpa @
@@ -151,7 +152,16 @@ bot.on("new_chat_members", async (ctx) => {
 // =================== START COMMAND ===================
 bot.start(async (ctx) => {
     console.log("⚡ PROCESSING /START...");
-    try { await subscribersColl.updateOne({ userId: ctx.from.id }, { $set: { userId: ctx.from.id } }, { upsert: true }); } catch { }
+    try {
+        const userCount = await subscribersColl.countDocuments({ userId: ctx.from.id });
+        if (userCount === 0) {
+            await subscribersColl.updateOne({ userId: ctx.from.id }, { $set: { userId: ctx.from.id, name: ctx.from.first_name } }, { upsert: true });
+
+            // Notif New Subscriber ke Admin Log Group
+            const notifText = `🎉 **NEW SUBSCRIBER**\nName: ${ctx.from.first_name}\nID: \`${ctx.from.id}\``;
+            await bot.telegram.sendMessage(ADMIN_LOG_GROUP_ID, notifText, { parse_mode: "Markdown" }).catch(() => { });
+        }
+    } catch (e) { console.error("Sub Error:", e); }
 
     let { media, text } = CASH.startMessage;
     // Fallback if media broken
@@ -169,7 +179,12 @@ bot.start(async (ctx) => {
     }
 
     // A. SIAPKAN INLINE BUTTONS (Dari Link Menu)
-    const inlineButtons = Object.values(CASH.linkMenuData).map(d => Markup.button.url(d.label, d.url));
+    // A. SIAPKAN INLINE BUTTONS (Dari Link Menu)
+    const inlineButtons = Object.entries(CASH.linkMenuData).map(([k, d]) => {
+        // Support Link (URL) & Post (Message)
+        if (d.type === 'post') return Markup.button.callback(d.label, `trig_inline_${k}`);
+        return Markup.button.url(d.label, d.url);
+    });
     const inlineKbd = inlineButtons.length > 0 ? Markup.inlineKeyboard(inlineButtons, { columns: 2 }) : null;
 
     // B. SIAPKAN REPLY KEYBOARD (Dari Menu Data)
@@ -232,26 +247,102 @@ bot.action(/^do_rm_menu_(.+)$/, async (ctx) => {
 });
 
 // Link Logic
+// Link/Header Menu Logic
 bot.action("manage_link", async (ctx) => {
-    const list = Object.keys(CASH.linkMenuData).map((k, i) => `${i + 1}. ${k}`).join("\n");
-    await ctx.editMessageText(`🔗 **MENU LINK (INLINE)**\n\n${list || "(Tiada Data)"}`, Markup.inlineKeyboard([
-        [Markup.button.callback("➕ Tambah Link", "add_link_start"), Markup.button.callback("🗑 Padam Link", "del_link_start")],
+    const list = Object.keys(CASH.linkMenuData).map((k, i) => `${i + 1}. ${CASH.linkMenuData[k].label}`).join("\n");
+    await ctx.editMessageText(`🔗 **MENU LINK (HEADER)**\n\n${list || "(Tiada Data)"}`, Markup.inlineKeyboard([
+        [Markup.button.callback("➕ Tambah Menu", "add_link_start"), Markup.button.callback("🗑 Padam Menu", "del_link_start")],
         [Markup.button.callback("🔙 Kembali", "back_home")]
     ]));
 });
-bot.action("add_link_start", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_LINK_TRIGGER", data: {} }; ctx.editMessageText("1️⃣ **LANGKAH 1/3**\nSila taip **Kata Kunci (TRIGGER)**:", { parse_mode: "Markdown" }); });
+
+bot.action("add_link_start", (ctx) => {
+    adminState[ctx.from.id] = { action: "WAIT_LINK_KEY", data: {} };
+    ctx.editMessageText("1️⃣ **LANGKAH 1/4**\nSila taip **ID UNIK** (Cth: promo1, link2):", { parse_mode: "Markdown" });
+});
+
 bot.action("del_link_start", async (ctx) => {
-    const buttons = Object.keys(CASH.linkMenuData).map(k => [Markup.button.callback(`🗑 ${k}`, `do_rm_link_${k}`)]);
+    const buttons = Object.keys(CASH.linkMenuData).map(k => [Markup.button.callback(`🗑 ${CASH.linkMenuData[k].label}`, `do_rm_link_${k}`)]);
     buttons.push([Markup.button.callback("🔙 Batal", "manage_link")]);
-    await ctx.editMessageText("Sila pilih link untuk dipadam:", Markup.inlineKeyboard(buttons));
+    await ctx.editMessageText("Sila pilih menu untuk dipadam:", Markup.inlineKeyboard(buttons));
 });
 bot.action(/^do_rm_link_(.+)$/, async (ctx) => {
     delete CASH.linkMenuData[ctx.match[1]]; await saveConfig("linkMenuData", CASH.linkMenuData);
     await ctx.answerCbQuery("✅ Berjaya dipadam!"); return ctx.triggerAction("manage_link");
 });
 
+// Handler untuk Inline Click (Post Type)
+bot.action(/^trig_inline_(.+)$/, async (ctx) => {
+    const k = ctx.match[1];
+    const d = CASH.linkMenuData[k];
+    if (!d) return ctx.answerCbQuery("❌ Menu tidak dijumpai.");
+
+    const btn = Markup.inlineKeyboard([[Markup.button.url("TEKAN SINI / CLICK HERE 🎁", d.url)]]);
+    try {
+        if (d.media.match(/\.(jpg|png|jpeg)/i) || !d.media.startsWith("http")) await ctx.replyWithPhoto(d.media, { caption: d.caption, parse_mode: "Markdown", ...btn });
+        else await ctx.replyWithAnimation(d.media, { caption: d.caption, parse_mode: "Markdown", ...btn });
+    } catch (e) {
+        await ctx.reply(d.caption, { parse_mode: "Markdown", ...btn });
+    }
+    await ctx.answerCbQuery();
+});
+
 // Start & Broadcast
-bot.action("manage_start", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_START_MEDIA", data: {} }; ctx.editMessageText("1️⃣ **LANGKAH 1/3**\nSila hantar **GAMBAR/LINK** baru:", { parse_mode: "Markdown" }); });
+// --- MODIFIED START MANAGER ---
+bot.action("manage_start", (ctx) => {
+    ctx.editMessageText(
+        `🏁 **TETAPAN MESEJ & TITLE**\nSila pilih bahagian yang ingin diubah:`,
+        Markup.inlineKeyboard([
+            [Markup.button.callback("🖼 Ubah Mesej Start", "do_chg_start_msg")],
+            [Markup.button.callback("🔤 Ubah Menu Title", "do_chg_title")],
+            [Markup.button.callback("🔙 Kembali", "back_home")]
+        ])
+    );
+});
+
+bot.action("do_chg_start_msg", (ctx) => {
+    adminState[ctx.from.id] = { action: "WAIT_START_MEDIA", data: {} };
+    ctx.editMessageText("1️⃣ **LANGKAH 1/2**\nSila hantar **GAMBAR/LINK** baru:\n_(Taip 'skip' untuk kekalkan gambar lama)_", { parse_mode: "Markdown" });
+});
+
+bot.action("do_chg_title", async (ctx) => {
+    const lines = (CASH.menuTitle || "").split("\n").filter(x => x.trim());
+    const displayList = lines.map((l, i) => `${i + 1}. ${l}`).join("\n");
+
+    await ctx.editMessageText(
+        `🔤 **URUS MENU TITLE (TEXT)**\n\n${displayList || "(Tiada Text)"}`,
+        Markup.inlineKeyboard([
+            [Markup.button.callback("➕ Tambah Baris", "add_title_line"), Markup.button.callback("🗑 Padam Baris", "del_title_line")],
+            [Markup.button.callback("🔙 Kembali", "manage_start")]
+        ])
+    );
+});
+
+bot.action("add_title_line", (ctx) => {
+    adminState[ctx.from.id] = { action: "WAIT_ADD_TITLE_LINE" };
+    ctx.editMessageText("➕ **TAMBAH BARIS**\nSila taip teks untuk baris baru:", { parse_mode: "Markdown" });
+});
+
+bot.action("del_title_line", async (ctx) => {
+    const lines = (CASH.menuTitle || "").split("\n").filter(x => x.trim());
+    const buttons = lines.map((l, i) => [Markup.button.callback(`🗑 ${l.substring(0, 20)}...`, `rm_title_line_${i}`)]);
+    buttons.push([Markup.button.callback("🔙 Batal", "do_chg_title")]);
+    await ctx.editMessageText("Sila pilih baris untuk dipadam:", Markup.inlineKeyboard(buttons));
+});
+
+bot.action(/^rm_title_line_(\d+)$/, async (ctx) => {
+    const idx = parseInt(ctx.match[1]);
+    let lines = (CASH.menuTitle || "").split("\n").filter(x => x.trim());
+    if (lines[idx] !== undefined) {
+        lines.splice(idx, 1);
+        CASH.menuTitle = lines.join("\n");
+        await saveConfig("menuTitle", CASH.menuTitle);
+        await ctx.answerCbQuery("✅ Baris dipadam!");
+    }
+    return ctx.triggerAction("do_chg_title");
+});
+// ------------------------------
+
 bot.action("manage_broadcast", (ctx) => {
     ctx.editMessageText(`📢 **SISTEM BROADCAST**\n1️⃣ Hantar promo ke **Group Asal (Source)**\n2️⃣ **Reply** mesej tersebut\n3️⃣ Taip command: \`/forward\`\n\n(❗️ Taip \`/undo\` jika tersalah hantar)`, { parse_mode: "Markdown", ...Markup.inlineKeyboard([[Markup.button.callback("🔙 Kembali", "back_home")]]) });
 });
@@ -345,27 +436,66 @@ bot.on("message", async (ctx) => {
         }
 
         // Link Logic
-        if (state.action === "WAIT_LINK_TRIGGER") { state.data.trigger = text; state.action = "WAIT_LINK_LABEL"; return ctx.reply("2️⃣ **LABEL**:"); }
-        if (state.action === "WAIT_LINK_LABEL") { state.data.label = text; state.action = "WAIT_LINK_URL"; return ctx.reply("3️⃣ **URL**:"); }
-        if (state.action === "WAIT_LINK_URL") {
-            CASH.linkMenuData[state.data.trigger] = { label: state.data.label, url: text }; await saveConfig("linkMenuData", CASH.linkMenuData); ctx.reply("🎉 Link berjaya disimpan!"); delete adminState[userId]; return;
+        // Link Wizard (UPDATED)
+        if (state.action === "WAIT_LINK_KEY") { title = text.replace(/\s+/g, '_'); state.data.trigger = title; state.action = "WAIT_LINK_LABEL"; return ctx.reply(`🆔 ID: ${title}\n\n2️⃣ Sila taip **LABEL** (Nama pada butang):`); }
+        if (state.action === "WAIT_LINK_LABEL") {
+            state.data.label = text;
+            state.action = "WAIT_LINK_TYPE";
+            return ctx.reply("3️⃣ **PILIH JENIS:**\n\n🔗 **LINK** (Buka Web Terus)\n🖼 **POST** (Keluar Gambar & Caption)", Markup.keyboard([["🔗 LINK"], ["🖼 POST"]]).oneTime().resize());
+        }
+        if (state.action === "WAIT_LINK_TYPE") {
+            const type = text.includes("POST") ? "post" : "url";
+            state.data.type = type;
+            if (type === "url") {
+                state.action = "WAIT_LINK_FINAL_URL";
+                return ctx.reply("4️⃣ Masukkan **URL DESTINASI**:", Markup.removeKeyboard());
+            } else {
+                state.action = "WAIT_LINK_CAPTION";
+                return ctx.reply("4️⃣ Masukkan **CAPTION** (Ayat promosi):", Markup.removeKeyboard());
+            }
+        }
+        if (state.action === "WAIT_LINK_FINAL_URL") {
+            CASH.linkMenuData[state.data.trigger] = { label: state.data.label, url: text, type: 'url' };
+            await saveConfig("linkMenuData", CASH.linkMenuData);
+            delete adminState[userId];
+            return ctx.reply("🎉 Menu Link (URL) berjaya disimpan!");
+        }
+        // Branch Post
+        if (state.action === "WAIT_LINK_CAPTION") { state.data.caption = text; state.action = "WAIT_LINK_MEDIA"; return ctx.reply("5️⃣ Masukkan **GAMBAR/GIF**:"); }
+        if (state.action === "WAIT_LINK_MEDIA") {
+            state.data.media = (ctx.message.photo ? ctx.message.photo.pop().file_id : text);
+            state.action = "WAIT_LINK_BTN_URL"; return ctx.reply("6️⃣ Masukkan **LINK** untuk butang (Tekan Sini):");
+        }
+        if (state.action === "WAIT_LINK_BTN_URL") {
+            CASH.linkMenuData[state.data.trigger] = {
+                type: 'post', label: state.data.label,
+                caption: state.data.caption, media: state.data.media, url: text
+            };
+            await saveConfig("linkMenuData", CASH.linkMenuData);
+            delete adminState[userId];
+            return ctx.reply("🎉 Menu Link (POST) berjaya disimpan!");
         }
 
-        // Start Msg
+        // Start Msg (MODIFIED)
         if (state.action === "WAIT_START_MEDIA") {
             state.data.media = (text.toLowerCase() === "skip" ? CASH.startMessage.media : (ctx.message.photo ? ctx.message.photo.pop().file_id : text));
             state.action = "WAIT_START_TEXT"; return ctx.reply("2️⃣ **TEXT** (Caption / Kata-kata):");
         }
         if (state.action === "WAIT_START_TEXT") {
             state.data.text = text;
-            state.action = "WAIT_START_TITLE"; return ctx.reply("3️⃣ **MENU TITLE** (Cth: 👇 Sila Pilih Menu):");
-        }
-        if (state.action === "WAIT_START_TITLE") {
             CASH.startMessage = { media: state.data.media, text: state.data.text };
-            CASH.menuTitle = text;
             await saveConfig("startMessage", CASH.startMessage);
+            delete adminState[userId];
+            return ctx.reply("🎉 Mesej Start berjaya dikemaskini!");
+        }
+
+        // Menu Title (NEW LIST MODE)
+        if (state.action === "WAIT_ADD_TITLE_LINE") {
+            const current = CASH.menuTitle ? CASH.menuTitle + "\n" : "";
+            CASH.menuTitle = current + text;
             await saveConfig("menuTitle", CASH.menuTitle);
-            ctx.reply("🎉 Mesej & Title Start berjaya dikemaskini!"); delete adminState[userId]; return;
+            delete adminState[userId];
+            return ctx.reply("🎉 Baris berjaya ditambah! Tekan /panel untuk urus lagi.");
         }
     }
 
