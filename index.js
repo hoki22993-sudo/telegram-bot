@@ -141,13 +141,10 @@ bot.use(async (ctx, next) => {
         console.log(`📩 INCOMING MSG [${user}]: ${ctx.message.text || ctx.message.caption || "Media"}`);
     }
 
-
-
     await next();
 });
 
 // Callback untuk Check Sub (Jika sudah join, user tekan ini)
-
 
 // Catch Errors
 bot.catch((err, ctx) => {
@@ -179,6 +176,16 @@ bot.on("new_chat_members", async (ctx) => {
 
 // =================== START COMMAND ===================
 bot.start(async (ctx) => {
+    // --- PENGECEKAN GROUP/PRIVATE CHAT (FIX MENCEGAH BOCOR KE GRUP LAIN) ---
+    const isPrivate = ctx.chat.type === "private";
+    const isAllowedGroup = ctx.chat.id === LOG_GROUP_ID; // LOG_GROUP_ID adalah -1003832228118
+
+    // Jika pesan dikirim BUKAN dari private chat DAN BUKAN dari grup yang diizinkan
+    if (!isPrivate && !isAllowedGroup) {
+        return; // Bot akan diam/mencegah command ini diproses di grup lain
+    }
+    // ------------------------------------------------------------------------
+
     console.log("⚡ PROCESSING /START...");
     try {
         const userCount = await subscribersColl.countDocuments({ userId: ctx.from.id });
@@ -250,7 +257,7 @@ bot.start(async (ctx) => {
 
     // 2. Reply Keyboard ("NEW REGISTER") dikirim terpisah supaya tetap muncul di bawah
     if (replyMenuKeys.length > 0) {
-        await ctx.reply("👇 Menu Utama:", { reply_markup: replyKbd });
+        await ctx.reply("BACK TO MENU TEKAN /start", { reply_markup: replyKbd });
     }
 });
 
@@ -330,6 +337,7 @@ bot.action(/^trig_inline_(.+)$/, async (ctx) => {
     } catch (e) {
         await ctx.reply(d.caption, { parse_mode: "Markdown", ...btn });
     }
+    await ctx.reply("BACK TO MENU TEKAN /start");
     await ctx.answerCbQuery();
 });
 
@@ -351,6 +359,7 @@ bot.action(/^trig_menu_(.+)$/, async (ctx) => {
     } catch (e) {
         await ctx.reply(d.caption, { parse_mode: "Markdown", ...btn });
     }
+    await ctx.reply("BACK TO MENU TEKAN /start");
     await ctx.answerCbQuery();
 });
 
@@ -655,7 +664,10 @@ bot.on("message", async (ctx) => {
     }
 
     if (isPrivate) {
-        if (CASH.linkMenuData[text]) return ctx.reply("👇 Click link:", Markup.inlineKeyboard([[Markup.button.url(CASH.linkMenuData[text].label, CASH.linkMenuData[text].url)]]));
+        if (CASH.linkMenuData[text]) {
+            await ctx.reply("👇 Click link:", Markup.inlineKeyboard([[Markup.button.url(CASH.linkMenuData[text].label, CASH.linkMenuData[text].url)]]));
+            return ctx.reply("BACK TO MENU TEKAN /start");
+        }
         if (CASH.menuData[text]) {
             const d = CASH.menuData[text];
             const btnLabel = d.btnLabel || "TEKAN SINI / CLICK HERE 🎁";
@@ -667,12 +679,14 @@ bot.on("message", async (ctx) => {
             } catch (e) {
                 await ctx.reply(d.caption, { ...btn }); // Fallback text only
             }
+            await ctx.reply("BACK TO MENU TEKAN /start");
             return;
         }
         // Feedback Forwarding
         if (!text.startsWith("/")) {
             // Forward to Log Group
             await ctx.forwardMessage(LOG_GROUP_ID).catch(() => { });
+            await ctx.reply("BACK TO MENU TEKAN /start");
         }
     }
     if (!isPrivate) await handleModeration(ctx);
