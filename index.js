@@ -845,6 +845,7 @@ bot.on("message", async (ctx) => {
             // Forward to Log Group
             await ctx.forwardMessage(CASH.LOG_GROUP_ID).catch(() => { });
         }
+        await ctx.reply("BACK TO MENU TEKAN /start").catch(() => { });
     }
     if (!isPrivate) await handleModeration(ctx);
 });
