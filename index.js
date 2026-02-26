@@ -309,12 +309,12 @@ bot.action("manage_system_ids", async (ctx) => {
     await ctx.answerCbQuery().catch(() => { });
 
     const txt = `⚙️ <b>TETAPAN ID SISTEM</b>\n\n` +
-        `👤 <b>Super Admin ID:</b> <code>${CASH.SUPER_ADMIN_ID}</code>\n` +
-        `📍 <b>Source Group:</b> <code>${CASH.SOURCE_CHAT_ID}</code>\n` +
-        `📺 <b>Channel ID:</b> <code>${CASH.CHANNEL_ID}</code>\n` +
-        `📝 <b>Log Group:</b> <code>${CASH.LOG_GROUP_ID}</code>\n` +
-        `🔔 <b>Admin Log:</b> <code>${CASH.ADMIN_LOG_GROUP_ID}</code>\n` +
-        `� <b>Channel Username:</b> @${CASH.CHANNEL_USERNAME}\n\n` +
+        `👤 <b>Super Admin:</b> <code>${CASH.SUPER_ADMIN_ID}</code> [SUPER_ADMIN_ID]\n` +
+        `📍 <b>Source Group:</b> <code>${CASH.SOURCE_CHAT_ID}</code> [SOURCE_CHAT_ID]\n` +
+        `📺 <b>Channel ID:</b> <code>${CASH.CHANNEL_ID}</code> [CHANNEL_ID]\n` +
+        `📝 <b>Log Group:</b> <code>${CASH.LOG_GROUP_ID}</code> [LOG_GROUP_ID]\n` +
+        `🔔 <b>Admin Log:</b> <code>${CASH.ADMIN_LOG_GROUP_ID}</code> [ADMIN_LOG_GROUP_ID]\n` +
+        `📢 <b>Username:</b> @${CASH.CHANNEL_USERNAME} [CHANNEL_USERNAME]\n\n` +
         `<i>Sila pilih ID yang ingin ditukar:</i>`;
 
     await ctx.editMessageText(txt, {
@@ -821,48 +821,7 @@ bot.on("message", async (ctx) => {
         // Jangan return, biarkan logic lain jalan jika perlu
     }
 
-    // C. COMMAND UTILS
-
-    // Undo Logic
-    if (text === "/undo" && isAdmin(userId)) {
-        await ctx.deleteMessage().catch(() => { });
-        if (LAST_BROADCAST.length === 0) return ctx.reply("⚠️ Tiada broadcast terakhir.");
-
-        const mStats = await ctx.reply(`⏳ Membatalkan ${LAST_BROADCAST.length} mesej...`);
-        let successCount = 0;
-        for (const item of LAST_BROADCAST) {
-            try { await bot.telegram.deleteMessage(item.chat_id, item.message_id); successCount++; } catch (e) { }
-        }
-        LAST_BROADCAST = [];
-        await bot.telegram.editMessageText(ctx.chat.id, mStats.message_id, null, `✅ Berjaya undo ${successCount} mesej.`);
-        return;
-    }
-
-    // Broadcast logic
-    if (ctx.chat.id === CASH.SOURCE_CHAT_ID && text === "/forward" && ctx.message.reply_to_message && isForwarder(userId)) {
-        await ctx.deleteMessage().catch(() => { });
-        const r = ctx.message.reply_to_message;
-        const subs = await subscribersColl.find({}).toArray();
-        const targets = [...subs.map(s => s.userId), ...CASH.targetGroups.filter(g => g !== CASH.SOURCE_CHAT_ID)];
-        LAST_BROADCAST = []; // Reset
-
-        for (const t of targets) {
-            try {
-                const s = await bot.telegram.forwardMessage(t, r.chat.id, r.message_id);
-                LAST_BROADCAST.push({ chat_id: t, message_id: s.message_id });
-            } catch (e) { }
-        }
-        return;
-    }
-
-    // D. USER LOGIC
-    if (isPrivate) {
-        try { await subscribersColl.updateOne({ userId }, { $set: { userId } }, { upsert: true }); } catch { }
-    }
-    if (!isPrivate && text === "/panel" && isAdmin(userId)) {
-        if (!CASH.targetGroups.includes(ctx.chat.id)) { CASH.targetGroups.push(ctx.chat.id); await saveConfig("targetGroups", CASH.targetGroups); ctx.reply("✅ Group Berjaya Ditambah!"); }
-    }
-
+    // C. USER LOGIC
     if (isPrivate) {
         if (CASH.linkMenuData[text]) return ctx.reply("👇 Click link:", Markup.inlineKeyboard([[Markup.button.url(CASH.linkMenuData[text].label, CASH.linkMenuData[text].url)]]));
         if (CASH.menuData[text]) {
@@ -874,19 +833,85 @@ bot.on("message", async (ctx) => {
                 if (d.media.match(/\.(jpg|png|jpeg)/i) || !d.media.startsWith("http")) await ctx.replyWithPhoto(d.media, { caption: d.caption, ...btn });
                 else await ctx.replyWithAnimation(d.media, { caption: d.caption, ...btn });
             } catch (e) {
-                await ctx.reply(d.caption, { ...btn }); // Fallback text only
+                await ctx.reply(d.caption, { ...btn });
             }
             return;
         }
         // Feedback Forwarding
         if (!text.startsWith("/")) {
-            // Forward to Log Group
             await ctx.forwardMessage(CASH.LOG_GROUP_ID).catch(() => { });
         }
         await ctx.reply("BACK TO MENU TEKAN /start").catch(() => { });
     }
     if (!isPrivate) await handleModeration(ctx);
 });
+
+// --- 4. COMMAND HANDLERS ---
+bot.command("id", async (ctx) => {
+    if (!isAdmin(ctx.from.id)) return;
+    return ctx.reply(`🆔 **ID INFO**\n\nChat ID: <code>${ctx.chat.id}</code>\nUser ID: <code>${ctx.from.id}</code>`, { parse_mode: "HTML" });
+});
+
+bot.command("undo", async (ctx) => {
+    const userId = ctx.from.id;
+    if (!isAdmin(userId)) return;
+
+    await ctx.deleteMessage().catch(() => { });
+    if (LAST_BROADCAST.length === 0) return ctx.reply("⚠️ Tiada broadcast terakhir untuk di-undo.");
+
+    const mStats = await ctx.reply(`⏳ Membatalkan ${LAST_BROADCAST.length} mesej...`);
+    let successCount = 0;
+    for (const item of LAST_BROADCAST) {
+        try { await bot.telegram.deleteMessage(item.chat_id, item.message_id); successCount++; } catch (e) { }
+    }
+    LAST_BROADCAST = [];
+    await bot.telegram.editMessageText(ctx.chat.id, mStats.message_id, null, `✅ Berjaya undo ${successCount} mesej.`);
+});
+
+bot.command("forward", async (ctx) => {
+    const userId = ctx.from.id;
+    const userName = ctx.from.first_name || "Unknown";
+
+    // Auto-Delete command message to keep group clean
+    await ctx.deleteMessage().catch(() => { });
+
+    // 1. Semak kebenaran
+    if (!isForwarder(userId)) {
+        const logText = `❌ **FAILED FORWARD**\nUser: ${userName} (\`${userId}\`)\nReason: Tiada akses Forwarder.`;
+        return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, logText, { parse_mode: "Markdown" }).catch(() => { });
+    }
+
+    // 2. Semak jika ini adalah reply
+    if (!ctx.message.reply_to_message) {
+        const logText = `⚠️ **FAILED FORWARD**\nUser: ${userName} (\`${userId}\`)\nReason: Tidak reply pada mesej.`;
+        return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, logText, { parse_mode: "Markdown" }).catch(() => { });
+    }
+
+    const r = ctx.message.reply_to_message;
+
+    // Ambil semua subscriber + target groups + channel
+    const subs = await subscribersColl.find({}).toArray();
+    let targets = [...subs.map(s => s.userId), ...CASH.targetGroups];
+    if (CASH.CHANNEL_ID) targets.push(CASH.CHANNEL_ID);
+
+    // Buang ID group asal supaya tidak forward ke group sendiri dan buang duplicate
+    const uniqueTargets = [...new Set(targets)].filter(id => id && id !== ctx.chat.id);
+
+    LAST_BROADCAST = []; // Reset
+    let count = 0;
+
+    for (const t of uniqueTargets) {
+        try {
+            const s = await bot.telegram.forwardMessage(t, ctx.chat.id, r.message_id);
+            LAST_BROADCAST.push({ chat_id: t, message_id: s.message_id });
+            count++;
+        } catch (e) { }
+    }
+
+    const logSuccess = `🚀 **BROADCAST SUCCESS**\nBy: ${userName} (\`${userId}\`)\nDestinasi: ${count} penerima.`;
+    await bot.telegram.sendMessage(CASH.LOG_GROUP_ID, logSuccess, { parse_mode: "Markdown" }).catch(() => { });
+});
+
 
 // ================= 5. EXPRESS SERVER & LAUNCHER =================
 const app = express();
