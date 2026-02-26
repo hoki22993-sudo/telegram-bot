@@ -11,7 +11,6 @@ dotenv.config();
 
 // ================= KONFIGURASI UTAMA =================
 const BOT_TOKEN = process.env.BOT_TOKEN || "ISI_TOKEN_DI_SINI";
-const SUPER_ADMIN_ID = 8146896736;
 const PORT = process.env.PORT || 8080;
 const MONGODB_URI = (process.env.MONGODB_URI || "").trim();
 
@@ -25,12 +24,19 @@ const CHANNEL_USERNAME = "AFB88_OFFICIAL"; // Ganti dengan username channel tanp
 const adminState = {};
 const CASH = {
     bannedWords: [],
-    targetGroups: [SOURCE_CHAT_ID, LOG_GROUP_ID],
+    targetGroups: [],
     admins: [SUPER_ADMIN_ID],
     menuData: {},
     linkMenuData: {},
     startMessage: {},
-    menuTitle: "👇 Sila Pilih Menu Utama:" // Default Title
+    menuTitle: "👇 Sila Pilih Menu Utama:",
+    // ID SISTEM (BOLEH TUKAR DI PANEL)
+    SUPER_ADMIN_ID: 8146896736, // Default Super Admin
+    SOURCE_CHAT_ID: -1002626291566,
+    LOG_GROUP_ID: -1003832228118,
+    ADMIN_LOG_GROUP_ID: -1003757875020,
+    CHANNEL_ID: -1003175423118,
+    CHANNEL_USERNAME: "AFB88_OFFICIAL"
 };
 
 // Undo/Rollback Storage (Temporary Memory)
@@ -116,7 +122,15 @@ async function loadConfig() {
 
         await load("menuTitle", "Step Free Cuci Free Ambik Sini ⬇️");
 
-        if (!CASH.admins.includes(SUPER_ADMIN_ID)) CASH.admins.push(SUPER_ADMIN_ID);
+        // Load System IDs
+        await load("SUPER_ADMIN_ID", 8146896736);
+        await load("SOURCE_CHAT_ID", -1002626291566);
+        await load("LOG_GROUP_ID", -1003832228118);
+        await load("ADMIN_LOG_GROUP_ID", -1003757875020);
+        await load("CHANNEL_ID", -1003175423118);
+        await load("CHANNEL_USERNAME", "AFB88_OFFICIAL");
+
+        if (!CASH.admins.includes(CASH.SUPER_ADMIN_ID)) CASH.admins.push(CASH.SUPER_ADMIN_ID);
 
     } catch (e) {
         console.error("Config Load Error:", e);
@@ -131,7 +145,7 @@ async function saveConfig(key, value) {
 
 // ================= BOT LOGIC =================
 const bot = new Telegraf(BOT_TOKEN);
-const isAdmin = (id) => CASH.admins.includes(id);
+const isAdmin = (id) => CASH.admins.includes(id) || id === CASH.SUPER_ADMIN_ID;
 
 // --- 0. GLOBAL MIDDLEWARE & DEBUGGER ---
 bot.use(async (ctx, next) => {
@@ -187,7 +201,7 @@ bot.start(async (ctx) => {
 
             // Notif New Subscriber ke Admin Log Group
             const notifText = `🎉 **NEW SUBSCRIBER**\nName: ${ctx.from.first_name}\nID: \`${ctx.from.id}\``;
-            await bot.telegram.sendMessage(ADMIN_LOG_GROUP_ID, notifText, { parse_mode: "Markdown" }).catch(() => { });
+            await bot.telegram.sendMessage(CASH.ADMIN_LOG_GROUP_ID, notifText, { parse_mode: "Markdown" }).catch(() => { });
         }
     } catch (e) { console.error("Sub Error:", e); }
 
@@ -264,6 +278,7 @@ bot.command("panel", async (ctx) => {
             [Markup.button.callback("🔘 Menu Utama (Butang)", "manage_menu"), Markup.button.callback("🔗 Link (Inline)", "manage_link")],
             [Markup.button.callback("🏁 Mesej Start & Title", "manage_start"), Markup.button.callback("📢 Sistem Broadcast", "manage_broadcast")],
             [Markup.button.callback("👮 Urus Admin & Group", "manage_admin"), Markup.button.callback("🛡 Senarai Kata Terlarang", "manage_ban")],
+            [Markup.button.callback("⚙️ Tetapan ID Sistem", "manage_system_ids")],
             [Markup.button.callback("🚀 Refresh & Deploy", "refresh_bot")],
             [Markup.button.callback("❌ Tutup Panel", "close_panel")]
         ])
@@ -278,10 +293,41 @@ bot.action("back_home", async (ctx) => {
             [Markup.button.callback("🔘 Menu Utama (Butang)", "manage_menu"), Markup.button.callback("🔗 Link (Inline)", "manage_link")],
             [Markup.button.callback("🏁 Mesej Start & Title", "manage_start"), Markup.button.callback("📢 Sistem Broadcast", "manage_broadcast")],
             [Markup.button.callback("👮 Urus Admin & Group", "manage_admin"), Markup.button.callback("🛡 Senarai Kata Terlarang", "manage_ban")],
+            [Markup.button.callback("⚙️ Tetapan ID Sistem", "manage_system_ids")],
             [Markup.button.callback("🚀 Refresh & Deploy", "refresh_bot")],
             [Markup.button.callback("❌ Tutup Panel", "close_panel")]
         ])
     });
+});
+
+bot.action("manage_system_ids", async (ctx) => {
+    const txt = `⚙️ **TETAPAN ID SISTEM**
+    
+� **Super Admin ID:** \`${CASH.SUPER_ADMIN_ID}\`
+�📍 **Source Group:** \`${CASH.SOURCE_CHAT_ID}\`
+📺 **Channel ID:** \`${CASH.CHANNEL_ID}\`
+📝 **Log Group:** \`${CASH.LOG_GROUP_ID}\`
+🔔 **Admin Log:** \`${CASH.ADMIN_LOG_GROUP_ID}\`
+👤 **Channel Username:** @${CASH.CHANNEL_USERNAME}
+
+_Sila pilih ID yang ingin ditukar:_`;
+
+    await ctx.editMessageText(txt, {
+        parse_mode: "Markdown",
+        ...Markup.inlineKeyboard([
+            [Markup.button.callback("👑 Super Admin", "edit_id_SUPER_ADMIN_ID")],
+            [Markup.button.callback("📍 Source Group", "edit_id_SOURCE_CHAT_ID"), Markup.button.callback("📺 Channel ID", "edit_id_CHANNEL_ID")],
+            [Markup.button.callback("📝 Log Group", "edit_id_LOG_GROUP_ID"), Markup.button.callback("🔔 Admin Log", "edit_id_ADMIN_LOG_GROUP_ID")],
+            [Markup.button.callback("👤 Channel Username", "edit_id_CHANNEL_USERNAME")],
+            [Markup.button.callback("🔙 Kembali", "back_home")]
+        ])
+    });
+});
+
+bot.action(/^edit_id_(.+)$/, (ctx) => {
+    const key = ctx.match[1];
+    adminState[ctx.from.id] = { action: "WAIT_SYSTEM_ID", key: key };
+    ctx.reply(`✍️ Sila taip nilai/ID baru untuk **${key}**:`);
 });
 
 bot.action("refresh_bot", async (ctx) => {
@@ -502,7 +548,7 @@ async function handleModeration(ctx) {
     if (!ctx.chat || (ctx.chat.type !== "group" && ctx.chat.type !== "supergroup")) return;
     if (!ctx.from || ctx.from.is_bot || isAdmin(ctx.from.id)) return;
     const msg = ctx.message;
-    if (msg.forward_from_chat && [CHANNEL_ID, SOURCE_CHAT_ID].includes(msg.forward_from_chat.id)) return;
+    if (msg.forward_from_chat && [CASH.CHANNEL_ID, CASH.SOURCE_CHAT_ID].includes(msg.forward_from_chat.id)) return;
     const text = (msg.text || msg.caption || "").toString().toLowerCase();
 
     if (CASH.bannedWords.some(w => text.includes(w))) {
@@ -541,7 +587,7 @@ bot.on("message", async (ctx) => {
         }
         if (state.action === "WAIT_DEL_ADMIN") {
             const id = parseInt(text);
-            if (id === SUPER_ADMIN_ID) { await ctx.reply("❌ Super Admin tidak boleh dibuang."); }
+            if (id === CASH.SUPER_ADMIN_ID) { await ctx.reply("❌ Super Admin tidak boleh dibuang."); }
             else if (!CASH.admins.includes(id)) { await ctx.reply("⚠️ User ini bukan admin."); }
             else { CASH.admins = CASH.admins.filter(a => a !== id); await saveConfig("admins", CASH.admins); await ctx.reply("✅ Admin berjaya dibuang."); }
             delete adminState[userId]; return;
@@ -671,11 +717,21 @@ bot.on("message", async (ctx) => {
             delete adminState[userId];
             return ctx.reply("🎉 Baris berjaya ditambah! Tekan /panel untuk urus lagi.");
         }
+
+        if (state.action === "WAIT_SYSTEM_ID") {
+            let val = text;
+            if (state.key.includes("_ID")) val = parseInt(text);
+
+            CASH[state.key] = val;
+            await saveConfig(state.key, val);
+            delete adminState[userId];
+            return ctx.reply(`✅ **${state.key}** berjaya dikemaskini kepada: \`${val}\``, { parse_mode: "Markdown" });
+        }
     }
 
     // B. REPLY SYSTEM (ADMIN -> USER)
     // Jika admin reply pesan forward di LOG_GROUP_ID, kirim balik ke user
-    if ((ctx.chat.id === LOG_GROUP_ID || ctx.chat.id === SOURCE_CHAT_ID) && ctx.message.reply_to_message && isAdmin(userId)) {
+    if ((ctx.chat.id === CASH.LOG_GROUP_ID || ctx.chat.id === CASH.SOURCE_CHAT_ID) && ctx.message.reply_to_message && isAdmin(userId)) {
         // Cek apakah pesan yg di-reply adalah Forwarded User
         const targetId = ctx.message.reply_to_message.forward_from ? ctx.message.reply_to_message.forward_from.id : null;
 
@@ -711,11 +767,11 @@ bot.on("message", async (ctx) => {
     }
 
     // Broadcast logic
-    if (ctx.chat.id === SOURCE_CHAT_ID && text === "/forward" && ctx.message.reply_to_message && isAdmin(userId)) {
+    if (ctx.chat.id === CASH.SOURCE_CHAT_ID && text === "/forward" && ctx.message.reply_to_message && isAdmin(userId)) {
         await ctx.deleteMessage().catch(() => { });
         const r = ctx.message.reply_to_message;
         const subs = await subscribersColl.find({}).toArray();
-        const targets = [...subs.map(s => s.userId), ...CASH.targetGroups.filter(g => g !== SOURCE_CHAT_ID)];
+        const targets = [...subs.map(s => s.userId), ...CASH.targetGroups.filter(g => g !== CASH.SOURCE_CHAT_ID)];
         LAST_BROADCAST = []; // Reset
 
         for (const t of targets) {
@@ -753,7 +809,7 @@ bot.on("message", async (ctx) => {
         // Feedback Forwarding
         if (!text.startsWith("/")) {
             // Forward to Log Group
-            await ctx.forwardMessage(LOG_GROUP_ID).catch(() => { });
+            await ctx.forwardMessage(CASH.LOG_GROUP_ID).catch(() => { });
         }
     }
     if (!isPrivate) await handleModeration(ctx);
