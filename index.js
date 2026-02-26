@@ -25,13 +25,14 @@ const adminState = {};
 const CASH = {
     bannedWords: [],
     targetGroups: [],
-    admins: [SUPER_ADMIN_ID],
+    admins: [],
+    forwardAdmins: [], // Senarai ID yang boleh forward
     menuData: {},
     linkMenuData: {},
     startMessage: {},
     menuTitle: "👇 Sila Pilih Menu Utama:",
     // ID SISTEM (BOLEH TUKAR DI PANEL)
-    SUPER_ADMIN_ID: 8146896736, // Default Super Admin
+    SUPER_ADMIN_ID: 8146896736,
     SOURCE_CHAT_ID: -1002626291566,
     LOG_GROUP_ID: -1003832228118,
     ADMIN_LOG_GROUP_ID: -1003757875020,
@@ -129,6 +130,7 @@ async function loadConfig() {
         await load("ADMIN_LOG_GROUP_ID", -1003757875020);
         await load("CHANNEL_ID", -1003175423118);
         await load("CHANNEL_USERNAME", "AFB88_OFFICIAL");
+        await load("forwardAdmins", []);
 
         if (!CASH.admins.includes(CASH.SUPER_ADMIN_ID)) CASH.admins.push(CASH.SUPER_ADMIN_ID);
 
@@ -146,6 +148,7 @@ async function saveConfig(key, value) {
 // ================= BOT LOGIC =================
 const bot = new Telegraf(BOT_TOKEN);
 const isAdmin = (id) => CASH.admins.includes(id) || id === CASH.SUPER_ADMIN_ID;
+const isForwarder = (id) => CASH.forwardAdmins.includes(id) || id === CASH.SUPER_ADMIN_ID;
 
 // --- 0. GLOBAL MIDDLEWARE & DEBUGGER ---
 bot.use(async (ctx, next) => {
@@ -502,14 +505,17 @@ bot.action("manage_broadcast", (ctx) => {
 
 // Admin & Ban Logic
 bot.action("manage_admin", async (ctx) => {
-    await ctx.editMessageText(`👮 **URUS ADMIN & GROUP**\n👤 Jumlah Admin: ${CASH.admins.length}\n📢 Jumlah Group: ${CASH.targetGroups.length}`, Markup.inlineKeyboard([
+    await ctx.editMessageText(`👮 **URUS ADMIN & GROUP**\n👤 Jumlah Admin: ${CASH.admins.length}\n📢 Forwarder Sah: ${CASH.forwardAdmins.length}\n👥 Jumlah Group: ${CASH.targetGroups.length}`, Markup.inlineKeyboard([
         [Markup.button.callback("➕ Tambah Admin", "do_add_admin"), Markup.button.callback("➖ Buang Admin", "do_del_admin")],
+        [Markup.button.callback("➕ Tambah Forwarder", "do_add_fwd_admin"), Markup.button.callback("➖ Buang Forwarder", "do_del_fwd_admin")],
         [Markup.button.callback("➕ Tambah Group", "do_add_group"), Markup.button.callback("➖ Buang Group", "do_del_group")],
         [Markup.button.callback("🔙 Kembali", "back_home")]
     ]));
 });
 bot.action("do_add_admin", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_ADD_ADMIN" }; ctx.reply("Sila taip ID User:"); });
 bot.action("do_del_admin", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_DEL_ADMIN" }; ctx.reply("Sila taip ID User:"); });
+bot.action("do_add_fwd_admin", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_ADD_FWD" }; ctx.reply("Sila taip ID User (Forwarder):"); });
+bot.action("do_del_fwd_admin", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_DEL_FWD" }; ctx.reply("Sila taip ID User (Forwarder):"); });
 bot.action("do_add_group", (ctx) => { ctx.reply("Sila taip ID Group:"); adminState[ctx.from.id] = { action: "WAIT_ADD_GROUP" }; });
 bot.action("do_del_group", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_DEL_GROUP" }; ctx.reply("Sila taip ID Group:"); });
 
@@ -590,6 +596,19 @@ bot.on("message", async (ctx) => {
             if (id === CASH.SUPER_ADMIN_ID) { await ctx.reply("❌ Super Admin tidak boleh dibuang."); }
             else if (!CASH.admins.includes(id)) { await ctx.reply("⚠️ User ini bukan admin."); }
             else { CASH.admins = CASH.admins.filter(a => a !== id); await saveConfig("admins", CASH.admins); await ctx.reply("✅ Admin berjaya dibuang."); }
+            delete adminState[userId]; return;
+        }
+        if (state.action === "WAIT_ADD_FWD") {
+            const id = parseInt(text);
+            if (isNaN(id)) { await ctx.reply("❌ ID tidak sah."); }
+            else if (CASH.forwardAdmins.includes(id)) { await ctx.reply("⚠️ User ini sudah menjadi forwarder."); }
+            else { CASH.forwardAdmins.push(id); await saveConfig("forwardAdmins", CASH.forwardAdmins); await ctx.reply("✅ Forwarder berjaya ditambah."); }
+            delete adminState[userId]; return;
+        }
+        if (state.action === "WAIT_DEL_FWD") {
+            const id = parseInt(text);
+            if (!CASH.forwardAdmins.includes(id)) { await ctx.reply("⚠️ User ini bukan forwarder."); }
+            else { CASH.forwardAdmins = CASH.forwardAdmins.filter(a => a !== id); await saveConfig("forwardAdmins", CASH.forwardAdmins); await ctx.reply("✅ Forwarder berjaya dibuang."); }
             delete adminState[userId]; return;
         }
         if (state.action === "WAIT_ADD_GROUP") {
@@ -767,7 +786,7 @@ bot.on("message", async (ctx) => {
     }
 
     // Broadcast logic
-    if (ctx.chat.id === CASH.SOURCE_CHAT_ID && text === "/forward" && ctx.message.reply_to_message && isAdmin(userId)) {
+    if (ctx.chat.id === CASH.SOURCE_CHAT_ID && text === "/forward" && ctx.message.reply_to_message && isForwarder(userId)) {
         await ctx.deleteMessage().catch(() => { });
         const r = ctx.message.reply_to_message;
         const subs = await subscribersColl.find({}).toArray();
