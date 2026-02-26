@@ -532,20 +532,39 @@ bot.action("do_del_group", async (ctx) => { await ctx.answerCbQuery().catch(() =
 
 bot.action("manage_ban", async (ctx) => {
     await ctx.answerCbQuery().catch(() => { });
-    await ctx.editMessageText(`🛡 **SENARAI KATA TERLARANG**\n${CASH.bannedWords.map(w => `🚫 ${w}`).join("\n")}`, Markup.inlineKeyboard([
-        [Markup.button.callback("➕ Tambah Kata", "do_add_ban"), Markup.button.callback("➖ Buang Kata", "do_del_ban")],
-        [Markup.button.callback("🔙 Kembali", "back_home")]
-    ]));
+    const list = CASH.bannedWords.map((w, i) => `<b>${i + 1}.</b> <code>${String(w).replace(/</g, '&lt;')}</code>`).join("\n");
+    await ctx.editMessageText(`🛡 <b>SENARAI KATA TERLARANG</b>\n\n${list || "<i>(Tiada Data)</i>"}`, {
+        parse_mode: "HTML",
+        ...Markup.inlineKeyboard([
+            [Markup.button.callback("➕ Tambah Kata", "do_add_ban"), Markup.button.callback("➖ Buang Kata", "do_del_ban")],
+            [Markup.button.callback("🔙 Kembali", "back_home")]
+        ])
+    }).catch(e => console.error("Error Manage Ban:", e.message));
 });
-bot.action("do_add_ban", async (ctx) => { await ctx.answerCbQuery().catch(() => { }); adminState[ctx.from.id] = { action: "WAIT_ADD_BAN" }; ctx.reply("Sila taip Kata:"); });
+
+bot.action("do_add_ban", async (ctx) => {
+    await ctx.answerCbQuery().catch(() => { });
+    adminState[ctx.from.id] = { action: "WAIT_ADD_BAN" };
+    ctx.reply("✍️ **TAMBAH KATA TERLARANG**\n\nSila taip kata terlarang baru.\n(Anda boleh taip banyak baris untuk tambah banyak kata sekaligus)", { parse_mode: "Markdown" });
+});
+
 bot.action("do_del_ban", async (ctx) => {
     await ctx.answerCbQuery().catch(() => { });
-    if (CASH.bannedWords.length === 0) return; // Silent return if empty
-    const buttons = CASH.bannedWords.map((w, i) => Markup.button.callback(`🗑 ${w.substring(0, 20)}`, `rm_ban_idx_${i}`));
+    if (!CASH.bannedWords || CASH.bannedWords.length === 0) return ctx.answerCbQuery("⚠️ Senarai masih kosong.", { show_alert: true });
+
+    // Pecahkan butang kepada 2 kolum, limit 20 huruf sahaja pada label
+    const buttons = CASH.bannedWords.map((w, i) => {
+        const label = String(w).replace(/\n/g, ' ').substring(0, 15);
+        return Markup.button.callback(`🗑 ${label}${w.length > 15 ? '..' : ''}`, `rm_ban_idx_${i}`);
+    });
+
     const keyboard = [];
     while (buttons.length) keyboard.push(buttons.splice(0, 2));
     keyboard.push([Markup.button.callback("🔙 Batal", "manage_ban")]);
-    await ctx.editMessageText("Sila klik pada kata yang ingin dipadam:", Markup.inlineKeyboard(keyboard));
+
+    await ctx.editMessageText("Sila klik pada kata yang ingin dipadam:", Markup.inlineKeyboard(keyboard)).catch(() => {
+        ctx.reply("❌ Senarai terlalu panjang untuk dipaparkan dalam satu menu. Sila padam secara berperingkat.");
+    });
 });
 
 bot.action(/^rm_ban_idx_(\d+)$/, async (ctx) => {
@@ -555,11 +574,15 @@ bot.action(/^rm_ban_idx_(\d+)$/, async (ctx) => {
         await saveConfig("bannedWords", CASH.bannedWords);
         await ctx.answerCbQuery(`✅ Dipadam: ${removed}`);
     }
-    const list = CASH.bannedWords.map(w => `🚫 ${w}`).join("\n");
-    await ctx.editMessageText(`🛡 **SENARAI KATA TERLARANG**\n${list || "(Tiada Data)"}`, Markup.inlineKeyboard([
-        [Markup.button.callback("➕ Tambah Kata", "do_add_ban"), Markup.button.callback("➖ Buang Kata", "do_del_ban")],
-        [Markup.button.callback("🔙 Kembali", "back_home")]
-    ]));
+    // Refresh list
+    const list = CASH.bannedWords.map((w, i) => `<b>${i + 1}.</b> <code>${String(w).replace(/</g, '&lt;')}</code>`).join("\n");
+    await ctx.editMessageText(`🛡 <b>SENARAI KATA TERLARANG</b>\n\n${list || "<i>(Tiada Data)</i>"}`, {
+        parse_mode: "HTML",
+        ...Markup.inlineKeyboard([
+            [Markup.button.callback("➕ Tambah Kata", "do_add_ban"), Markup.button.callback("➖ Buang Kata", "do_del_ban")],
+            [Markup.button.callback("🔙 Kembali", "back_home")]
+        ])
+    }).catch(() => { });
 });
 
 // --- 3. MODERATION ---
@@ -639,9 +662,23 @@ bot.on("message", async (ctx) => {
             delete adminState[userId]; return;
         }
         if (state.action === "WAIT_ADD_BAN") {
-            const w = text.toLowerCase();
-            if (CASH.bannedWords.includes(w)) { await ctx.reply("⚠️ Kata ini sudah ada dalam senarai."); }
-            else { CASH.bannedWords.push(w); await saveConfig("bannedWords", CASH.bannedWords); await ctx.reply("✅ Kata berjaya ditambah."); }
+            // Support multiple lines adding
+            const words = text.split("\n").map(w => w.trim().toLowerCase()).filter(w => w.length > 0);
+            let addedCount = 0;
+
+            for (const w of words) {
+                if (!CASH.bannedWords.includes(w)) {
+                    CASH.bannedWords.push(w);
+                    addedCount++;
+                }
+            }
+
+            if (addedCount > 0) {
+                await saveConfig("bannedWords", CASH.bannedWords);
+                await ctx.reply(`✅ Berjaya menambah <b>${addedCount}</b> kata terlarang baru!`, { parse_mode: "HTML" });
+            } else {
+                await ctx.reply("⚠️ Tiada kata baru ditambah (mungkin sudah ada dalam senarai).");
+            }
             delete adminState[userId]; return;
         }
         if (state.action === "WAIT_DEL_BAN") {
