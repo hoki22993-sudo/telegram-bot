@@ -608,11 +608,104 @@ async function warnUser(ctx, reason) {
     setTimeout(() => ctx.telegram.deleteMessage(ctx.chat.id, m.message_id).catch(() => { }), 5000);
 }
 
-// --- 4. MESSAGE HANDLER ---
-bot.on("message", async (ctx) => {
+// --- 4. COMMAND HANDLERS ---
+bot.command("id", async (ctx) => {
+    if (!isAdmin(ctx.from.id)) return;
+    return ctx.reply(`🆔 **ID INFO**\n\nChat ID: <code>${ctx.chat.id}</code>\nUser ID: <code>${ctx.from.id}</code>`, { parse_mode: "HTML" });
+});
+
+bot.command("undo", async (ctx) => {
     const userId = ctx.from.id;
-    const text = ctx.message.text || "";
+    if (!isAdmin(userId)) return;
+
+    await ctx.deleteMessage().catch(() => { });
+    if (LAST_BROADCAST.length === 0) return ctx.reply("⚠️ Tiada broadcast terakhir untuk di-undo.");
+
+    const mStats = await ctx.reply(`⏳ Membatalkan ${LAST_BROADCAST.length} mesej...`);
+    let successCount = 0;
+    for (const item of LAST_BROADCAST) {
+        try { await bot.telegram.deleteMessage(item.chat_id, item.message_id); successCount++; } catch (e) { }
+    }
+    LAST_BROADCAST = [];
+    await bot.telegram.editMessageText(ctx.chat.id, mStats.message_id, null, `✅ Berjaya undo ${successCount} mesej.`);
+});
+
+bot.command("forward", async (ctx) => {
+    const userId = ctx.from.id;
+    const userName = ctx.from.first_name || "Unknown";
+
+    // Auto-Delete command message to keep group clean
+    await ctx.deleteMessage().catch(() => { });
+
+    // 0. Debug Log
+    await bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `🔍 **DEBUG**: /forward dipanggil oleh ${userName} (\`${userId}\`) di Chat: \`${ctx.chat.id}\``, { parse_mode: "Markdown" }).catch(() => { });
+
+    // 1. Semak kebenaran
+    if (!isForwarder(userId)) {
+        const logText = `❌ **FAILED FORWARD**\nUser: ${userName} (\`${userId}\`)\nReason: Tiada akses Forwarder.`;
+        return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, logText, { parse_mode: "Markdown" }).catch(() => { });
+    }
+
+    // 2. Semak jika ini adalah reply
+    if (!ctx.message.reply_to_message) {
+        const logText = `⚠️ **FAILED FORWARD**\nUser: ${userName} (\`${userId}\`)\nReason: Tidak reply pada mesej.`;
+        return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, logText, { parse_mode: "Markdown" }).catch(() => { });
+    }
+
+    const r = ctx.message.reply_to_message;
+
+    // Ambil semua subscriber + target groups + channel
+    let subs = [];
+    try {
+        if (subscribersColl) subs = await subscribersColl.find({}).toArray();
+    } catch (e) { console.error("DB Fetch Error:", e); }
+
+    let targets = [...subs.map(s => s.userId), ...CASH.targetGroups];
+    if (CASH.CHANNEL_ID) targets.push(CASH.CHANNEL_ID);
+
+    // Buang ID group asal supaya tidak forward ke group sendiri dan buang duplicate
+    const uniqueTargets = [...new Set(targets)].filter(id => id && id !== ctx.chat.id);
+
+    // LOG Sasarang yang dijumpai
+    await bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `🎯 **SASARAN DIJUMPAI**: ${uniqueTargets.length} destinasi.\n(Group: ${CASH.targetGroups.length}, Subs: ${subs.length}, Channel: ${CASH.CHANNEL_ID ? '1' : '0'})`).catch(() => { });
+
+    if (uniqueTargets.length === 0) {
+        return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `⚠️ **FAILED FORWARD**\nReason: Tiada sasaran (sasaran 0). Sila pastikan anda telah menambah Group Target atau Channel ID.`).catch(() => { });
+    }
+
+    LAST_BROADCAST = []; // Reset
+    let count = 0;
+    let failMessages = [];
+
+    for (const t of uniqueTargets) {
+        try {
+            const s = await bot.telegram.forwardMessage(t, ctx.chat.id, r.message_id);
+            LAST_BROADCAST.push({ chat_id: t, message_id: s.message_id });
+            count++;
+        } catch (e) {
+            failMessages.push(`❌ \`${t}\`: ${e.message}`);
+        }
+    }
+
+    if (count === 0) {
+        let errLog = `⚠️ **FORWARD COMPLETED (0)**\nMesej tidak berjaya ke mana-mana sasaran.\n\n**Ralat Terperinci:**\n${failMessages.slice(0, 5).join('\n')}`;
+        await bot.telegram.sendMessage(CASH.LOG_GROUP_ID, errLog, { parse_mode: "Markdown" }).catch(() => { });
+    } else {
+        let stats = `🚀 **BROADCAST SUCCESS**\nBy: ${userName} (\`${userId}\`)\nBerjaya: ${count}\nGagal: ${uniqueTargets.length - count}`;
+        if (failMessages.length > 0) stats += `\n\n**Gagal di:**\n${failMessages.slice(0, 3).join('\n')}`;
+        await bot.telegram.sendMessage(CASH.LOG_GROUP_ID, stats, { parse_mode: "Markdown" }).catch(() => { });
+    }
+});
+
+// --- 5. MESSAGE HANDLER ---
+bot.on("message", async (ctx, next) => {
+    const textSnapshot = (ctx.message.text || "").trim();
+    // Skip if it is a command
+    if (textSnapshot.startsWith("/")) return next();
+
+    const userId = ctx.from.id;
     const isPrivate = ctx.chat.type === "private";
+    const text = textSnapshot; // Re-use the existing snapshot
 
     // A. ADMIN WIZARD
     if (isAdmin(userId) && adminState[userId]) {
@@ -844,72 +937,6 @@ bot.on("message", async (ctx) => {
         await ctx.reply("BACK TO MENU TEKAN /start").catch(() => { });
     }
     if (!isPrivate) await handleModeration(ctx);
-});
-
-// --- 4. COMMAND HANDLERS ---
-bot.command("id", async (ctx) => {
-    if (!isAdmin(ctx.from.id)) return;
-    return ctx.reply(`🆔 **ID INFO**\n\nChat ID: <code>${ctx.chat.id}</code>\nUser ID: <code>${ctx.from.id}</code>`, { parse_mode: "HTML" });
-});
-
-bot.command("undo", async (ctx) => {
-    const userId = ctx.from.id;
-    if (!isAdmin(userId)) return;
-
-    await ctx.deleteMessage().catch(() => { });
-    if (LAST_BROADCAST.length === 0) return ctx.reply("⚠️ Tiada broadcast terakhir untuk di-undo.");
-
-    const mStats = await ctx.reply(`⏳ Membatalkan ${LAST_BROADCAST.length} mesej...`);
-    let successCount = 0;
-    for (const item of LAST_BROADCAST) {
-        try { await bot.telegram.deleteMessage(item.chat_id, item.message_id); successCount++; } catch (e) { }
-    }
-    LAST_BROADCAST = [];
-    await bot.telegram.editMessageText(ctx.chat.id, mStats.message_id, null, `✅ Berjaya undo ${successCount} mesej.`);
-});
-
-bot.command("forward", async (ctx) => {
-    const userId = ctx.from.id;
-    const userName = ctx.from.first_name || "Unknown";
-
-    // Auto-Delete command message to keep group clean
-    await ctx.deleteMessage().catch(() => { });
-
-    // 1. Semak kebenaran
-    if (!isForwarder(userId)) {
-        const logText = `❌ **FAILED FORWARD**\nUser: ${userName} (\`${userId}\`)\nReason: Tiada akses Forwarder.`;
-        return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, logText, { parse_mode: "Markdown" }).catch(() => { });
-    }
-
-    // 2. Semak jika ini adalah reply
-    if (!ctx.message.reply_to_message) {
-        const logText = `⚠️ **FAILED FORWARD**\nUser: ${userName} (\`${userId}\`)\nReason: Tidak reply pada mesej.`;
-        return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, logText, { parse_mode: "Markdown" }).catch(() => { });
-    }
-
-    const r = ctx.message.reply_to_message;
-
-    // Ambil semua subscriber + target groups + channel
-    const subs = await subscribersColl.find({}).toArray();
-    let targets = [...subs.map(s => s.userId), ...CASH.targetGroups];
-    if (CASH.CHANNEL_ID) targets.push(CASH.CHANNEL_ID);
-
-    // Buang ID group asal supaya tidak forward ke group sendiri dan buang duplicate
-    const uniqueTargets = [...new Set(targets)].filter(id => id && id !== ctx.chat.id);
-
-    LAST_BROADCAST = []; // Reset
-    let count = 0;
-
-    for (const t of uniqueTargets) {
-        try {
-            const s = await bot.telegram.forwardMessage(t, ctx.chat.id, r.message_id);
-            LAST_BROADCAST.push({ chat_id: t, message_id: s.message_id });
-            count++;
-        } catch (e) { }
-    }
-
-    const logSuccess = `🚀 **BROADCAST SUCCESS**\nBy: ${userName} (\`${userId}\`)\nDestinasi: ${count} penerima.`;
-    await bot.telegram.sendMessage(CASH.LOG_GROUP_ID, logSuccess, { parse_mode: "Markdown" }).catch(() => { });
 });
 
 
