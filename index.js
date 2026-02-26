@@ -14,12 +14,6 @@ const BOT_TOKEN = process.env.BOT_TOKEN || "ISI_TOKEN_DI_SINI";
 const PORT = process.env.PORT || 8080;
 const MONGODB_URI = (process.env.MONGODB_URI || "").trim();
 
-const LOG_GROUP_ID = -1003832228118; // Group Log Chat
-const ADMIN_LOG_GROUP_ID = -1003757875020; // Group Khusus Notif Sub & Error
-const SOURCE_CHAT_ID = -1002626291566;
-const CHANNEL_ID = -1003175423118;
-const CHANNEL_USERNAME = "AFB88_OFFICIAL"; // Ganti dengan username channel tanpa @
-
 // ================= STATE MANAGEMENT =================
 const adminState = {};
 const CASH = {
@@ -77,8 +71,8 @@ async function loadConfig() {
         };
 
         await load("bannedWords", ["kencing", "anjing", "scam", "bodoh", "babi"]);
-        await load("targetGroups", [SOURCE_CHAT_ID, LOG_GROUP_ID]);
-        await load("admins", [SUPER_ADMIN_ID]);
+        await load("targetGroups", [CASH.SOURCE_CHAT_ID, CASH.LOG_GROUP_ID]);
+        await load("admins", [CASH.SUPER_ADMIN_ID]);
 
         await load("menuData", {
             "🌟 NEW REGISTER FREE 🌟": {
@@ -152,14 +146,14 @@ const isForwarder = (id) => CASH.forwardAdmins.includes(id) || id === CASH.SUPER
 
 // --- 0. GLOBAL MIDDLEWARE & DEBUGGER ---
 bot.use(async (ctx, next) => {
-    // Log setiap update
-    if (ctx.updateType === 'message') {
-        const user = ctx.from.username || ctx.from.first_name || "Unknown";
-        console.log(`📩 INCOMING MSG [${user}]: ${ctx.message.text || ctx.message.caption || "Media"}`);
+    try {
+        if (ctx.updateType === 'message' && ctx.from) {
+            const user = ctx.from.username || ctx.from.first_name || "Unknown";
+            console.log(`📩 INCOMING MSG [${user}]: ${ctx.message.text || ctx.message.caption || "Media"}`);
+        }
+    } catch (e) {
+        console.error("📩 Middleware Log Error:", e.message);
     }
-
-
-
     await next();
 });
 
@@ -197,14 +191,18 @@ bot.on("new_chat_members", async (ctx) => {
 // =================== START COMMAND ===================
 bot.start(async (ctx) => {
     console.log("⚡ PROCESSING /START...");
-    try {
-        const userCount = await subscribersColl.countDocuments({ userId: ctx.from.id });
-        if (userCount === 0) {
-            await subscribersColl.updateOne({ userId: ctx.from.id }, { $set: { userId: ctx.from.id, name: ctx.from.first_name } }, { upsert: true });
+    if (!ctx.from) return; // Safety exit
 
-            // Notif New Subscriber ke Admin Log Group
-            const notifText = `🎉 **NEW SUBSCRIBER**\nName: ${ctx.from.first_name}\nID: \`${ctx.from.id}\``;
-            await bot.telegram.sendMessage(CASH.ADMIN_LOG_GROUP_ID, notifText, { parse_mode: "Markdown" }).catch(() => { });
+    try {
+        if (subscribersColl) {
+            const userCount = await subscribersColl.countDocuments({ userId: ctx.from.id });
+            if (userCount === 0) {
+                await subscribersColl.updateOne({ userId: ctx.from.id }, { $set: { userId: ctx.from.id, name: ctx.from.first_name } }, { upsert: true });
+
+                // Notif New Subscriber ke Admin Log Group
+                const notifText = `🎉 **NEW SUBSCRIBER**\nName: ${ctx.from.first_name}\nID: \`${ctx.from.id}\``;
+                await bot.telegram.sendMessage(CASH.ADMIN_LOG_GROUP_ID, notifText, { parse_mode: "Markdown" }).catch(() => { });
+            }
         }
     } catch (e) { console.error("Sub Error:", e); }
 
@@ -287,8 +285,12 @@ bot.command("panel", async (ctx) => {
         ])
     });
 });
-bot.action("close_panel", (ctx) => ctx.deleteMessage());
+bot.action("close_panel", async (ctx) => {
+    await ctx.answerCbQuery().catch(() => { });
+    ctx.deleteMessage().catch(() => { });
+});
 bot.action("back_home", async (ctx) => {
+    await ctx.answerCbQuery();
     const txt = `🎛 **PANEL ADMIN BOT V2**\n\nSila pilih menu tetapan di bawah:`;
     await ctx.editMessageText(txt, {
         parse_mode: "Markdown",
@@ -304,6 +306,8 @@ bot.action("back_home", async (ctx) => {
 });
 
 bot.action("manage_system_ids", async (ctx) => {
+    await ctx.answerCbQuery().catch(() => { });
+    await ctx.answerCbQuery().catch(() => { });
     const txt = `⚙️ **TETAPAN ID SISTEM**
     
 � **Super Admin ID:** \`${CASH.SUPER_ADMIN_ID}\`
@@ -327,7 +331,8 @@ _Sila pilih ID yang ingin ditukar:_`;
     });
 });
 
-bot.action(/^edit_id_(.+)$/, (ctx) => {
+bot.action(/^edit_id_(.+)$/, async (ctx) => {
+    await ctx.answerCbQuery().catch(() => { });
     const key = ctx.match[1];
     adminState[ctx.from.id] = { action: "WAIT_SYSTEM_ID", key: key };
     ctx.reply(`✍️ Sila taip nilai/ID baru untuk **${key}**:`);
@@ -344,6 +349,7 @@ bot.action("refresh_bot", async (ctx) => {
 
 // --- 2. MENU MANAGERS ---
 bot.action("manage_menu", async (ctx) => {
+    await ctx.answerCbQuery();
     const list = Object.keys(CASH.menuData).map((k, i) => `${i + 1}. ${k}`).join("\n");
     await ctx.editMessageText(`🔘 **MENU UTAMA/KEYBOARD**\n\n${list || "(Tiada Data)"}`, Markup.inlineKeyboard([
         [Markup.button.callback("➕ Tambah Butang", "add_menu_start"), Markup.button.callback("🗑 Padam Butang", "del_menu_start")],
@@ -351,8 +357,9 @@ bot.action("manage_menu", async (ctx) => {
     ]));
 });
 // Add/Del Menu Logic
-bot.action("add_menu_start", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_MENU_NAME", data: {} }; ctx.editMessageText("1️⃣ **LANGKAH 1/5**\nSila taip **NAMA BUTANG**:", { parse_mode: "Markdown" }); });
+bot.action("add_menu_start", async (ctx) => { await ctx.answerCbQuery().catch(() => { }); adminState[ctx.from.id] = { action: "WAIT_MENU_NAME", data: {} }; ctx.editMessageText("1️⃣ **LANGKAH 1/5**\nSila taip **NAMA BUTANG**:", { parse_mode: "Markdown" }); });
 bot.action("del_menu_start", async (ctx) => {
+    await ctx.answerCbQuery().catch(() => { });
     const buttons = Object.keys(CASH.menuData).map(k => [Markup.button.callback(`🗑 ${k}`, `do_rm_menu_${k}`)]);
     buttons.push([Markup.button.callback("🔙 Batal", "manage_menu")]);
     await ctx.editMessageText("Sila pilih butang untuk dipadam:", Markup.inlineKeyboard(buttons));
@@ -370,6 +377,7 @@ bot.action(/^do_rm_menu_(.+)$/, async (ctx) => {
 // Link Logic
 // Link/Header Menu Logic
 bot.action("manage_link", async (ctx) => {
+    await ctx.answerCbQuery().catch(() => { });
     const list = Object.keys(CASH.linkMenuData).map((k, i) => `${i + 1}. ${CASH.linkMenuData[k].label}`).join("\n");
     await ctx.editMessageText(`🔗 **MENU LINK (HEADER)**\n\n${list || "(Tiada Data)"}`, Markup.inlineKeyboard([
         [Markup.button.callback("➕ Tambah Menu", "add_link_start"), Markup.button.callback("🗑 Padam Menu", "del_link_start")],
@@ -377,12 +385,14 @@ bot.action("manage_link", async (ctx) => {
     ]));
 });
 
-bot.action("add_link_start", (ctx) => {
+bot.action("add_link_start", async (ctx) => {
+    await ctx.answerCbQuery().catch(() => { });
     adminState[ctx.from.id] = { action: "WAIT_LINK_KEY", data: {} };
     ctx.editMessageText("1️⃣ **LANGKAH 1/4**\nSila taip **ID UNIK** (Cth: promo1, link2):", { parse_mode: "Markdown" });
 });
 
 bot.action("del_link_start", async (ctx) => {
+    await ctx.answerCbQuery().catch(() => { });
     const buttons = Object.keys(CASH.linkMenuData).map(k => [Markup.button.callback(`🗑 ${CASH.linkMenuData[k].label}`, `do_rm_link_${k}`)]);
     buttons.push([Markup.button.callback("🔙 Batal", "manage_link")]);
     await ctx.editMessageText("Sila pilih menu untuk dipadam:", Markup.inlineKeyboard(buttons));
@@ -437,7 +447,8 @@ bot.action(/^trig_menu_(.+)$/, async (ctx) => {
 
 // Start & Broadcast
 // --- MODIFIED START MANAGER ---
-bot.action("manage_start", (ctx) => {
+bot.action("manage_start", async (ctx) => {
+    await ctx.answerCbQuery().catch(() => { });
     ctx.editMessageText(
         `🏁 **TETAPAN MESEJ & TITLE**\nSila pilih bahagian yang ingin diubah:`,
         Markup.inlineKeyboard([
@@ -499,12 +510,14 @@ bot.action(/^rm_title_line_(\d+)$/, async (ctx) => {
 });
 // ------------------------------
 
-bot.action("manage_broadcast", (ctx) => {
+bot.action("manage_broadcast", async (ctx) => {
+    await ctx.answerCbQuery().catch(() => { });
     ctx.editMessageText(`📢 **SISTEM BROADCAST**\n1️⃣ Hantar promo ke **Group Asal (Source)**\n2️⃣ **Reply** mesej tersebut\n3️⃣ Taip command: \`/forward\`\n\n(❗️ Taip \`/undo\` jika tersalah hantar)`, { parse_mode: "Markdown", ...Markup.inlineKeyboard([[Markup.button.callback("🔙 Kembali", "back_home")]]) });
 });
 
 // Admin & Ban Logic
 bot.action("manage_admin", async (ctx) => {
+    await ctx.answerCbQuery().catch(() => { });
     await ctx.editMessageText(`👮 **URUS ADMIN & GROUP**\n👤 Jumlah Admin: ${CASH.admins.length}\n📢 Forwarder Sah: ${CASH.forwardAdmins.length}\n👥 Jumlah Group: ${CASH.targetGroups.length}`, Markup.inlineKeyboard([
         [Markup.button.callback("➕ Tambah Admin", "do_add_admin"), Markup.button.callback("➖ Buang Admin", "do_del_admin")],
         [Markup.button.callback("➕ Tambah Forwarder", "do_add_fwd_admin"), Markup.button.callback("➖ Buang Forwarder", "do_del_fwd_admin")],
@@ -512,22 +525,24 @@ bot.action("manage_admin", async (ctx) => {
         [Markup.button.callback("🔙 Kembali", "back_home")]
     ]));
 });
-bot.action("do_add_admin", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_ADD_ADMIN" }; ctx.reply("Sila taip ID User:"); });
-bot.action("do_del_admin", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_DEL_ADMIN" }; ctx.reply("Sila taip ID User:"); });
-bot.action("do_add_fwd_admin", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_ADD_FWD" }; ctx.reply("Sila taip ID User (Forwarder):"); });
-bot.action("do_del_fwd_admin", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_DEL_FWD" }; ctx.reply("Sila taip ID User (Forwarder):"); });
-bot.action("do_add_group", (ctx) => { ctx.reply("Sila taip ID Group:"); adminState[ctx.from.id] = { action: "WAIT_ADD_GROUP" }; });
-bot.action("do_del_group", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_DEL_GROUP" }; ctx.reply("Sila taip ID Group:"); });
+bot.action("do_add_admin", async (ctx) => { await ctx.answerCbQuery().catch(() => { }); adminState[ctx.from.id] = { action: "WAIT_ADD_ADMIN" }; ctx.reply("Sila taip ID User:"); });
+bot.action("do_del_admin", async (ctx) => { await ctx.answerCbQuery().catch(() => { }); adminState[ctx.from.id] = { action: "WAIT_DEL_ADMIN" }; ctx.reply("Sila taip ID User:"); });
+bot.action("do_add_fwd_admin", async (ctx) => { await ctx.answerCbQuery().catch(() => { }); adminState[ctx.from.id] = { action: "WAIT_ADD_FWD" }; ctx.reply("Sila taip ID User (Forwarder):"); });
+bot.action("do_del_fwd_admin", async (ctx) => { await ctx.answerCbQuery().catch(() => { }); adminState[ctx.from.id] = { action: "WAIT_DEL_FWD" }; ctx.reply("Sila taip ID User (Forwarder):"); });
+bot.action("do_add_group", async (ctx) => { await ctx.answerCbQuery().catch(() => { }); ctx.reply("Sila taip ID Group:"); adminState[ctx.from.id] = { action: "WAIT_ADD_GROUP" }; });
+bot.action("do_del_group", async (ctx) => { await ctx.answerCbQuery().catch(() => { }); adminState[ctx.from.id] = { action: "WAIT_DEL_GROUP" }; ctx.reply("Sila taip ID Group:"); });
 
 bot.action("manage_ban", async (ctx) => {
+    await ctx.answerCbQuery().catch(() => { });
     await ctx.editMessageText(`🛡 **SENARAI KATA TERLARANG**\n${CASH.bannedWords.map(w => `🚫 ${w}`).join("\n")}`, Markup.inlineKeyboard([
         [Markup.button.callback("➕ Tambah Kata", "do_add_ban"), Markup.button.callback("➖ Buang Kata", "do_del_ban")],
         [Markup.button.callback("🔙 Kembali", "back_home")]
     ]));
 });
-bot.action("do_add_ban", (ctx) => { adminState[ctx.from.id] = { action: "WAIT_ADD_BAN" }; ctx.reply("Sila taip Kata:"); });
+bot.action("do_add_ban", async (ctx) => { await ctx.answerCbQuery().catch(() => { }); adminState[ctx.from.id] = { action: "WAIT_ADD_BAN" }; ctx.reply("Sila taip Kata:"); });
 bot.action("do_del_ban", async (ctx) => {
-    if (CASH.bannedWords.length === 0) return ctx.answerCbQuery("⚠️ Senarai kosong.");
+    await ctx.answerCbQuery().catch(() => { });
+    if (CASH.bannedWords.length === 0) return; // Silent return if empty
     const buttons = CASH.bannedWords.map((w, i) => Markup.button.callback(`🗑 ${w.substring(0, 20)}`, `rm_ban_idx_${i}`));
     const keyboard = [];
     while (buttons.length) keyboard.push(buttons.splice(0, 2));
@@ -844,22 +859,32 @@ const server = app.listen(PORT, "0.0.0.0", () => {
 });
 
 async function startServices() {
-    console.log("🔄 Starting MongoDB & Bot...");
+    console.log("🔄 [STARTUP] Memulakan perkhidmatan...");
+
+    // 1. Cuba Online Bot SEGERA
     try {
-        await connectMongo();
         await bot.telegram.deleteWebhook({ drop_pending_updates: true });
         const me = await bot.telegram.getMe();
-        console.log(`🤖 Bot Identity Verified: @${me.username} (${me.id})`);
+        console.log(`🤖 [BOT] Berjaya Online: @${me.username}`);
 
-        bot.launch().then(() => console.log("⚠️ Bot Stopped")).catch((err) => console.error("❌ Launch Error:", err));
-        console.log("✅ Bot Telegram POLLING STARTED Successfully! (Background)");
+        bot.launch()
+            .then(() => console.log("⚠️ [BOT] Polling Berhenti"))
+            .catch((err) => console.error("❌ [BOT] Gagal Launch:", err.message));
 
-        // Start Self-Ping
-        startKeepAlive();
-
-    } catch (error) {
-        console.error("❌ Service Startup Error:", error);
+        console.log("✅ [BOT] Polling bermula di latar belakang.");
+    } catch (err) {
+        console.error("❌ [BOT] Gagal Startup (Sila check BOT_TOKEN):", err.message);
     }
+
+    // 2. Hubung MongoDB di Latar Belakang
+    console.log("🔄 [DB] Menghubungi MongoDB...");
+    connectMongo().then(() => {
+        console.log("✅ [DB] MongoDB Berjaya Disambungkan.");
+    }).catch(err => {
+        console.error("⚠️ [DB] MongoDB Gagal disambung (Bot mungkin lambat respon):", err.message);
+    });
+
+    startKeepAlive();
 }
 
 // --- KEEP ALIVE MECHANISM (PREVENT SLEEP) ---
