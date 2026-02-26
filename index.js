@@ -307,28 +307,26 @@ bot.action("back_home", async (ctx) => {
 
 bot.action("manage_system_ids", async (ctx) => {
     await ctx.answerCbQuery().catch(() => { });
-    await ctx.answerCbQuery().catch(() => { });
-    const txt = `⚙️ **TETAPAN ID SISTEM**
-    
-� **Super Admin ID:** \`${CASH.SUPER_ADMIN_ID}\`
-�📍 **Source Group:** \`${CASH.SOURCE_CHAT_ID}\`
-📺 **Channel ID:** \`${CASH.CHANNEL_ID}\`
-📝 **Log Group:** \`${CASH.LOG_GROUP_ID}\`
-🔔 **Admin Log:** \`${CASH.ADMIN_LOG_GROUP_ID}\`
-👤 **Channel Username:** @${CASH.CHANNEL_USERNAME}
 
-_Sila pilih ID yang ingin ditukar:_`;
+    const txt = `⚙️ <b>TETAPAN ID SISTEM</b>\n\n` +
+        `👤 <b>Super Admin ID:</b> <code>${CASH.SUPER_ADMIN_ID}</code>\n` +
+        `📍 <b>Source Group:</b> <code>${CASH.SOURCE_CHAT_ID}</code>\n` +
+        `📺 <b>Channel ID:</b> <code>${CASH.CHANNEL_ID}</code>\n` +
+        `📝 <b>Log Group:</b> <code>${CASH.LOG_GROUP_ID}</code>\n` +
+        `🔔 <b>Admin Log:</b> <code>${CASH.ADMIN_LOG_GROUP_ID}</code>\n` +
+        `� <b>Channel Username:</b> @${CASH.CHANNEL_USERNAME}\n\n` +
+        `<i>Sila pilih ID yang ingin ditukar:</i>`;
 
     await ctx.editMessageText(txt, {
-        parse_mode: "Markdown",
+        parse_mode: "HTML",
         ...Markup.inlineKeyboard([
             [Markup.button.callback("👑 Super Admin", "edit_id_SUPER_ADMIN_ID")],
             [Markup.button.callback("📍 Source Group", "edit_id_SOURCE_CHAT_ID"), Markup.button.callback("📺 Channel ID", "edit_id_CHANNEL_ID")],
             [Markup.button.callback("📝 Log Group", "edit_id_LOG_GROUP_ID"), Markup.button.callback("🔔 Admin Log", "edit_id_ADMIN_LOG_GROUP_ID")],
-            [Markup.button.callback("👤 Channel Username", "edit_id_CHANNEL_USERNAME")],
+            [Markup.button.callback("👤 Username Channel", "edit_id_CHANNEL_USERNAME")],
             [Markup.button.callback("🔙 Kembali", "back_home")]
         ])
-    });
+    }).catch(e => console.error("Error Edit System IDs:", e.message));
 });
 
 bot.action(/^edit_id_(.+)$/, async (ctx) => {
@@ -753,13 +751,16 @@ bot.on("message", async (ctx) => {
         }
 
         if (state.action === "WAIT_SYSTEM_ID") {
-            let val = text;
-            if (state.key.includes("_ID")) val = parseInt(text);
+            let val = text.trim();
+            if (state.key.includes("_ID")) {
+                val = parseInt(val);
+                if (isNaN(val)) return ctx.reply("❌ <b>ID TIDAK SAH!</b>\nSila masukkan nombor sahaja (Cth: -1001234567).", { parse_mode: "HTML" });
+            }
 
             CASH[state.key] = val;
             await saveConfig(state.key, val);
             delete adminState[userId];
-            return ctx.reply(`✅ **${state.key}** berjaya dikemaskini kepada: \`${val}\``, { parse_mode: "Markdown" });
+            return ctx.reply(`✅ <b>${state.key}</b> berjaya dikemaskini kepada:\n<code>${val}</code>`, { parse_mode: "HTML" });
         }
     }
 
