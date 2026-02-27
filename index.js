@@ -31,7 +31,14 @@ const CASH = {
     LOG_GROUP_ID: -1003832228118,
     ADMIN_LOG_GROUP_ID: -1003757875020,
     CHANNEL_ID: -1003175423118,
-    CHANNEL_USERNAME: "AFB88_OFFICIAL"
+    CHANNEL_USERNAME: "AFB88_OFFICIAL",
+    // NEW: FEATURE TOGGLES
+    toggles: {
+        broadcastToSubs: true,
+        antiLink: true,
+        antiBan: true,
+        privateLog: true
+    }
 };
 
 // Undo/Rollback Storage (Temporary Memory)
@@ -125,6 +132,7 @@ async function loadConfig() {
         await load("CHANNEL_ID", -1003175423118);
         await load("CHANNEL_USERNAME", "AFB88_OFFICIAL");
         await load("forwardAdmins", []);
+        await load("toggles", { broadcastToSubs: true, antiLink: true, antiBan: true, privateLog: true });
 
         if (!CASH.admins.includes(CASH.SUPER_ADMIN_ID)) CASH.admins.push(CASH.SUPER_ADMIN_ID);
 
@@ -279,7 +287,7 @@ bot.command("panel", async (ctx) => {
             [Markup.button.callback("🔘 Menu Utama (Butang)", "manage_menu"), Markup.button.callback("🔗 Link (Inline)", "manage_link")],
             [Markup.button.callback("🏁 Mesej Start & Title", "manage_start"), Markup.button.callback("📢 Sistem Broadcast", "manage_broadcast")],
             [Markup.button.callback("👮 Urus Admin & Group", "manage_admin"), Markup.button.callback("🛡 Senarai Kata Terlarang", "manage_ban")],
-            [Markup.button.callback("⚙️ Tetapan ID Sistem", "manage_system_ids")],
+            [Markup.button.callback("⚙️ Tetapan ID Sistem", "manage_system_ids"), Markup.button.callback("🛠 Kawalan Fitur (ON/OFF)", "manage_features")],
             [Markup.button.callback("🚀 Refresh & Deploy", "refresh_bot")],
             [Markup.button.callback("❌ Tutup Panel", "close_panel")]
         ])
@@ -298,7 +306,7 @@ bot.action("back_home", async (ctx) => {
             [Markup.button.callback("🔘 Menu Utama (Butang)", "manage_menu"), Markup.button.callback("🔗 Link (Inline)", "manage_link")],
             [Markup.button.callback("🏁 Mesej Start & Title", "manage_start"), Markup.button.callback("📢 Sistem Broadcast", "manage_broadcast")],
             [Markup.button.callback("👮 Urus Admin & Group", "manage_admin"), Markup.button.callback("🛡 Senarai Kata Terlarang", "manage_ban")],
-            [Markup.button.callback("⚙️ Tetapan ID Sistem", "manage_system_ids")],
+            [Markup.button.callback("⚙️ Tetapan ID Sistem", "manage_system_ids"), Markup.button.callback("🛠 Kawalan Fitur (ON/OFF)", "manage_features")],
             [Markup.button.callback("🚀 Refresh & Deploy", "refresh_bot")],
             [Markup.button.callback("❌ Tutup Panel", "close_panel")]
         ])
@@ -327,6 +335,54 @@ bot.action("manage_system_ids", async (ctx) => {
             [Markup.button.callback("🔙 Kembali", "back_home")]
         ])
     }).catch(e => console.error("Error Edit System IDs:", e.message));
+});
+
+// --- NEW FEATURE CONTROL MENU ---
+bot.action("manage_features", async (ctx) => {
+    await ctx.answerCbQuery().catch(() => { });
+    const { broadcastToSubs, antiLink, antiBan, privateLog } = CASH.toggles;
+
+    const txt = `🛠 <b>KAWALAN FITUR BOT</b>\n\n` +
+        `📢 <b>Broadcast ke User:</b> ${broadcastToSubs ? '✅ ON' : '❌ OFF'}\n` +
+        `🔗 <b>Anti-Link System:</b> ${antiLink ? '✅ ON' : '❌ OFF'}\n` +
+        `🛡 <b>Anti-Banned Words:</b> ${antiBan ? '✅ ON' : '❌ OFF'}\n` +
+        `📝 <b>Log Chat Peribadi:</b> ${privateLog ? '✅ ON' : '❌ OFF'}\n\n` +
+        `<i>Tekan butang di bawah untuk tukar status:</i>`;
+
+    await ctx.editMessageText(txt, {
+        parse_mode: "HTML",
+        ...Markup.inlineKeyboard([
+            [Markup.button.callback(`${broadcastToSubs ? '❌ OFF' : '✅ ON'} Broadcast User`, "toggle_feat_broadcastToSubs")],
+            [Markup.button.callback(`${antiLink ? '❌ OFF' : '✅ ON'} Anti-Link`, "toggle_feat_antiLink"), Markup.button.callback(`${antiBan ? '❌ OFF' : '✅ ON'} Anti-Ban`, "toggle_feat_antiBan")],
+            [Markup.button.callback(`${privateLog ? '❌ OFF' : '✅ ON'} Log Chat`, "toggle_feat_privateLog")],
+            [Markup.button.callback("🔙 Kembali", "back_home")]
+        ])
+    });
+});
+
+bot.action(/^toggle_feat_(.+)$/, async (ctx) => {
+    const feat = ctx.match[1];
+    CASH.toggles[feat] = !CASH.toggles[feat];
+    await saveConfig("toggles", CASH.toggles);
+    await ctx.answerCbQuery(`✅ Status ${feat} ditukar!`);
+
+    const { broadcastToSubs, antiLink, antiBan, privateLog } = CASH.toggles;
+    const txt = `🛠 <b>KAWALAN FITUR BOT</b>\n\n` +
+        `📢 <b>Broadcast ke User:</b> ${broadcastToSubs ? '✅ ON' : '❌ OFF'}\n` +
+        `🔗 <b>Anti-Link System:</b> ${antiLink ? '✅ ON' : '❌ OFF'}\n` +
+        `🛡 <b>Anti-Banned Words:</b> ${antiBan ? '✅ ON' : '❌ OFF'}\n` +
+        `📝 <b>Log Chat Peribadi:</b> ${privateLog ? '✅ ON' : '❌ OFF'}\n\n` +
+        `<i>Tekan butang di bawah untuk tukar status:</i>`;
+
+    await ctx.editMessageText(txt, {
+        parse_mode: "HTML",
+        ...Markup.inlineKeyboard([
+            [Markup.button.callback(`${broadcastToSubs ? '❌ OFF' : '✅ ON'} Broadcast User`, "toggle_feat_broadcastToSubs")],
+            [Markup.button.callback(`${antiLink ? '❌ OFF' : '✅ ON'} Anti-Link`, "toggle_feat_antiLink"), Markup.button.callback(`${antiBan ? '❌ OFF' : '✅ ON'} Anti-Ban`, "toggle_feat_antiBan")],
+            [Markup.button.callback(`${privateLog ? '❌ OFF' : '✅ ON'} Log Chat`, "toggle_feat_privateLog")],
+            [Markup.button.callback("🔙 Kembali", "back_home")]
+        ])
+    });
 });
 
 bot.action(/^edit_id_(.+)$/, async (ctx) => {
@@ -524,11 +580,53 @@ bot.action("manage_admin", async (ctx) => {
     ]));
 });
 bot.action("do_add_admin", async (ctx) => { await ctx.answerCbQuery().catch(() => { }); adminState[ctx.from.id] = { action: "WAIT_ADD_ADMIN" }; ctx.reply("Sila taip ID User:"); });
-bot.action("do_del_admin", async (ctx) => { await ctx.answerCbQuery().catch(() => { }); adminState[ctx.from.id] = { action: "WAIT_DEL_ADMIN" }; ctx.reply("Sila taip ID User:"); });
+bot.action("do_del_admin", async (ctx) => {
+    await ctx.answerCbQuery().catch(() => { });
+    if (CASH.admins.length === 0) return ctx.answerCbQuery("⚠️ Tiada admin.", { show_alert: true });
+    const buttons = CASH.admins.map(id => [Markup.button.callback(`🗑 ${id}`, `rm_admin_val_${id}`)]);
+    buttons.push([Markup.button.callback("🔙 Batal", "manage_admin")]);
+    await ctx.editMessageText("Pilih Admin untuk dipadam:", Markup.inlineKeyboard(buttons));
+});
+bot.action(/^rm_admin_val_(.+)$/, async (ctx) => {
+    const id = parseInt(ctx.match[1]);
+    if (id === CASH.SUPER_ADMIN_ID) return ctx.answerCbQuery("❌ Super Admin tidak boleh dipadam!", { show_alert: true });
+    CASH.admins = CASH.admins.filter(a => a !== id);
+    await saveConfig("admins", CASH.admins);
+    await ctx.answerCbQuery("✅ Admin dipadam!");
+    ctx.editMessageText("Admin berjaya dipadam. Klik Kembali atau Refresh.", Markup.inlineKeyboard([[Markup.button.callback("🔙 Kembali", "manage_admin")]]));
+});
+
 bot.action("do_add_fwd_admin", async (ctx) => { await ctx.answerCbQuery().catch(() => { }); adminState[ctx.from.id] = { action: "WAIT_ADD_FWD" }; ctx.reply("Sila taip ID User (Forwarder):"); });
-bot.action("do_del_fwd_admin", async (ctx) => { await ctx.answerCbQuery().catch(() => { }); adminState[ctx.from.id] = { action: "WAIT_DEL_FWD" }; ctx.reply("Sila taip ID User (Forwarder):"); });
+bot.action("do_del_fwd_admin", async (ctx) => {
+    await ctx.answerCbQuery().catch(() => { });
+    if (CASH.forwardAdmins.length === 0) return ctx.answerCbQuery("⚠️ Tiada forwarder.", { show_alert: true });
+    const buttons = CASH.forwardAdmins.map(id => [Markup.button.callback(`🗑 ${id}`, `rm_fwd_val_${id}`)]);
+    buttons.push([Markup.button.callback("🔙 Batal", "manage_admin")]);
+    await ctx.editMessageText("Pilih Forwarder untuk dipadam:", Markup.inlineKeyboard(buttons));
+});
+bot.action(/^rm_fwd_val_(.+)$/, async (ctx) => {
+    const id = parseInt(ctx.match[1]);
+    CASH.forwardAdmins = CASH.forwardAdmins.filter(a => a !== id);
+    await saveConfig("forwardAdmins", CASH.forwardAdmins);
+    await ctx.answerCbQuery("✅ Forwarder dipadam!");
+    ctx.editMessageText("Forwarder berjaya dipadam.", Markup.inlineKeyboard([[Markup.button.callback("🔙 Kembali", "manage_admin")]]));
+});
+
 bot.action("do_add_group", async (ctx) => { await ctx.answerCbQuery().catch(() => { }); ctx.reply("Sila taip ID Group:"); adminState[ctx.from.id] = { action: "WAIT_ADD_GROUP" }; });
-bot.action("do_del_group", async (ctx) => { await ctx.answerCbQuery().catch(() => { }); adminState[ctx.from.id] = { action: "WAIT_DEL_GROUP" }; ctx.reply("Sila taip ID Group:"); });
+bot.action("do_del_group", async (ctx) => {
+    await ctx.answerCbQuery().catch(() => { });
+    if (CASH.targetGroups.length === 0) return ctx.answerCbQuery("⚠️ Tiada group.", { show_alert: true });
+    const buttons = CASH.targetGroups.map(id => [Markup.button.callback(`🗑 ${id}`, `rm_group_val_${id}`)]);
+    buttons.push([Markup.button.callback("🔙 Batal", "manage_admin")]);
+    await ctx.editMessageText("Pilih Group untuk dipadam:", Markup.inlineKeyboard(buttons));
+});
+bot.action(/^rm_group_val_(.+)$/, async (ctx) => {
+    const id = parseInt(ctx.match[1]);
+    CASH.targetGroups = CASH.targetGroups.filter(g => g !== id);
+    await saveConfig("targetGroups", CASH.targetGroups);
+    await ctx.answerCbQuery("✅ Group dipadam!");
+    ctx.editMessageText("Group berjaya dipadam.", Markup.inlineKeyboard([[Markup.button.callback("🔙 Kembali", "manage_admin")]]));
+});
 
 bot.action("manage_ban", async (ctx) => {
     await ctx.answerCbQuery().catch(() => { });
@@ -588,17 +686,25 @@ bot.action(/^rm_ban_idx_(\d+)$/, async (ctx) => {
 // --- 3. MODERATION ---
 async function handleModeration(ctx) {
     if (!ctx.chat || (ctx.chat.type !== "group" && ctx.chat.type !== "supergroup")) return;
-    if (!ctx.from || ctx.from.is_bot || isAdmin(ctx.from.id)) return;
+
+    // HANYA Moderate jika group ada dalam senarai Target atau Source
+    const isTargetGroup = CASH.targetGroups.includes(ctx.chat.id);
+    const isSourceGroup = ctx.chat.id === CASH.SOURCE_CHAT_ID;
+    if (!isTargetGroup && !isSourceGroup) return;
+
+    // Kecualikan Admin, Bot, dan Anonymous Admin (identiti Group)
+    if (!ctx.from || ctx.from.is_bot || isAdmin(ctx.from.id) || ctx.from.id === 1087968824) return;
+
     const msg = ctx.message;
     if (msg.forward_from_chat && [CASH.CHANNEL_ID, CASH.SOURCE_CHAT_ID].includes(msg.forward_from_chat.id)) return;
     const text = (msg.text || msg.caption || "").toString().toLowerCase();
 
-    if (CASH.bannedWords.some(w => text.includes(w))) {
+    if (CASH.toggles.antiBan && CASH.bannedWords.some(w => text.includes(w))) {
         await ctx.deleteMessage().catch(() => { });
         return await warnUser(ctx, "Penggunaan Kata Terlarang");
     }
     const hasLink = (msg.entities || msg.caption_entities || []).some(e => e.type === "url" || e.type === "text_link") || /https?:\/\/|t\.me\//i.test(text);
-    if (hasLink) {
+    if (CASH.toggles.antiLink && hasLink) {
         await ctx.deleteMessage().catch(() => { });
         return await warnUser(ctx, "Link Tidak Dibenarkan");
     }
@@ -654,20 +760,21 @@ bot.command("forward", async (ctx) => {
 
     const r = ctx.message.reply_to_message;
 
-    // Ambil semua subscriber + target groups + channel
+    // Ambil semua subscriber + target groups
     let subs = [];
-    try {
-        if (subscribersColl) subs = await subscribersColl.find({}).toArray();
-    } catch (e) { console.error("DB Fetch Error:", e); }
+    if (CASH.toggles.broadcastToSubs) {
+        try {
+            if (subscribersColl) subs = await subscribersColl.find({}).toArray();
+        } catch (e) { console.error("DB Fetch Error:", e); }
+    }
 
     let targets = [...subs.map(s => s.userId), ...CASH.targetGroups];
-    if (CASH.CHANNEL_ID) targets.push(CASH.CHANNEL_ID);
 
     // Buang ID group asal supaya tidak forward ke group sendiri dan buang duplicate
     const uniqueTargets = [...new Set(targets)].filter(id => id && id !== ctx.chat.id);
 
     // LOG Sasarang yang dijumpai
-    await bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `🎯 **SASARAN DIJUMPAI**: ${uniqueTargets.length} destinasi.\n(Group: ${CASH.targetGroups.length}, Subs: ${subs.length}, Channel: ${CASH.CHANNEL_ID ? '1' : '0'})`).catch(() => { });
+    await bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `🎯 **SASARAN DIJUMPAI**: ${uniqueTargets.length} destinasi.\n(Group: ${CASH.targetGroups.length}, Subs: ${CASH.toggles.broadcastToSubs ? subs.length : 'OFF'})`).catch(() => { });
 
     if (uniqueTargets.length === 0) {
         return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `⚠️ **FAILED FORWARD**\nReason: Tiada sasaran (sasaran 0). Sila pastikan anda telah menambah Group Target atau Channel ID.`).catch(() => { });
@@ -931,7 +1038,7 @@ bot.on("message", async (ctx, next) => {
             return;
         }
         // Feedback Forwarding
-        if (!text.startsWith("/")) {
+        if (CASH.toggles.privateLog && !text.startsWith("/")) {
             await ctx.forwardMessage(CASH.LOG_GROUP_ID).catch(() => { });
         }
         await ctx.reply("BACK TO MENU TEKAN /start").catch(() => { });
