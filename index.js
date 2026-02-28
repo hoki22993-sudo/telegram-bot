@@ -37,8 +37,11 @@ const CASH = {
         broadcastToSubs: true,
         antiLink: true,
         antiBan: true,
-        privateLog: true
-    }
+        privateLog: true,
+        useCaptcha: true
+    },
+    autoReplies: {},
+    stats: { totalForwards: 0, lastStatsReset: new Date() }
 };
 
 // Undo/Rollback Storage (Temporary Memory)
@@ -132,7 +135,9 @@ async function loadConfig() {
         await load("CHANNEL_ID", -1003175423118);
         await load("CHANNEL_USERNAME", "AFB88_OFFICIAL");
         await load("forwardAdmins", []);
-        await load("toggles", { broadcastToSubs: true, antiLink: true, antiBan: true, privateLog: true });
+        await load("toggles", { broadcastToSubs: true, antiLink: true, antiBan: true, privateLog: true, useCaptcha: true });
+        await load("autoReplies", {});
+        await load("stats", { totalForwards: 0, lastStatsReset: new Date() });
 
         if (!CASH.admins.includes(CASH.SUPER_ADMIN_ID)) CASH.admins.push(CASH.SUPER_ADMIN_ID);
 
@@ -180,6 +185,29 @@ bot.on("new_chat_members", async (ctx) => {
         if (member.is_bot) continue;
         const name = member.first_name || "Bossku";
 
+        // --- Fitur 2: CAPTCHA VERIFICATION ---
+        if (CASH.toggles.useCaptcha) {
+            try {
+                // Mute member dulu (RESTRICT)
+                await ctx.restrictChatMember(member.id, {
+                    can_send_messages: false,
+                    can_send_media_messages: false,
+                    can_send_other_messages: false,
+                    can_add_web_page_previews: false
+                });
+
+                const captchaText = `👋 **SELAMAT DATANG** ${name}!\n\nSila tekan butang di bawah untuk sahkan anda bukan robot sebelum boleh berbual.`;
+                const captchaKbd = Markup.inlineKeyboard([
+                    [Markup.button.callback("✅ SAYA BUKAN ROBOT", `verify_user_${member.id}`)]
+                ]);
+
+                const m = await ctx.reply(captchaText, { parse_mode: "Markdown", ...captchaKbd });
+                // Hapus mesej captcha selepas 2 minit jika tidak dilayan
+                setTimeout(() => ctx.telegram.deleteMessage(ctx.chat.id, m.message_id).catch(() => { }), 120000);
+            } catch (e) { console.error("Captcha Mute Error:", e.message); }
+            continue; // Skip welcome biasa jika guna captcha
+        }
+
         const welcomeText = `
 👋 **SELAMAT DATANG / WELCOME** ${name}!
 
@@ -196,8 +224,37 @@ bot.on("new_chat_members", async (ctx) => {
     }
 });
 
+// Handler Verifikasi Captcha
+bot.action(/^verify_user_(\d+)$/, async (ctx) => {
+    const targetUserId = parseInt(ctx.match[1]);
+    if (ctx.from.id !== targetUserId) return ctx.answerCbQuery("❌ Butang ini bukan untuk anda!", { show_alert: true });
+
+    try {
+        await ctx.restrictChatMember(targetUserId, {
+            can_send_messages: true,
+            can_send_media_messages: true,
+            can_send_other_messages: true,
+            can_add_web_page_previews: true
+        });
+        await ctx.answerCbQuery("✅ Verifikasi Berjaya! Anda boleh berbual sekarang.");
+        await ctx.deleteMessage().catch(() => { });
+
+        // Kirim Welcome pendek & padam cepat (5 saat)
+        const name = ctx.from.first_name;
+        const m = await ctx.reply(`🎉 **Verifikasi Berjaya!**\nSelamat datang ${name}.`);
+        setTimeout(() => ctx.telegram.deleteMessage(ctx.chat.id, m.message_id).catch(() => { }), 5000);
+    } catch (e) {
+        ctx.answerCbQuery("❌ Bot memerlukan kuasa Admin untuk verifikasi.", { show_alert: true });
+    }
+});
+
 // =================== START COMMAND ===================
 bot.start(async (ctx) => {
+    // SEKAT /start DI DALAM GROUP (Hanya benarkan di Private Chat)
+    if (ctx.chat.type !== "private") {
+        return ctx.deleteMessage().catch(() => { });
+    }
+
     console.log("⚡ PROCESSING /START...");
     if (!ctx.from) return; // Safety exit
 
@@ -340,12 +397,13 @@ bot.action("manage_system_ids", async (ctx) => {
 // --- NEW FEATURE CONTROL MENU ---
 bot.action("manage_features", async (ctx) => {
     await ctx.answerCbQuery().catch(() => { });
-    const { broadcastToSubs, antiLink, antiBan, privateLog } = CASH.toggles;
+    const { broadcastToSubs, antiLink, antiBan, privateLog, useCaptcha } = CASH.toggles;
 
     const txt = `🛠 <b>KAWALAN FITUR BOT</b>\n\n` +
         `📢 <b>Broadcast ke User:</b> ${broadcastToSubs ? '✅ ON' : '❌ OFF'}\n` +
         `🔗 <b>Anti-Link System:</b> ${antiLink ? '✅ ON' : '❌ OFF'}\n` +
         `🛡 <b>Anti-Banned Words:</b> ${antiBan ? '✅ ON' : '❌ OFF'}\n` +
+        `🔐 <b>Captcha Verifikasi:</b> ${useCaptcha ? '✅ ON' : '❌ OFF'}\n` +
         `📝 <b>Log Chat Peribadi:</b> ${privateLog ? '✅ ON' : '❌ OFF'}\n\n` +
         `<i>Tekan butang di bawah untuk tukar status:</i>`;
 
@@ -354,6 +412,7 @@ bot.action("manage_features", async (ctx) => {
         ...Markup.inlineKeyboard([
             [Markup.button.callback(`${broadcastToSubs ? '❌ OFF' : '✅ ON'} Broadcast User`, "toggle_feat_broadcastToSubs")],
             [Markup.button.callback(`${antiLink ? '❌ OFF' : '✅ ON'} Anti-Link`, "toggle_feat_antiLink"), Markup.button.callback(`${antiBan ? '❌ OFF' : '✅ ON'} Anti-Ban`, "toggle_feat_antiBan")],
+            [Markup.button.callback(`${useCaptcha ? '❌ OFF' : '✅ ON'} Captcha System`, "toggle_feat_useCaptcha")],
             [Markup.button.callback(`${privateLog ? '❌ OFF' : '✅ ON'} Log Chat`, "toggle_feat_privateLog")],
             [Markup.button.callback("🔙 Kembali", "back_home")]
         ])
@@ -366,11 +425,12 @@ bot.action(/^toggle_feat_(.+)$/, async (ctx) => {
     await saveConfig("toggles", CASH.toggles);
     await ctx.answerCbQuery(`✅ Status ${feat} ditukar!`);
 
-    const { broadcastToSubs, antiLink, antiBan, privateLog } = CASH.toggles;
+    const { broadcastToSubs, antiLink, antiBan, privateLog, useCaptcha } = CASH.toggles;
     const txt = `🛠 <b>KAWALAN FITUR BOT</b>\n\n` +
         `📢 <b>Broadcast ke User:</b> ${broadcastToSubs ? '✅ ON' : '❌ OFF'}\n` +
         `🔗 <b>Anti-Link System:</b> ${antiLink ? '✅ ON' : '❌ OFF'}\n` +
         `🛡 <b>Anti-Banned Words:</b> ${antiBan ? '✅ ON' : '❌ OFF'}\n` +
+        `🔐 <b>Captcha Verifikasi:</b> ${useCaptcha ? '✅ ON' : '❌ OFF'}\n` +
         `📝 <b>Log Chat Peribadi:</b> ${privateLog ? '✅ ON' : '❌ OFF'}\n\n` +
         `<i>Tekan butang di bawah untuk tukar status:</i>`;
 
@@ -379,6 +439,7 @@ bot.action(/^toggle_feat_(.+)$/, async (ctx) => {
         ...Markup.inlineKeyboard([
             [Markup.button.callback(`${broadcastToSubs ? '❌ OFF' : '✅ ON'} Broadcast User`, "toggle_feat_broadcastToSubs")],
             [Markup.button.callback(`${antiLink ? '❌ OFF' : '✅ ON'} Anti-Link`, "toggle_feat_antiLink"), Markup.button.callback(`${antiBan ? '❌ OFF' : '✅ ON'} Anti-Ban`, "toggle_feat_antiBan")],
+            [Markup.button.callback(`${useCaptcha ? '❌ OFF' : '✅ ON'} Captcha System`, "toggle_feat_useCaptcha")],
             [Markup.button.callback(`${privateLog ? '❌ OFF' : '✅ ON'} Log Chat`, "toggle_feat_privateLog")],
             [Markup.button.callback("🔙 Kembali", "back_home")]
         ])
@@ -399,6 +460,95 @@ bot.action("refresh_bot", async (ctx) => {
         ctx.deleteMessage().catch(() => { });
         process.exit(0);
     }, 2000);
+});
+
+// --- NEW FUNCTION: AUTO-REPLY MANAGER ---
+bot.action("manage_auto_reply", async (ctx) => {
+    await ctx.answerCbQuery().catch(() => { });
+    const keys = Object.keys(CASH.autoReplies);
+    const list = keys.map((k, i) => `${i + 1}. <b>${k}</b> ➔ ${CASH.autoReplies[k].substring(0, 20)}...`).join("\n");
+
+    const txt = `🤖 <b>URUS AUTO-REPLY (KEYWORD)</b>\n\n${list || "<i>(Tiada Data)</i>"}\n\n` +
+        `📌 <b>Info:</b> Bot akan balas keyword ini jika dijumpai dalam chat.`;
+
+    await ctx.editMessageText(txt, {
+        parse_mode: "HTML",
+        ...Markup.inlineKeyboard([
+            [Markup.button.callback("➕ Tambah Keyword", "add_reply_kw"), Markup.button.callback("🗑 Padam Keyword", "del_reply_kw")],
+            [Markup.button.callback("🔙 Kembali", "back_home")]
+        ])
+    });
+});
+
+bot.action("add_reply_kw", async (ctx) => {
+    adminState[ctx.from.id] = { action: "WAIT_REPLY_KW" };
+    ctx.reply("✍️ Taip <b>Keyword</b> yang ingin dikesan (Satu perkataan/ayat pendek):", { parse_mode: "HTML" });
+});
+
+bot.action("del_reply_kw", async (ctx) => {
+    const keys = Object.keys(CASH.autoReplies);
+    if (keys.length === 0) return ctx.answerCbQuery("⚠️ Senarai kosong.", { show_alert: true });
+    const buttons = keys.map(k => [Markup.button.callback(`🗑 ${k}`, `rm_reply_kw_${k}`)]);
+    buttons.push([Markup.button.callback("🔙 Batal", "manage_auto_reply")]);
+    ctx.editMessageText("Pilih keyword untuk dibuang:", Markup.inlineKeyboard(buttons));
+});
+
+bot.action(/^rm_reply_kw_(.+)$/, async (ctx) => {
+    const kw = ctx.match[1];
+    delete CASH.autoReplies[kw];
+    await saveConfig("autoReplies", CASH.autoReplies);
+    await ctx.answerCbQuery("✅ Keyword dibuang!");
+    ctx.triggerAction("manage_auto_reply");
+});
+
+// --- NEW FUNCTION: STATS & EXPORT ---
+bot.action("manage_stats", async (ctx) => {
+    await ctx.answerCbQuery().catch(() => { });
+    const subCount = subscribersColl ? await subscribersColl.countDocuments({}) : 0;
+
+    const txt = `📊 <b>STATISTIK & LAPORAN BOT</b>\n\n` +
+        `👥 <b>Jumlah Subscriptions:</b> ${subCount} user\n` +
+        `🚀 <b>Total Forward Berjaya:</b> ${CASH.stats.totalForwards} kali\n` +
+        `🏢 <b>Target Group:</b> ${CASH.targetGroups.length} group\n` +
+        `🗓 <b>Laporan Sejak:</b> ${new Date(CASH.stats.lastStatsReset).toLocaleDateString()}\n\n` +
+        `<i>Anda boleh download data semua subs di bawah:</i>`;
+
+    await ctx.editMessageText(txt, {
+        parse_mode: "HTML",
+        ...Markup.inlineKeyboard([
+            [Markup.button.callback("📥 Export User Data (.txt)", "export_subs")],
+            [Markup.button.callback("🔄 Reset Stats", "reset_stats")],
+            [Markup.button.callback("🔙 Kembali", "back_home")]
+        ])
+    });
+});
+
+bot.action("reset_stats", async (ctx) => {
+    CASH.stats = { totalForwards: 0, lastStatsReset: new Date() };
+    await saveConfig("stats", CASH.stats);
+    ctx.answerCbQuery("✅ Statistik telah di-reset!");
+    ctx.triggerAction("manage_stats");
+});
+
+bot.action("export_subs", async (ctx) => {
+    await ctx.answerCbQuery("⏳ Menjana fail data...").catch(() => { });
+    try {
+        const subs = await subscribersColl.find({}).toArray();
+        if (subs.length === 0) return ctx.reply("⚠️ Tiada data user untuk di-export.");
+
+        let content = `SENARAI SUBSCRIBER BOT - ${new Date().toLocaleString()}\n`;
+        content += `==========================================\n\n`;
+        subs.forEach((s, i) => {
+            content += `${i + 1}. ID: ${s.userId} | Name: ${s.name || 'N/A'}\n`;
+        });
+
+        const buffer = Buffer.from(content, 'utf-8');
+        await ctx.replyWithDocument({ source: buffer, filename: `subscribers_${Date.now()}.txt` }, {
+            caption: `📊 **EXPORT BERJAYA**\nJumlah: ${subs.length} user.`
+        });
+    } catch (e) {
+        ctx.reply("❌ Gagal export data: " + e.message);
+    }
 });
 
 // --- 2. MENU MANAGERS ---
@@ -708,6 +858,18 @@ async function handleModeration(ctx) {
         await ctx.deleteMessage().catch(() => { });
         return await warnUser(ctx, "Link Tidak Dibenarkan");
     }
+
+    // --- AUTO-REPLY CHECK (With Auto-Delete to keep group clean) ---
+    for (const kw in CASH.autoReplies) {
+        if (text.includes(kw.toLowerCase())) {
+            try {
+                const m = await ctx.reply(CASH.autoReplies[kw]);
+                // Padam jawapan bot selepas 30 saat
+                setTimeout(() => ctx.telegram.deleteMessage(ctx.chat.id, m.message_id).catch(() => { }), 30000);
+            } catch (e) { }
+            break;
+        }
+    }
 }
 async function warnUser(ctx, reason) {
     const m = await ctx.reply(`⚠️ **AMARAN!**\nNama: ${ctx.from.first_name}\nSebab: ${reason}`);
@@ -786,12 +948,16 @@ bot.command("forward", async (ctx) => {
 
     for (const t of uniqueTargets) {
         try {
-            const s = await bot.telegram.forwardMessage(t, ctx.chat.id, r.message_id);
             LAST_BROADCAST.push({ chat_id: t, message_id: s.message_id });
             count++;
         } catch (e) {
             failMessages.push(`❌ \`${t}\`: ${e.message}`);
         }
+    }
+
+    if (count > 0) {
+        CASH.stats.totalForwards += count;
+        await saveConfig("stats", CASH.stats);
     }
 
     if (count === 0) {
@@ -881,6 +1047,19 @@ bot.on("message", async (ctx, next) => {
             }
             delete adminState[userId]; return;
         }
+
+        if (state.action === "WAIT_REPLY_KW") {
+            state.data = { kw: text };
+            adminState[userId].action = "WAIT_REPLY_VAL";
+            return ctx.reply(`2️⃣ Sila taip <b>Jawapan Automas</b> untuk keyword "${text}":`, { parse_mode: "HTML" });
+        }
+        if (state.action === "WAIT_REPLY_VAL") {
+            CASH.autoReplies[state.data.kw] = text;
+            await saveConfig("autoReplies", CASH.autoReplies);
+            delete adminState[userId];
+            return ctx.reply(`✅ Auto-Reply disimpan!\n\nKeyword: ${state.data.kw}\nJawapan: ${text}`);
+        }
+
         if (state.action === "WAIT_DEL_BAN") {
             const w = text.toLowerCase();
             if (!CASH.bannedWords.includes(w)) { await ctx.reply("⚠️ Kata ini tiada dalam senarai."); }
@@ -1098,3 +1277,4 @@ function startKeepAlive() {
 
 process.once('SIGINT', () => { bot.stop('SIGINT'); server.close(); });
 process.once('SIGTERM', () => { bot.stop('SIGTERM'); server.close(); });
+
