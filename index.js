@@ -625,6 +625,7 @@ bot.action(/^trig_inline_(.+)$/, async (ctx) => {
     } catch (e) {
         await ctx.reply(d.caption, { parse_mode: "Markdown", ...btn });
     }
+    await ctx.reply("BACK TO MENU TEKAN /start").catch(() => { });
     await ctx.answerCbQuery();
 });
 
@@ -638,7 +639,6 @@ bot.action(/^trig_menu_(.+)$/, async (ctx) => {
     const btn = Markup.inlineKeyboard([[Markup.button.url(btnLabel, d.url)]]);
 
     try {
-        // Send as new message (Reply)
         if (d.media.match(/\.(jpg|png|jpeg)/i) || !d.media.startsWith("http"))
             await ctx.replyWithPhoto(d.media, { caption: d.caption, parse_mode: "Markdown", ...btn });
         else
@@ -646,6 +646,7 @@ bot.action(/^trig_menu_(.+)$/, async (ctx) => {
     } catch (e) {
         await ctx.reply(d.caption, { parse_mode: "Markdown", ...btn });
     }
+    await ctx.reply("BACK TO MENU TEKAN /start").catch(() => { });
     await ctx.answerCbQuery();
 });
 
@@ -866,6 +867,7 @@ async function handleModeration(ctx) {
                 const m = await ctx.reply(CASH.autoReplies[kw]);
                 // Padam jawapan bot selepas 30 saat
                 setTimeout(() => ctx.telegram.deleteMessage(ctx.chat.id, m.message_id).catch(() => { }), 30000);
+                await ctx.reply("BACK TO MENU TEKAN /start").catch(() => { });
             } catch (e) { }
             break;
         }
@@ -948,6 +950,7 @@ bot.command("forward", async (ctx) => {
 
     for (const t of uniqueTargets) {
         try {
+            const s = await bot.telegram.forwardMessage(t, ctx.chat.id, r.message_id);
             LAST_BROADCAST.push({ chat_id: t, message_id: s.message_id });
             count++;
         } catch (e) {
@@ -1277,4 +1280,5 @@ function startKeepAlive() {
 
 process.once('SIGINT', () => { bot.stop('SIGINT'); server.close(); });
 process.once('SIGTERM', () => { bot.stop('SIGTERM'); server.close(); });
+
 
