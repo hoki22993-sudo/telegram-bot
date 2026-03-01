@@ -125,7 +125,7 @@ async function loadConfig() {
             text: "👋 Hi %USERNAME% Bossku 😘"
         });
 
-        await load("menuTitle", "Step Free Cuci Free Ambik Sini ⬇️");
+        await load("menuTitle", "Step Cuci Free Tekan Bawah Sini");
 
         // Load System IDs
         await load("SUPER_ADMIN_ID", 8146896736);
@@ -156,6 +156,27 @@ async function saveConfig(key, value) {
 const bot = new Telegraf(BOT_TOKEN);
 const isAdmin = (id) => CASH.admins.includes(id) || id === CASH.SUPER_ADMIN_ID;
 const isForwarder = (id) => CASH.forwardAdmins.includes(id) || id === CASH.SUPER_ADMIN_ID;
+
+// --- SHARED: SEND STEP MENU ---
+// Re-sends the main steps menu (inline buttons) to the user
+async function sendStepMenu(ctx) {
+    if (ctx.chat.type !== 'private') return;
+    try {
+        const allMenuKeys = Object.keys(CASH.menuData);
+        const inlineMenuKeys = allMenuKeys.filter(k => CASH.menuData[k].position === 'inline');
+        if (inlineMenuKeys.length === 0) return;
+
+        const menuButtons = inlineMenuKeys.map(k => [Markup.button.callback(k, `trig_menu_${k}`)]);
+        const menuInlineKbd = Markup.inlineKeyboard(menuButtons);
+
+        await ctx.reply(CASH.menuTitle || "Step Cuci Free Tekan Bawah Sini", {
+            parse_mode: "Markdown",
+            ...menuInlineKbd
+        }).catch(() => { });
+    } catch (e) {
+        console.error("sendStepMenu Error:", e.message);
+    }
+}
 
 // --- 0. GLOBAL MIDDLEWARE & DEBUGGER ---
 bot.use(async (ctx, next) => {
@@ -326,7 +347,7 @@ bot.start(async (ctx) => {
     // DISINI PERUBAHANNYA:
     // 1. Title Message ("Step Free...") dengan Inline Button "STEP 1"
     // Callback 'trig_menu_' akan handle logic yang SAMA persis seperti keyboard biasa
-    await ctx.reply(CASH.menuTitle || "Step Free Cuci Free Ambik Sini ⬇️", { parse_mode: "Markdown", ...menuInlineKbd });
+    await ctx.reply(CASH.menuTitle || "Step Cuci Free Tekan Bawah Sini", { parse_mode: "Markdown", ...menuInlineKbd });
 
     // 2. Reply Keyboard ("NEW REGISTER") dikirim terpisah supaya tetap muncul di bawah
     if (replyMenuKeys.length > 0) {
@@ -646,7 +667,7 @@ bot.action(/^trig_menu_(.+)$/, async (ctx) => {
     } catch (e) {
         await ctx.reply(d.caption, { parse_mode: "Markdown", ...btn });
     }
-    await ctx.reply("BACK TO MENU TEKAN /start").catch(() => { });
+    await sendStepMenu(ctx);
     await ctx.answerCbQuery();
 });
 
@@ -1280,5 +1301,4 @@ function startKeepAlive() {
 
 process.once('SIGINT', () => { bot.stop('SIGINT'); server.close(); });
 process.once('SIGTERM', () => { bot.stop('SIGTERM'); server.close(); });
-
 
