@@ -945,21 +945,36 @@ bot.command("forward", async (ctx) => {
 
     const r = ctx.message.reply_to_message;
 
-    // Ambil semua subscriber + target groups
-    let subs = [];
-    if (CASH.toggles.broadcastToSubs) {
-        try {
-            if (subscribersColl) subs = await subscribersColl.find({}).toArray();
-        } catch (e) { console.error("DB Fetch Error:", e); }
+    // --- PENGASINGAN SASARAN (UTAMAKAN GROUP/CHANNEL) ---
+
+    // 1. Ambil Target Groups & Channel ID
+    let groupTargets = [...CASH.targetGroups];
+    if (CASH.CHANNEL_ID && !groupTargets.includes(CASH.CHANNEL_ID)) {
+        groupTargets.push(CASH.CHANNEL_ID);
     }
 
-    let targets = [...subs.map(s => s.userId), ...CASH.targetGroups];
+    // 2. Ambil Subscriber (Hanya jika toggle ON)
+    let subscriberTargets = [];
+    if (CASH.toggles.broadcastToSubs) {
+        try {
+            if (subscribersColl) {
+                const subs = await subscribersColl.find({}).toArray();
+                subscriberTargets = subs.map(s => s.userId);
+            }
+        } catch (e) {
+            console.error("DB Fetch Error:", e);
+            await bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `⚠️ **DB FETCH ERROR**: Gagal ambil data subscriber.`).catch(() => { });
+        }
+    }
 
-    // Buang ID group asal supaya tidak forward ke group sendiri dan buang duplicate
+    // 3. Gabungkan dengan susunan: GROUP/CHANNEL DULU -> SUBSCRIBER
+    let targets = [...groupTargets, ...subscriberTargets];
+
+    // 4. Buang ID group asal dan buang duplicate (Set mengekalkan susunan asal)
     const uniqueTargets = [...new Set(targets)].filter(id => id && id !== ctx.chat.id);
 
-    // LOG Sasarang yang dijumpai
-    await bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `🎯 **SASARAN DIJUMPAI**: ${uniqueTargets.length} destinasi.\n(Group: ${CASH.targetGroups.length}, Subs: ${CASH.toggles.broadcastToSubs ? subs.length : 'OFF'})`).catch(() => { });
+    // LOG Sasaran yang dijumpai
+    await bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `🎯 **SASARAN DIJUMPAI**: ${uniqueTargets.length} destinasi.\n(Group/Channel: ${groupTargets.length}, Subs: ${subscriberTargets.length})`).catch(() => { });
 
     if (uniqueTargets.length === 0) {
         return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `⚠️ **FAILED FORWARD**\nReason: Tiada sasaran (sasaran 0). Sila pastikan anda telah menambah Group Target atau Channel ID.`).catch(() => { });
@@ -969,6 +984,7 @@ bot.command("forward", async (ctx) => {
     let count = 0;
     let failMessages = [];
 
+    // Proses Forwarding (Mengikut susunan dalam uniqueTargets)
     for (const t of uniqueTargets) {
         try {
             const s = await bot.telegram.forwardMessage(t, ctx.chat.id, r.message_id);
@@ -1301,5 +1317,4 @@ function startKeepAlive() {
 
 process.once('SIGINT', () => { bot.stop('SIGINT'); server.close(); });
 process.once('SIGTERM', () => { bot.stop('SIGTERM'); server.close(); });
-
 
