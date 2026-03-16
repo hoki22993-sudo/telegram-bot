@@ -947,11 +947,8 @@ bot.command("forward", async (ctx) => {
 
     // --- PENGASINGAN SASARAN (UTAMAKAN GROUP/CHANNEL) ---
 
-    // 1. Ambil Target Groups & Channel ID
+    // 1. Ambil Target Groups
     let groupTargets = [...CASH.targetGroups];
-    if (CASH.CHANNEL_ID && !groupTargets.includes(CASH.CHANNEL_ID)) {
-        groupTargets.push(CASH.CHANNEL_ID);
-    }
 
     // 2. Ambil Subscriber (Hanya jika toggle ON)
     let subscriberTargets = [];
@@ -977,7 +974,7 @@ bot.command("forward", async (ctx) => {
     await bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `🎯 **SASARAN DIJUMPAI**: ${uniqueTargets.length} destinasi.\n(Group/Channel: ${groupTargets.length}, Subs: ${subscriberTargets.length})`).catch(() => { });
 
     if (uniqueTargets.length === 0) {
-        return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `⚠️ **FAILED FORWARD**\nReason: Tiada sasaran (sasaran 0). Sila pastikan anda telah menambah Group Target atau Channel ID.`).catch(() => { });
+        return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `⚠️ **FAILED FORWARD**\nReason: Tiada sasaran (sasaran 0). Sila pastikan anda telah menambah Group Target.`).catch(() => { });
     }
 
     LAST_BROADCAST = []; // Reset
