@@ -38,8 +38,10 @@ const CASH = {
         antiLink: true,
         antiBan: true,
         privateLog: true,
-        useCaptcha: true
+        useCaptcha: true,
+        welcomeMsg: true
     },
+    welcomeMessage: "👋 **SELAMAT DATANG / WELCOME** %NAME%!\n\n🇲🇾 Selamat datang ke Group Official kami! Sila baca rules & enjoy.\n🇬🇧 Welcome to our Official Group! Please read the rules & enjoy.\n\n🚀 *Jangan lupa check Pinned Message!*",
     autoReplies: {},
     stats: { totalForwards: 0, lastStatsReset: new Date() }
 };
@@ -135,7 +137,13 @@ async function loadConfig() {
         await load("CHANNEL_ID", -1003175423118);
         await load("CHANNEL_USERNAME", "AFB88_OFFICIAL");
         await load("forwardAdmins", []);
-        await load("toggles", { broadcastToSubs: true, antiLink: true, antiBan: true, privateLog: true, useCaptcha: true });
+        await load("toggles", { broadcastToSubs: true, antiLink: true, antiBan: true, privateLog: true, useCaptcha: true, welcomeMsg: true });
+        // Migration for welcomeMsg toggle if it doesn't exist
+        if (CASH.toggles.welcomeMsg === undefined) {
+            CASH.toggles.welcomeMsg = true;
+            await saveConfig("toggles", CASH.toggles);
+        }
+        await load("welcomeMessage", "👋 **SELAMAT DATANG / WELCOME** %NAME%!\n\n🇲🇾 Selamat datang ke Group Official kami! Sila baca rules & enjoy.\n🇬🇧 Welcome to our Official Group! Please read the rules & enjoy.\n\n🚀 *Jangan lupa check Pinned Message!*");
         await load("autoReplies", {});
         await load("stats", { totalForwards: 0, lastStatsReset: new Date() });
 
@@ -228,20 +236,15 @@ bot.on("new_chat_members", async (ctx) => {
             } catch (e) { console.error("Captcha Mute Error:", e.message); }
             continue; // Skip welcome biasa jika guna captcha
         }
+        if (!CASH.toggles.welcomeMsg) continue;
+        let welcomeText = CASH.welcomeMessage || "👋 **SELAMAT DATANG** %NAME%!";
+        welcomeText = welcomeText.replace(/%NAME%/g, name);
 
-        const welcomeText = `
-👋 **SELAMAT DATANG / WELCOME** ${name}!
-
-🇲🇾 Selamat datang ke Group Official kami! Sila baca rules & enjoy.
-🇬🇧 Welcome to our Official Group! Please read the rules & enjoy.
-
-🚀 *Jangan lupa check Pinned Message!*
-`;
         try {
             const m = await ctx.reply(welcomeText, { parse_mode: "Markdown" });
             // Auto Delete after 30 seconds
             setTimeout(() => ctx.telegram.deleteMessage(ctx.chat.id, m.message_id).catch(() => { }), 30000);
-        } catch (e) { }
+        } catch (e) { console.error("Welcome Send Error:", e.message); }
     }
 });
 
@@ -425,7 +428,8 @@ bot.action("manage_features", async (ctx) => {
         `🔗 <b>Anti-Link System:</b> ${antiLink ? '✅ ON' : '❌ OFF'}\n` +
         `🛡 <b>Anti-Banned Words:</b> ${antiBan ? '✅ ON' : '❌ OFF'}\n` +
         `🔐 <b>Captcha Verifikasi:</b> ${useCaptcha ? '✅ ON' : '❌ OFF'}\n` +
-        `📝 <b>Log Chat Peribadi:</b> ${privateLog ? '✅ ON' : '❌ OFF'}\n\n` +
+        `📝 <b>Log Chat Peribadi:</b> ${privateLog ? '✅ ON' : '❌ OFF'}\n` +
+        `👋 <b>Mesej Welcome:</b> ${CASH.toggles.welcomeMsg ? '✅ ON' : '❌ OFF'}\n\n` +
         `<i>Tekan butang di bawah untuk tukar status:</i>`;
 
     await ctx.editMessageText(txt, {
@@ -434,7 +438,7 @@ bot.action("manage_features", async (ctx) => {
             [Markup.button.callback(`${broadcastToSubs ? '❌ OFF' : '✅ ON'} Broadcast User`, "toggle_feat_broadcastToSubs")],
             [Markup.button.callback(`${antiLink ? '❌ OFF' : '✅ ON'} Anti-Link`, "toggle_feat_antiLink"), Markup.button.callback(`${antiBan ? '❌ OFF' : '✅ ON'} Anti-Ban`, "toggle_feat_antiBan")],
             [Markup.button.callback(`${useCaptcha ? '❌ OFF' : '✅ ON'} Captcha System`, "toggle_feat_useCaptcha")],
-            [Markup.button.callback(`${privateLog ? '❌ OFF' : '✅ ON'} Log Chat`, "toggle_feat_privateLog")],
+            [Markup.button.callback(`${privateLog ? '❌ OFF' : '✅ ON'} Log Chat`, "toggle_feat_privateLog"), Markup.button.callback(`${CASH.toggles.welcomeMsg ? '❌ OFF' : '✅ ON'} Mesej Welcome`, "toggle_feat_welcomeMsg")],
             [Markup.button.callback("🔙 Kembali", "back_home")]
         ])
     });
@@ -452,7 +456,8 @@ bot.action(/^toggle_feat_(.+)$/, async (ctx) => {
         `🔗 <b>Anti-Link System:</b> ${antiLink ? '✅ ON' : '❌ OFF'}\n` +
         `🛡 <b>Anti-Banned Words:</b> ${antiBan ? '✅ ON' : '❌ OFF'}\n` +
         `🔐 <b>Captcha Verifikasi:</b> ${useCaptcha ? '✅ ON' : '❌ OFF'}\n` +
-        `📝 <b>Log Chat Peribadi:</b> ${privateLog ? '✅ ON' : '❌ OFF'}\n\n` +
+        `📝 <b>Log Chat Peribadi:</b> ${privateLog ? '✅ ON' : '❌ OFF'}\n` +
+        `👋 <b>Mesej Welcome:</b> ${CASH.toggles.welcomeMsg ? '✅ ON' : '❌ OFF'}\n\n` +
         `<i>Tekan butang di bawah untuk tukar status:</i>`;
 
     await ctx.editMessageText(txt, {
@@ -461,7 +466,7 @@ bot.action(/^toggle_feat_(.+)$/, async (ctx) => {
             [Markup.button.callback(`${broadcastToSubs ? '❌ OFF' : '✅ ON'} Broadcast User`, "toggle_feat_broadcastToSubs")],
             [Markup.button.callback(`${antiLink ? '❌ OFF' : '✅ ON'} Anti-Link`, "toggle_feat_antiLink"), Markup.button.callback(`${antiBan ? '❌ OFF' : '✅ ON'} Anti-Ban`, "toggle_feat_antiBan")],
             [Markup.button.callback(`${useCaptcha ? '❌ OFF' : '✅ ON'} Captcha System`, "toggle_feat_useCaptcha")],
-            [Markup.button.callback(`${privateLog ? '❌ OFF' : '✅ ON'} Log Chat`, "toggle_feat_privateLog")],
+            [Markup.button.callback(`${privateLog ? '❌ OFF' : '✅ ON'} Log Chat`, "toggle_feat_privateLog"), Markup.button.callback(`${CASH.toggles.welcomeMsg ? '❌ OFF' : '✅ ON'} Mesej Welcome`, "toggle_feat_welcomeMsg")],
             [Markup.button.callback("🔙 Kembali", "back_home")]
         ])
     });
@@ -679,10 +684,16 @@ bot.action("manage_start", async (ctx) => {
         `🏁 **TETAPAN MESEJ & TITLE**\nSila pilih bahagian yang ingin diubah:`,
         Markup.inlineKeyboard([
             [Markup.button.callback("🖼 Ubah Mesej Start", "do_chg_start_msg")],
+            [Markup.button.callback("👋 Ubah Mesej Welcome", "do_chg_welcome_msg")],
             [Markup.button.callback("🔤 Ubah Menu Title", "do_chg_title")],
             [Markup.button.callback("🔙 Kembali", "back_home")]
         ])
     );
+});
+
+bot.action("do_chg_welcome_msg", (ctx) => {
+    adminState[ctx.from.id] = { action: "WAIT_WELCOME_MSG" };
+    ctx.editMessageText("👋 **UBAH MESEJ WELCOME**\n\nSila taip mesej aluan baru anda.\n\n📌 **Tips:** Gunakan `%NAME%` untuk auto-tag nama user.\n\n_Contoh: Selamat datang %NAME% ke group kami!_", { parse_mode: "Markdown" });
 });
 
 bot.action("do_chg_start_msg", (ctx) => {
@@ -1214,6 +1225,13 @@ bot.on("message", async (ctx, next) => {
             await saveConfig(state.key, val);
             delete adminState[userId];
             return ctx.reply(`✅ <b>${state.key}</b> berjaya dikemaskini kepada:\n<code>${val}</code>`, { parse_mode: "HTML" });
+        }
+
+        if (state.action === "WAIT_WELCOME_MSG") {
+            CASH.welcomeMessage = text;
+            await saveConfig("welcomeMessage", text);
+            delete adminState[userId];
+            return ctx.reply("✅ **MESEJ WELCOME DISIMPAN!**\n\nPratonton:\n" + text.replace(/%NAME%/g, ctx.from.first_name), { parse_mode: "Markdown" });
         }
     }
 
