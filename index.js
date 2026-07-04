@@ -282,8 +282,18 @@ async function saveConfig(key, value) {
 
 // ================= BOT LOGIC =================
 const bot = new Telegraf(BOT_TOKEN);
-const isAdmin = (id) => CASH.admins.includes(id) || id === CASH.SUPER_ADMIN_ID || (CASH.SUPER_ADMIN_IDS && CASH.SUPER_ADMIN_IDS.includes(id));
-const isForwarder = (id) => CASH.forwardAdmins.includes(id) || id === CASH.SUPER_ADMIN_ID || (CASH.SUPER_ADMIN_IDS && CASH.SUPER_ADMIN_IDS.includes(id));
+const isAdmin = (id) => {
+    const numId = Number(id);
+    return (CASH.admins || []).map(Number).includes(numId) || 
+           numId === Number(CASH.SUPER_ADMIN_ID) || 
+           ((CASH.SUPER_ADMIN_IDS || []).map(Number).includes(numId));
+};
+const isForwarder = (id) => {
+    const numId = Number(id);
+    return (CASH.forwardAdmins || []).map(Number).includes(numId) || 
+           numId === Number(CASH.SUPER_ADMIN_ID) || 
+           ((CASH.SUPER_ADMIN_IDS || []).map(Number).includes(numId));
+};
 
 // --- RESET MANUAL COMMAND (NEW) ---
 bot.command("resetlink", async (ctx) => {
