@@ -1336,27 +1336,28 @@ bot.command("undo", async (ctx) => {
 
 bot.command("setautofwd", async (ctx) => {
     const userId = ctx.from.id;
+    
+    // Padam command supaya tak nampak di group public/source
+    ctx.deleteMessage().catch(() => {});
+
     if (!isAdmin(userId)) {
-        return ctx.reply("❌ Anda tidak mempunyai akses admin.");
+        return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `⚠️ **Akses Ditolak (Bukan Admin)**\nUser: ${ctx.from.first_name} (\`${userId}\`) cuba menggunakan \`/setautofwd\` di group \`${ctx.chat.title}\` (ID: ${ctx.chat.id}).`, { parse_mode: "Markdown" }).catch(()=>{});
     }
 
     const isAllowedSource = ctx.chat.id === CASH.SOURCE_CHAT_ID || (CASH.SOURCE_CHAT_IDS && CASH.SOURCE_CHAT_IDS.includes(ctx.chat.id));
     if (!isAllowedSource) {
-        return ctx.reply("⚠️ Command ini hanya boleh digunakan di dalam Kumpulan Sumber (Source Group) yang sah.");
+        return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `⚠️ **Ralat Source Group**\nUser: ${ctx.from.first_name} (\`${userId}\`) cuba menggunakan \`/setautofwd\` di group yang tidak didaftarkan sebagai Source Group (\`${ctx.chat.title}\`, ID: ${ctx.chat.id}).`, { parse_mode: "Markdown" }).catch(()=>{});
     }
 
-    // Padam command supaya tak nampak di group public
-    ctx.deleteMessage().catch(() => {});
-
     if (!ctx.message.reply_to_message) {
-        return ctx.reply("⚠️ **Sila reply pada mesej** yang ingin ditambah ke Auto-Forward Round-Robin.");
+        return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `⚠️ **Ralat Set Auto-Forward**\nUser: ${ctx.from.first_name} (\`${userId}\`) tidak membuat reply pada mesej semasa menaip \`/setautofwd\`.`, { parse_mode: "Markdown" }).catch(()=>{});
     }
 
     if (!CASH.autoForward) CASH.autoForward = { messageIds: [], chatId: null, isActive: false, currentIndex: 0 };
     if (!CASH.autoForward.messageIds) CASH.autoForward.messageIds = [];
 
     if (CASH.autoForward.messageIds.length >= MAX_QUEUE_LIMIT) {
-        return ctx.reply(`⚠️ Senarai Auto-Forward Round-Robin dah penuh! Maksimum ${MAX_QUEUE_LIMIT} mesej dibenarkan.\nSila \`/clearautofwd\` jika mahu reset.`);
+        return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `⚠️ **Ralat Set Auto-Forward**\nSenarai Auto-Forward Round-Robin sudah penuh! Maksimum ${MAX_QUEUE_LIMIT} mesej dibenarkan.`, { parse_mode: "Markdown" }).catch(()=>{});
     }
 
     CASH.autoForward.messageIds.push(ctx.message.reply_to_message.message_id);
@@ -1367,19 +1368,20 @@ bot.command("setautofwd", async (ctx) => {
     await saveConfig("autoForward", CASH.autoForward);
     startAutoForwardTimer();
 
-    // Reply kepada user di group
-    await ctx.reply(`✅ **Mesej ditambah ke senarai Auto-Forward Round-Robin!**\nJumlah semasa: ${CASH.autoForward.messageIds.length}/${MAX_QUEUE_LIMIT} mesej.\n\nBot akan mula auto-forward dalam senarai secara bergilir-gilir.`);
-
-    // Hantar log
-    bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `✅ **Mesej ditambah ke senarai Auto-Forward!** (Oleh ${ctx.from.first_name})\nJumlah semasa: ${CASH.autoForward.messageIds.length}/${MAX_QUEUE_LIMIT} mesej.\n\nBot akan forward dari Source Group (label betul).\n\n_(Nota: Gunakan /clearautofwd untuk padam senarai ini)_`, { parse_mode: "Markdown" }).catch(()=>{});
+    // Hantar log kejayaan
+    bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `✅ **Mesej ditambah ke senarai Auto-Forward Round-Robin!** (Oleh ${ctx.from.first_name})\nJumlah semasa: ${CASH.autoForward.messageIds.length}/${MAX_QUEUE_LIMIT} mesej.\n\nBot akan forward dari Source Group (label betul).\n\n_(Nota: Gunakan /clearautofwd untuk padam senarai ini)_`, { parse_mode: "Markdown" }).catch(()=>{});
 });
 
 bot.command("clearautofwd", async (ctx) => {
-    if (!isAdmin(ctx.from.id)) return;
+    const userId = ctx.from.id;
     
     // Padam command
     ctx.deleteMessage().catch(() => {});
 
+    if (!isAdmin(userId)) {
+        return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `⚠️ **Akses Ditolak (Bukan Admin)**\nUser: ${ctx.from.first_name} (\`${userId}\`) cuba menggunakan \`/clearautofwd\` di group \`${ctx.chat.title}\` (ID: ${ctx.chat.id}).`, { parse_mode: "Markdown" }).catch(()=>{});
+    }
+    
     if (CASH.autoForward) {
         CASH.autoForward.messageIds = [];
         CASH.autoForward.isActive = false;
@@ -1391,20 +1393,23 @@ bot.command("clearautofwd", async (ctx) => {
 
 bot.command("setautofwd2hr", async (ctx) => {
     const userId = ctx.from.id;
+    
+    // Padam command
+    ctx.deleteMessage().catch(() => {});
+
     if (!isAdmin(userId) && !isForwarder(userId)) {
-        return ctx.reply("❌ Anda tidak mempunyai akses admin atau forwarder.");
+        return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `⚠️ **Akses Ditolak (Bukan Admin/Forwarder)**\nUser: ${ctx.from.first_name} (\`${userId}\`) cuba menggunakan \`/setautofwd2hr\` di group \`${ctx.chat.title}\` (ID: ${ctx.chat.id}).`, { parse_mode: "Markdown" }).catch(()=>{});
     }
 
     const isAllowedSource = ctx.chat.id === CASH.SOURCE_CHAT_ID || (CASH.SOURCE_CHAT_IDS && CASH.SOURCE_CHAT_IDS.includes(ctx.chat.id));
     if (!isAllowedSource) {
-        return ctx.reply("⚠️ Command ini hanya boleh digunakan di dalam Kumpulan Sumber (Source Group) yang sah.");
+        return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `⚠️ **Ralat Source Group**\nUser: ${ctx.from.first_name} (\`${userId}\`) cuba menggunakan \`/setautofwd2hr\` di group yang tidak didaftarkan sebagai Source Group (\`${ctx.chat.title}\`, ID: ${ctx.chat.id}).`, { parse_mode: "Markdown" }).catch(()=>{});
     }
 
     if (!ctx.message.reply_to_message) {
-        return ctx.reply("⚠️ Sila reply pada mesej yang ingin di auto-forward.");
+        return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `⚠️ **Ralat Set Auto-Forward Kustom**\nUser: ${ctx.from.first_name} (\`${userId}\`) tidak membuat reply pada mesej semasa menaip \`/setautofwd2hr\`.`, { parse_mode: "Markdown" }).catch(()=>{});
     }
 
-    // ...
     const args = (ctx.message.text || "").split(" ").slice(1);
     let intervalMins = 120; // Default 2 jam (120 minit)
 
@@ -1413,7 +1418,7 @@ bot.command("setautofwd2hr", async (ctx) => {
         if (!isNaN(parsed) && parsed > 0) {
             intervalMins = parsed;
         } else {
-            return ctx.reply("⚠️ Sila masukkan nilai minit yang sah. Contoh: `/setautofwd2hr 60` untuk 60 minit.", { parse_mode: "Markdown" });
+            return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `⚠️ **Ralat Minit**\nUser: ${ctx.from.first_name} (\`${userId}\`) memasukkan nilai minit tidak sah: \`${args[0]}\`.`, { parse_mode: "Markdown" }).catch(()=>{});
         }
     }
 
@@ -1421,23 +1426,19 @@ bot.command("setautofwd2hr", async (ctx) => {
     if (!CASH.autoFwdData.messageIds) CASH.autoFwdData.messageIds = [];
 
     if (CASH.autoFwdData.messageIds.length >= MAX_QUEUE_LIMIT) {
-        ctx.deleteMessage().catch(() => {});
-        return ctx.reply(`⚠️ Senarai Kustom Auto-Forward dah penuh! (${CASH.autoFwdData.messageIds.length}/${MAX_QUEUE_LIMIT})\nGunakan /clearautofwd2hr untuk reset.`, { parse_mode: "Markdown" });
+        return bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `⚠️ **Ralat Set Auto-Forward Kustom**\nSenarai Kustom Auto-Forward sudah penuh! (${CASH.autoFwdData.messageIds.length}/${MAX_QUEUE_LIMIT})`, { parse_mode: "Markdown" }).catch(()=>{});
     }
 
     CASH.autoFwdData.messageIds.push(ctx.message.reply_to_message.message_id);
     CASH.autoFwdData.chatId = ctx.chat.id; // Simpan chat ID di mana command dijalankan!
-    // Kekalkan intervalMins jika ada, atau guna nilai baru
     CASH.autoFwdData.intervalMins = intervalMins;
     CASH.autoFwdData.active = true;
     if (CASH.autoFwdData.lastRun === undefined) CASH.autoFwdData.lastRun = 0;
     if (CASH.autoFwdData.currentIndex === undefined) CASH.autoFwdData.currentIndex = 0;
     await saveConfig("autoFwdData", CASH.autoFwdData);
 
-    ctx.deleteMessage().catch(() => {});
     const hours = (intervalMins / 60).toFixed(1);
-    await ctx.reply(`✅ **MESEJ DITAMBAH KE QUEUE KUSTOM!**\n\n📦 Queue: ${CASH.autoFwdData.messageIds.length}/${MAX_QUEUE_LIMIT} mesej\n⏱ Interval: ${intervalMins} minit (~${hours} jam)\n\nGunakan /clearautofwd2hr untuk reset queue.`, { parse_mode: "Markdown" });
-    bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `✅ **Mesej Kustom ditambah!** (Oleh ${ctx.from.first_name})\nQueue: ${CASH.autoFwdData.messageIds.length}/${MAX_QUEUE_LIMIT} mesej\nInterval: ${intervalMins} minit`, { parse_mode: "Markdown" }).catch(()=>{});
+    bot.telegram.sendMessage(CASH.LOG_GROUP_ID, `✅ **MESEJ DITAMBAH KE QUEUE KUSTOM!** (Oleh ${ctx.from.first_name})\n\n📦 Queue: ${CASH.autoFwdData.messageIds.length}/${MAX_QUEUE_LIMIT} mesej\n⏱ Interval: ${intervalMins} minit (~${hours} jam)\n\nGunakan /clearautofwd2hr untuk reset queue.`, { parse_mode: "Markdown" }).catch(()=>{});
 });
 
 bot.command("clearautofwd2hr", async (ctx) => {
