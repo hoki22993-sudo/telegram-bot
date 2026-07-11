@@ -9,11 +9,11 @@ import http from "http";
 
 dotenv.config();
 
-// ================= KONFIGURASI UTAMA =================
+// ================= KONFIGURASI UTAMA ======= ==========
 const BOT_TOKEN = process.env.BOT_TOKEN || "ISI_TOKEN_DI_SINI";
 const PORT = process.env.PORT || 8080;
 const MONGODB_URI = (process.env.MONGODB_URI || "").trim();
-const MAX_QUEUE_LIMIT = 30;
+const MAX_QUEUE_LIMIT = 50;
 
 // ================= STATE MANAGEMENT =================
 const adminState = {};
